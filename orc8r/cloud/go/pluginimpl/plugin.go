@@ -25,7 +25,6 @@ import (
 	accessdh "magma/orc8r/cloud/go/services/accessd/obsidian/handlers"
 	checkinh "magma/orc8r/cloud/go/services/checkind/obsidian/handlers"
 	"magma/orc8r/cloud/go/services/configurator"
-	configuratorh "magma/orc8r/cloud/go/services/configurator/obsidian/handlers"
 	"magma/orc8r/cloud/go/services/device"
 	dnsdconfig "magma/orc8r/cloud/go/services/dnsd/config"
 	dnsdh "magma/orc8r/cloud/go/services/dnsd/obsidian/handlers"
@@ -108,6 +107,7 @@ func (*BaseOrchestratorPlugin) GetMetricsProfiles(metricsConfig *config.ConfigMa
 
 func (*BaseOrchestratorPlugin) GetObsidianHandlers(metricsConfig *config.ConfigMap) []obsidian.Handler {
 	return plugin.FlattenHandlerLists(
+		// v0 handlers
 		accessdh.GetObsidianHandlers(),
 		checkinh.GetObsidianHandlers(),
 		dnsdh.GetObsidianHandlers(),
@@ -115,7 +115,8 @@ func (*BaseOrchestratorPlugin) GetObsidianHandlers(metricsConfig *config.ConfigM
 		metricsdh.GetObsidianHandlers(metricsConfig),
 		upgradeh.GetObsidianHandlers(),
 		stateh.GetObsidianHandlers(),
-		configuratorh.GetObsidianHandlers(),
+		// v1 handlers
+		GetObsidianHandlers(),
 		[]obsidian.Handler{{
 			Path:    "/",
 			Methods: obsidian.GET,
