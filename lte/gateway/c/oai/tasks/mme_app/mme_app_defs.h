@@ -47,9 +47,6 @@ void mme_app_handle_s1ap_ue_context_release_complete(
   const itti_s1ap_ue_context_release_complete_t const
     *s1ap_ue_context_release_complete);
 
-int mme_app_send_s6a_update_location_req(
-  struct ue_mm_context_s *const ue_context_pP);
-
 int mme_app_handle_s6a_update_location_ans(
   const s6a_update_location_ans_t *const ula_pP);
 

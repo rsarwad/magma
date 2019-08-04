@@ -73,10 +73,6 @@ static void *nas_intertask_interface(void *args_p)
           &NAS_DL_DATA_REJ(received_message_p).nas_msg);
       } break;
 
-      case NAS_PDN_CONFIG_RSP: {
-        nas_proc_pdn_config_res(&NAS_PDN_CONFIG_RSP(received_message_p));
-      } break;
-
       case NAS_PDN_CONNECTIVITY_FAIL: {
         nas_proc_pdn_connectivity_fail(
           &NAS_PDN_CONNECTIVITY_FAIL(received_message_p));

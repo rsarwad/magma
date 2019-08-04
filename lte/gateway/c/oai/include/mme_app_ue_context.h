@@ -702,6 +702,9 @@ void mme_app_ue_sgs_context_free_content(
 bool is_mme_ue_context_network_access_mode_packet_only(
   ue_mm_context_t  *ue_context_p);
 
+int mme_app_send_s6a_update_location_req(
+  struct ue_mm_context_s *const ue_context_pP);
+
 #endif /* FILE_MME_APP_UE_CONTEXT_SEEN */
 
 /* @} */

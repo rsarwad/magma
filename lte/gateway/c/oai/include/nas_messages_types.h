@@ -49,8 +49,6 @@
 #define NAS_DL_DATA_REQ(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_req
 #define NAS_DL_DATA_CNF(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_cnf
 #define NAS_DL_DATA_REJ(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_rej
-#define NAS_PDN_CONFIG_REQ(mSGpTR) (mSGpTR)->ittiMsg.nas_pdn_config_req
-#define NAS_PDN_CONFIG_RSP(mSGpTR) (mSGpTR)->ittiMsg.nas_pdn_config_rsp
 #define NAS_PDN_CONFIG_FAIL(mSGpTR) (mSGpTR)->ittiMsg.nas_pdn_config_fail
 #define NAS_PDN_CONNECTIVITY_REQ(mSGpTR)                                       \
   (mSGpTR)->ittiMsg.nas_pdn_connectivity_req

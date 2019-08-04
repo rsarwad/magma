@@ -56,6 +56,7 @@
 #include "service303.h"
 #include "sgs_messages_types.h"
 #include "esm_proc.h"
+#include "nas_proc.h"
 
 //------------------------------------------------------------------------------
 int mme_app_send_s6a_update_location_req(
@@ -320,20 +321,6 @@ int mme_app_handle_s6a_update_location_ans(
     &ula_pP->subscription_data.apn_config_profile,
     sizeof(apn_config_profile_t));
 
-  MessageDef *message_p = NULL;
-  itti_nas_pdn_config_rsp_t *nas_pdn_config_rsp = NULL;
-
-  message_p = itti_alloc_new_message(TASK_MME_APP, NAS_PDN_CONFIG_RSP);
-
-  if (message_p == NULL) {
-    OAILOG_ERROR(
-      LOG_MME_APP,
-      "Message pointer is NULL while allocating new message for PDN Config Rsp, (ue_id = %u)\n",
-      ue_mm_context->mme_ue_s1ap_id);
-    unlock_ue_contexts(ue_mm_context);
-    OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
-  }
-
   /*
    * Set the value of  Mobile Reachability timer based on value of T3412 (Periodic TAU timer) sent in Attach accept /TAU accept.
    * Set it to MME_APP_DELTA_T3412_REACHABILITY_TIMER minutes greater than T3412.
@@ -365,12 +352,7 @@ int mme_app_handle_s6a_update_location_ans(
   if (ue_mm_context->location_info_confirmed_in_hss == true) {
     ue_mm_context->location_info_confirmed_in_hss = false;
   }
-
-  nas_pdn_config_rsp = &message_p->ittiMsg.nas_pdn_config_rsp;
-  nas_pdn_config_rsp->ue_id = ue_mm_context->mme_ue_s1ap_id;
-  OAILOG_INFO(LOG_MME_APP, "Sending PDN CONFIG RSP to NAS for (ue_id = %u)\n",
-    nas_pdn_config_rsp->ue_id);
-  rc = itti_send_msg_to_task(TASK_NAS_MME, INSTANCE_DEFAULT, message_p);
+  rc= nas_proc_pdn_config_res(ue_mm_context->mme_ue_s1ap_id);
 
   unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);

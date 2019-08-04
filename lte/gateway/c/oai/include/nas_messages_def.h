@@ -93,11 +93,6 @@ MESSAGE_DEF(
   MESSAGE_PRIORITY_MED,
   itti_nas_detach_req_t,
   nas_detach_req)
-MESSAGE_DEF(
-  NAS_PDN_CONFIG_REQ,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_pdn_config_req_t,
-  nas_pdn_config_req)
 
 /* MME app -> NAS layer messages */
 MESSAGE_DEF(
@@ -110,11 +105,6 @@ MESSAGE_DEF(
   MESSAGE_PRIORITY_MED,
   itti_nas_pdn_connectivity_fail_t,
   nas_pdn_connectivity_fail)
-MESSAGE_DEF(
-  NAS_PDN_CONFIG_RSP,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_pdn_config_rsp_t,
-  nas_pdn_config_rsp)
 MESSAGE_DEF(
   NAS_PDN_CONFIG_FAIL,
   MESSAGE_PRIORITY_MED,
