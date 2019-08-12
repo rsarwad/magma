@@ -15,10 +15,10 @@ import (
 
 	"magma/orc8r/cloud/go/errors"
 	"magma/orc8r/cloud/go/orc8r"
+	"magma/orc8r/cloud/go/pluginimpl/models"
 	"magma/orc8r/cloud/go/protos"
 	"magma/orc8r/cloud/go/registry"
 	"magma/orc8r/cloud/go/serde"
-	"magma/orc8r/cloud/go/services/checkind/obsidian/models"
 
 	"github.com/golang/glog"
 	"google.golang.org/grpc"
@@ -154,15 +154,12 @@ func GetGatewayStatus(networkID string, deviceID string) (*models.GatewayStatus,
 		return nil, errors.ErrNotFound
 	}
 
-	gwStatus := state.ReportedState.(models.GatewayStatus)
+	gwStatus := state.ReportedState.(*models.GatewayStatus)
 	gwStatus.CheckinTime = state.Time
 	gwStatus.CertExpirationTime = state.CertExpirationTime
 	// Use the hardware ID from the middleware
 	gwStatus.HardwareID = state.ReporterID
-	// Populate deprecated fields to support API backwards compatibility
-	// TODO: Remove this and related tests when deprecated fields are no longer used
-	gwStatus.FillDeprecatedFields()
-	return &gwStatus, nil
+	return gwStatus, nil
 }
 
 func toProtosStateIDs(stateIDs []StateID) []*protos.StateID {

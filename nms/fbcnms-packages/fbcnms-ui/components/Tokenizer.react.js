@@ -16,7 +16,7 @@ import ClearIcon from '@material-ui/icons/Clear';
 import Typography from '@material-ui/core/Typography';
 import {withStyles, withTheme} from '@material-ui/core/styles';
 
-const styles = _theme => ({
+const styles = {
   root: {
     display: 'flex',
     borderRadius: '4px',
@@ -51,7 +51,7 @@ const styles = _theme => ({
     marginRight: '6px',
     padding: '0px',
   },
-});
+};
 
 export type Entry = {
   id: string,
@@ -109,12 +109,13 @@ const autoSuggestStyles = theme => ({
 });
 
 type Props = {
-  searchEntries: Array<Entry>,
+  searchSource: 'Options' | 'UserInput',
+  searchEntries?: Array<Entry>,
   onEntriesRequested: (searchTerm: string) => void,
   onChange?: (entries: Array<Entry>) => void,
   onBlur?: () => void,
   theme: Theme,
-} & WithStyles;
+} & WithStyles<typeof styles>;
 
 type State = {
   tokens: Array<Entry>,
@@ -134,13 +135,18 @@ class Tokenizer extends React.Component<Props, State> {
     const {
       classes,
       theme,
+      searchSource,
       searchEntries,
       onEntriesRequested,
       onChange,
       onBlur,
     } = this.props;
     const {tokens, searchTerm} = this.state;
-    const unusedSearchEntries = searchEntries.filter(entry =>
+    const entries =
+      searchSource === 'Options' && searchEntries
+        ? searchEntries
+        : [{id: searchTerm, label: searchTerm}];
+    const unusedSearchEntries = entries.filter(entry =>
       tokens.every(token => token.id !== entry.id),
     );
     return (
@@ -166,11 +172,7 @@ class Tokenizer extends React.Component<Props, State> {
           suggestions={unusedSearchEntries}
           getSuggestionValue={entry => entry.label}
           onSuggestionsFetchRequested={({value}) => onEntriesRequested(value)}
-          renderSuggestion={entry => (
-            <div className={classes.entryRoot}>
-              <div>{entry.label}</div>
-            </div>
-          )}
+          renderSuggestion={entry => <div>{entry.label}</div>}
           onSuggestionSelected={(e, {suggestion}) => {
             this.setState(
               prevState => ({

@@ -38,6 +38,7 @@ import (
 	graphite_exp "magma/orc8r/cloud/go/services/metricsd/graphite/exporters"
 	metricsdh "magma/orc8r/cloud/go/services/metricsd/obsidian/handlers"
 	promo_exp "magma/orc8r/cloud/go/services/metricsd/prometheus/exporters"
+	"magma/orc8r/cloud/go/services/state"
 	stateh "magma/orc8r/cloud/go/services/state/obsidian/handlers"
 	"magma/orc8r/cloud/go/services/streamer/mconfig"
 	"magma/orc8r/cloud/go/services/streamer/mconfig/factory"
@@ -66,10 +67,10 @@ func (*BaseOrchestratorPlugin) GetServices() []registry.ServiceLocation {
 func (*BaseOrchestratorPlugin) GetSerdes() []serde.Serde {
 	return []serde.Serde{
 		// State service serdes
-		&GatewayStatusSerde{},
+		state.NewStateSerde(orc8r.GatewayStateType, &models.GatewayStatus{}),
 
-		// Inventory service serdes
-		serde.NewBinarySerde(device.SerdeDomain, orc8r.AccessGatewayRecordType, &magmadmodels.AccessGatewayRecord{}),
+		// Device service serdes
+		serde.NewBinarySerde(device.SerdeDomain, orc8r.AccessGatewayRecordType, &models.GatewayDevice{}),
 
 		// Config manager serdes
 		configurator.NewNetworkConfigSerde(orc8r.DnsdNetworkType, &models.NetworkDNSConfig{}),
@@ -140,7 +141,7 @@ func (*BaseOrchestratorPlugin) GetStreamerProviders() []providers.StreamProvider
 const (
 	ProfileNamePrometheus = "prometheus"
 	ProfileNameGraphite   = "graphite"
-	ProfileNameDefault    = "default"
+	ProfileNameExportAll  = "exportall"
 )
 
 func getMetricsProfiles(metricsConfig *config.ConfigMap) []metricsd.MetricsProfile {
@@ -162,7 +163,8 @@ func getMetricsProfiles(metricsConfig *config.ConfigMap) []metricsd.MetricsProfi
 		Exporters:  []exporters.Exporter{prometheusCustomPushExporter},
 	}
 
-	graphiteExportAddresses := metricsConfig.GetRequiredStringArrayParam(confignames.GraphiteExportAddresses)
+	// No-op graphite exporter if graphite parameters are not set
+	graphiteExportAddresses, _ := metricsConfig.GetStringArrayParam(confignames.GraphiteExportAddresses)
 	var graphiteAddresses []graphite_exp.Address
 	for _, address := range graphiteExportAddresses {
 		portIdx := strings.LastIndex(address, ":")
@@ -173,8 +175,8 @@ func getMetricsProfiles(metricsConfig *config.ConfigMap) []metricsd.MetricsProfi
 		}
 		graphiteAddresses = append(graphiteAddresses, graphite_exp.NewAddress(address[:portIdx], portInt))
 	}
-
 	graphiteExporter := graphite_exp.NewGraphiteExporter(graphiteAddresses)
+
 	// Graphite profile - Exports all service metrics to Graphite
 	graphiteProfile := metricsd.MetricsProfile{
 		Name:       ProfileNameGraphite,
@@ -182,8 +184,9 @@ func getMetricsProfiles(metricsConfig *config.ConfigMap) []metricsd.MetricsProfi
 		Exporters:  []exporters.Exporter{graphiteExporter},
 	}
 
-	defaultProfile := metricsd.MetricsProfile{
-		Name:       ProfileNameDefault,
+	// ExportAllProfile - Exports to both graphite and prometheus
+	exportAllProfile := metricsd.MetricsProfile{
+		Name:       ProfileNameExportAll,
 		Collectors: controllerCollectors,
 		Exporters:  []exporters.Exporter{prometheusCustomPushExporter, graphiteExporter},
 	}
@@ -191,6 +194,6 @@ func getMetricsProfiles(metricsConfig *config.ConfigMap) []metricsd.MetricsProfi
 	return []metricsd.MetricsProfile{
 		prometheusProfile,
 		graphiteProfile,
-		defaultProfile,
+		exportAllProfile,
 	}
 }
