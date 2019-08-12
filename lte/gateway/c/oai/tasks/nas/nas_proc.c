@@ -525,8 +525,9 @@ int nas_proc_pdn_connectivity_res(emm_cn_pdn_res_t *emm_cn_pdn_res)
   emm_sap.u.emm_cn.u.emm_cn_pdn_res = emm_cn_pdn_res;
   OAILOG_INFO(
     LOG_NAS,
-    "Received PDN CONNECTIVITY RESPONSE from MME_APP for ue_id = (%u)\n",
-    emm_cn_pdn_res->ue_id);
+    "Handling PDN CONNECTIVITY RESPONSE for ue_id = (%u) \n" \
+    " bearer ID = (%d)\n",
+    emm_cn_pdn_res->ue_id, emm_cn_pdn_res->ebi);
   rc = emm_sap_send(&emm_sap);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }

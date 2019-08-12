@@ -246,7 +246,6 @@ int mme_app_send_s11_create_session_req(
     ue_mm_context->enb_s1ap_id_key,
     ue_mm_context->mme_ue_s1ap_id,
     ue_mm_context->emm_context._imsi64,
-    ue_mm_context->emm_context._imsi.length,
     session_request_p->sender_fteid_for_cp.teid, // mme_teid_s11 is new
     &ue_mm_context->emm_context._guti);
   struct apn_configuration_s *selected_apn_config_p = mme_app_get_apn_config(

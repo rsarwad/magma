@@ -371,7 +371,6 @@ int mme_api_notify_imsi(
       ue_mm_context->enb_s1ap_id_key,
       id,
       imsi64,
-      imsi_length,
       ue_mm_context->mme_teid_s11,
       &ue_mm_context->emm_context._guti);
     unlock_ue_contexts(ue_mm_context);
@@ -409,7 +408,6 @@ int mme_api_notify_new_guti(const mme_ue_s1ap_id_t id, guti_t *const guti)
       ue_mm_context->enb_s1ap_id_key,
       id,
       ue_mm_context->emm_context._imsi64,
-      ue_mm_context->emm_context._imsi.length,
       ue_mm_context->mme_teid_s11,
       guti);
     unlock_ue_contexts(ue_mm_context);

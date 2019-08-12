@@ -617,7 +617,6 @@ void mme_ue_context_update_coll_keys(
   const enb_s1ap_id_key_t enb_s1ap_id_key,
   const mme_ue_s1ap_id_t mme_ue_s1ap_id,
   const imsi64_t imsi,
-  uint8_t imsi_len,
   const s11_teid_t mme_s11_teid,
   const guti_t *const guti_p);
 

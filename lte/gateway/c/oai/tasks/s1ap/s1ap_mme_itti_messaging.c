@@ -72,7 +72,7 @@ int s1ap_mme_itti_nas_uplink_ind(
 
   OAILOG_INFO(
     LOG_S1AP,
-    "Sending NAS Uplink indication to MME_APP, mme_ue_s1ap_id = (%u) \n",
+    "Sending NAS Uplink indication to NAS_MME_APP, mme_ue_s1ap_id = (%u) \n",
     ue_id);
   message_p = itti_alloc_new_message(TASK_S1AP, NAS_UPLINK_DATA_IND);
   NAS_UL_DATA_IND(message_p).ue_id = ue_id;
@@ -81,7 +81,7 @@ int s1ap_mme_itti_nas_uplink_ind(
   NAS_UL_DATA_IND(message_p).tai = *tai;
   NAS_UL_DATA_IND(message_p).cgi = *cgi;
 
-  return itti_send_msg_to_task(TASK_NAS_MME, INSTANCE_DEFAULT, message_p);
+  return itti_send_msg_to_task(TASK_MME_APP, INSTANCE_DEFAULT, message_p);
 }
 
 //------------------------------------------------------------------------------

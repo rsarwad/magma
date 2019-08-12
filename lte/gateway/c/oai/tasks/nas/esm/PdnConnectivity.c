@@ -151,7 +151,8 @@ int esm_proc_pdn_connectivity_request(
     ue_id);
   OAILOG_DEBUG(
     LOG_NAS_ESM,
-    "PDN connectivity request :pti= %d PDN type = %s, APN = %s pdn addr = %s pdn id %d for (ue_id = %u)\n",
+    "PDN connectivity request :pti= %d PDN type = %s, APN = %s "
+    "pdn addr = %s pdn id %d for (ue_id = "MME_UE_S1AP_ID_FMT")\n",
     pti,
     (pdn_type == ESM_PDN_TYPE_IPV4) ?
       "IPv4" :

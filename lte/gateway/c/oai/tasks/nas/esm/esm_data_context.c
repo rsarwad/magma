@@ -62,15 +62,6 @@ void free_esm_bearer_context(esm_ebr_context_t *esm_ebr_context)
   }
 }
 
-//------------------------------------------------------------------------------
-void esm_bearer_context_init(esm_ebr_context_t *esm_ebr_context)
-{
-  if (esm_ebr_context) {
-    memset(esm_ebr_context, 0, sizeof(*esm_ebr_context));
-    esm_ebr_context->status = ESM_EBR_INACTIVE;
-    esm_ebr_context->timer.id = NAS_TIMER_INACTIVE_ID;
-  }
-}
 
 // free allocated structs
 //------------------------------------------------------------------------------

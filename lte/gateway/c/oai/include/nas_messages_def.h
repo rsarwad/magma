@@ -34,12 +34,6 @@
   \company Eurecom
   \email: lionel.gauthier@eurecom.fr
 */
-
-MESSAGE_DEF(
-  NAS_PDN_CONNECTIVITY_REQ,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_pdn_connectivity_req_t,
-  nas_pdn_connectivity_req)
 MESSAGE_DEF(
   NAS_CONNECTION_ESTABLISHMENT_CNF,
   MESSAGE_PRIORITY_MED,
@@ -94,22 +88,6 @@ MESSAGE_DEF(
   itti_nas_detach_req_t,
   nas_detach_req)
 
-/* MME app -> NAS layer messages */
-MESSAGE_DEF(
-  NAS_PDN_CONNECTIVITY_RSP,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_pdn_connectivity_rsp_t,
-  nas_pdn_connectivity_rsp)
-MESSAGE_DEF(
-  NAS_PDN_CONNECTIVITY_FAIL,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_pdn_connectivity_fail_t,
-  nas_pdn_connectivity_fail)
-MESSAGE_DEF(
-  NAS_PDN_CONFIG_FAIL,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_pdn_config_fail_t,
-  nas_pdn_config_fail)
 MESSAGE_DEF(
   NAS_IMPLICIT_DETACH_UE_IND,
   MESSAGE_PRIORITY_MED,

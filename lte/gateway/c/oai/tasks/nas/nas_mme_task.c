@@ -72,28 +72,9 @@ static void *nas_intertask_interface(void *args_p)
           NAS_DL_DATA_REJ(received_message_p).err_code,
           &NAS_DL_DATA_REJ(received_message_p).nas_msg);
       } break;
-
-      case NAS_PDN_CONNECTIVITY_FAIL: {
-        nas_proc_pdn_connectivity_fail(
-          &NAS_PDN_CONNECTIVITY_FAIL(received_message_p));
-      } break;
-
-      case NAS_PDN_CONNECTIVITY_RSP: {
-        nas_proc_pdn_connectivity_res(
-          &NAS_PDN_CONNECTIVITY_RSP(received_message_p));
-      } break;
-
       case NAS_IMPLICIT_DETACH_UE_IND: {
         nas_proc_implicit_detach_ue_ind(
           NAS_IMPLICIT_DETACH_UE_IND(received_message_p).ue_id);
-      } break;
-
-      case NAS_UPLINK_DATA_IND: {
-        nas_proc_ul_transfer_ind(
-          NAS_UL_DATA_IND(received_message_p).ue_id,
-          NAS_UL_DATA_IND(received_message_p).tai,
-          NAS_UL_DATA_IND(received_message_p).cgi,
-          &NAS_UL_DATA_IND(received_message_p).nas_msg);
       } break;
 
       case S1AP_DEREGISTER_UE_REQ: {
@@ -104,15 +85,6 @@ static void *nas_intertask_interface(void *args_p)
       case NAS_NW_INITIATED_DETACH_UE_REQ: {
         nas_proc_nw_initiated_detach_ue_request(
           &NAS_NW_INITIATED_DETACH_UE_REQ(received_message_p));
-      } break;
-
-      case S6A_AUTH_INFO_ANS: {
-        /*
-         * We received the authentication vectors from HSS, trigger a ULR
-         * for now. Normaly should trigger an authentication procedure with UE.
-         */
-        nas_proc_authentication_info_answer(
-          &S6A_AUTH_INFO_ANS(received_message_p));
       } break;
 
       case NAS_CS_DOMAIN_LOCATION_UPDATE_ACC: {

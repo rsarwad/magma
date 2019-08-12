@@ -130,26 +130,12 @@ void *mme_app_thread(void *args)
       case NAS_ERAB_SETUP_REQ: {
         mme_app_handle_erab_setup_req(&NAS_ERAB_SETUP_REQ(received_message_p));
       } break;
-
-      case NAS_PDN_CONNECTIVITY_REQ: {
-        OAILOG_INFO(
-          TASK_MME_APP, "Received PDN CONNECTIVITY REQ from NAS_MME\n");
-        mme_app_handle_nas_pdn_connectivity_req(
-          &received_message_p->ittiMsg.nas_pdn_connectivity_req);
-      } break;
-
       case NAS_UPLINK_DATA_IND: {
-        ue_context_p = mme_ue_context_exists_mme_ue_s1ap_id(
-          &mme_app_desc.mme_ue_contexts,
-          NAS_UL_DATA_IND(received_message_p).ue_id);
         nas_proc_ul_transfer_ind(
           NAS_UL_DATA_IND(received_message_p).ue_id,
           NAS_UL_DATA_IND(received_message_p).tai,
           NAS_UL_DATA_IND(received_message_p).cgi,
           &NAS_UL_DATA_IND(received_message_p).nas_msg);
-        if (ue_context_p) {
-          unlock_ue_contexts(ue_context_p);
-        }
       } break;
 
       case S11_CREATE_BEARER_REQUEST: {
@@ -487,6 +473,15 @@ void *mme_app_thread(void *args)
       case S1AP_PATH_SWITCH_REQUEST: {
         mme_app_handle_path_switch_request(
           &S1AP_PATH_SWITCH_REQUEST(received_message_p));
+      } break;
+
+      case S6A_AUTH_INFO_ANS: {
+        /*
+         * We received the authentication vectors from HSS, trigger a ULR
+         * for now. Normaly should trigger an authentication procedure with UE.
+         */
+        nas_proc_authentication_info_answer(
+          &S6A_AUTH_INFO_ANS(received_message_p));
       } break;
 
       case TERMINATE_MESSAGE: {

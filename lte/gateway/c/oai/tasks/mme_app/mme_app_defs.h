@@ -54,7 +54,7 @@ int mme_app_handle_s6a_cancel_location_req(
   const s6a_cancel_location_req_t *const clr_pP);
 
 int mme_app_handle_nas_pdn_connectivity_req(
-  itti_nas_pdn_connectivity_req_t *const nas_pdn_connectivity_req_p);
+  imsi64_t imsi64, mme_ue_s1ap_id_t ue_id, pdn_cid_t pdn_cid, int pdn_type);
 
 int mme_app_handle_nas_extended_service_req(
   itti_nas_extended_service_req_t *const nas_extended_service_req_pP);

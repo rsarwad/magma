@@ -84,17 +84,6 @@ void itti_free_msg_content(MessageDef *const message_p)
     case MME_APP_DELETE_SESSION_RSP:
       // DO nothing
       break;
-
-    case NAS_PDN_CONNECTIVITY_REQ: {
-      clear_protocol_configuration_options(
-        &message_p->ittiMsg.nas_pdn_connectivity_req.pco);
-      bdestroy_wrapper(&message_p->ittiMsg.nas_pdn_connectivity_req.apn);
-      bdestroy_wrapper(&message_p->ittiMsg.nas_pdn_connectivity_req.pdn_addr);
-      AssertFatal(
-        NULL == message_p->ittiMsg.nas_pdn_connectivity_req.pdn_addr,
-        "TODO clean pointer");
-    } break;
-
     case NAS_CONNECTION_ESTABLISHMENT_CNF:
       bdestroy_wrapper(&message_p->ittiMsg.nas_conn_est_cnf.nas_msg);
       AssertFatal(
@@ -135,20 +124,6 @@ void itti_free_msg_content(MessageDef *const message_p)
     case NAS_DETACH_REQ:
       // DO nothing
       break;
-
-    case NAS_PDN_CONNECTIVITY_RSP: {
-      clear_protocol_configuration_options(
-        &message_p->ittiMsg.nas_pdn_connectivity_rsp.pco);
-      bdestroy_wrapper(&message_p->ittiMsg.nas_pdn_connectivity_rsp.pdn_addr);
-      AssertFatal(
-        NULL == message_p->ittiMsg.nas_pdn_connectivity_rsp.pdn_addr,
-        "TODO clean pointer");
-    } break;
-
-    case NAS_PDN_CONNECTIVITY_FAIL:
-      // DO nothing
-      break;
-
     case S11_CREATE_SESSION_REQUEST: {
       // DO nothing
     } break;

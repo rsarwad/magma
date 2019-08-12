@@ -57,6 +57,7 @@
 #include "sgs_messages_types.h"
 #include "esm_proc.h"
 #include "nas_proc.h"
+#include "emm_cnDef.h"
 
 //------------------------------------------------------------------------------
 int mme_app_send_s6a_update_location_req(
@@ -170,7 +171,6 @@ int mme_app_send_s6a_update_location_req(
 
 int _handle_ula_failure(struct ue_mm_context_s *ue_context_p)
 {
-  MessageDef *message_p = NULL;
   int rc = RETURNok;
 
   OAILOG_FUNC_IN(LOG_MME_APP);
@@ -185,25 +185,19 @@ int _handle_ula_failure(struct ue_mm_context_s *ue_context_p)
     }
     ue_context_p->ulr_response_timer.id = MME_APP_TIMER_INACTIVE_ID;
   }
-  // Send PDN CONNECTIVITY FAIL message  to NAS layer
+  // Handle PDN CONNECTIVITY FAIL message
   increment_counter("mme_s6a_update_location_ans", 1, 1, "result", "failure");
-  message_p = itti_alloc_new_message(TASK_MME_APP, NAS_PDN_CONNECTIVITY_FAIL);
-  itti_nas_pdn_connectivity_fail_t *nas_pdn_connectivity_fail =
-    &message_p->ittiMsg.nas_pdn_connectivity_fail;
-  memset(
-    (void *) nas_pdn_connectivity_fail,
-    0,
-    sizeof(itti_nas_pdn_connectivity_fail_t));
+  emm_cn_pdn_fail_t nas_pdn_connectivity_fail = {0};
   if(ue_context_p->emm_context.esm_ctx.esm_proc_data) {
-    nas_pdn_connectivity_fail->pti = ue_context_p->emm_context.esm_ctx.
+    nas_pdn_connectivity_fail.pti = ue_context_p->emm_context.esm_ctx.
       esm_proc_data->pti;
   } else {
       OAILOG_ERROR(
         LOG_MME_APP," esm_proc_data is NULL, so failed to fetch pti \n");
   }
-  nas_pdn_connectivity_fail->ue_id = ue_context_p->mme_ue_s1ap_id;
-  nas_pdn_connectivity_fail->cause = CAUSE_SYSTEM_FAILURE;
-  rc = itti_send_msg_to_task(TASK_NAS_MME, INSTANCE_DEFAULT, message_p);
+  nas_pdn_connectivity_fail.ue_id = ue_context_p->mme_ue_s1ap_id;
+  nas_pdn_connectivity_fail.cause = CAUSE_SYSTEM_FAILURE;
+  rc = nas_proc_pdn_connectivity_fail(&nas_pdn_connectivity_fail);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
 
@@ -352,7 +346,7 @@ int mme_app_handle_s6a_update_location_ans(
   if (ue_mm_context->location_info_confirmed_in_hss == true) {
     ue_mm_context->location_info_confirmed_in_hss = false;
   }
-  rc= nas_proc_pdn_config_res(ue_mm_context->mme_ue_s1ap_id);
+  rc = nas_proc_pdn_config_res(ue_mm_context->mme_ue_s1ap_id);
 
   unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);

@@ -40,6 +40,7 @@
 #include "mme_app_bearer_context.h"
 #include "3gpp_29.274.h"
 #include "esm_data.h"
+#include "esm_ebr_context.h"
 
 static void mme_app_bearer_context_init(bearer_context_t *const bearer_context);
 
@@ -66,7 +67,7 @@ static void mme_app_bearer_context_init(bearer_context_t *const bearer_context)
     memset(bearer_context, 0, sizeof(*bearer_context));
     bearer_context->bearer_state = BEARER_STATE_NULL;
 
-    esm_bearer_context_init(&bearer_context->esm_ebr_context);
+    esm_ebr_context_init(&bearer_context->esm_ebr_context);
   }
 }
 //------------------------------------------------------------------------------

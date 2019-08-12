@@ -332,7 +332,7 @@ int s6a_aia_cb(
     }
   }
 
-  itti_send_msg_to_task(TASK_NAS_MME, INSTANCE_DEFAULT, message_p);
+  itti_send_msg_to_task(TASK_MME_APP, INSTANCE_DEFAULT, message_p);
 err:
   return RETURNok;
 }

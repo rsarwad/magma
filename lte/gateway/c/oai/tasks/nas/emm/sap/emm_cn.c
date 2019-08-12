@@ -76,6 +76,7 @@
 #include "esm_data.h"
 #include "esm_msg.h"
 #include "esm_sapDef.h"
+#include "mme_app_defs.h"
 #include "mme_app_desc.h"
 #include "mme_app_messages_types.h"
 #include "mme_app_sgs_fsm.h"
@@ -104,6 +105,7 @@ static int _emm_cn_authentication_fail(const emm_cn_auth_fail_t *msg);
 static int _emm_cn_deregister_ue(const mme_ue_s1ap_id_t ue_id);
 static int _emm_cn_pdn_config_res(emm_cn_pdn_config_res_t *msg_pP);
 static int _emm_cn_pdn_connectivity_res(emm_cn_pdn_res_t *msg_pP);
+static int _get_pdn_type(esm_proc_data_t *proc_data_pP);
 
 /*
    String representation of EMMCN-SAP primitives
@@ -280,6 +282,7 @@ static int _emm_cn_pdn_config_res(emm_cn_pdn_config_res_t *msg_pP)
   pdn_cid_t pdn_cid = 0;
   ebi_t new_ebi = 0;
   bool is_pdn_connectivity = false;
+  int pdn_type = 0;
 
   ue_mm_context_t *ue_mm_context = mme_ue_context_exists_mme_ue_s1ap_id(
     &mme_app_desc.mme_ue_contexts, msg_pP->ue_id);
@@ -422,14 +425,13 @@ static int _emm_cn_pdn_config_res(emm_cn_pdn_config_res_t *msg_pP)
       OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
     }
     if (!is_pdn_connectivity) {
-      nas_itti_pdn_connectivity_req(
-        emm_ctx->esm_ctx.esm_proc_data->pti,
-        msg_pP->ue_id,
-        pdn_cid,
-        &emm_ctx->_imsi,
-        emm_ctx->_imeisv,
-        emm_ctx->esm_ctx.esm_proc_data,
-        emm_ctx->esm_ctx.esm_proc_data->request_type);
+      pdn_type = _get_pdn_type(emm_ctx->esm_ctx.esm_proc_data);
+      if(pdn_type != RETURNerror) {
+        mme_app_handle_nas_pdn_connectivity_req(emm_ctx->_imsi64,
+          msg_pP->ue_id, pdn_cid, pdn_type);
+      } else {
+        OAILOG_ERROR(LOG_NAS_ESM, "Received Invalid PDN type \n");
+      }
     } else {
     }
 
@@ -663,7 +665,8 @@ static int _emm_cn_pdn_connectivity_res(emm_cn_pdn_res_t *msg_pP)
    * END OF CODE THAT WAS IN esm_sap.c/_esm_sap_recv()
    */
   /*************************************************************************/
-  /*Send ITTI Location update request message to MME App if attach_type == EMM_ATTACH_TYPE_COMBINED_EPS_IMSI*/
+  /*Send ITTI Location update request message to MME App if 
+   *attach_type == EMM_ATTACH_TYPE_COMBINED_EPS_IMSI*/
   if (_is_csfb_enabled(emm_ctx, rsp) == RETURNok) {
     unlock_ue_contexts(ue_mm_context);
     OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNok);
@@ -1334,4 +1337,28 @@ int emm_cn_send(const emm_cn_t *msg)
   }
 
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
+}
+
+// Get pdn_type
+static int _get_pdn_type(esm_proc_data_t *proc_data_pP)
+{
+  OAILOG_FUNC_IN(LOG_NAS);
+
+  if(proc_data_pP == NULL) {
+    OAILOG_CRITICAL(LOG_NAS_EMM, "EMM-PROC  - proc_data_pP param is NULL");
+    OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNerror);
+  }
+
+  switch (proc_data_pP->pdn_type) {
+    case ESM_PDN_TYPE_IPV4:
+      OAILOG_FUNC_RETURN(LOG_NAS_EMM, IPv4);
+
+    case ESM_PDN_TYPE_IPV6:
+      OAILOG_FUNC_RETURN(LOG_NAS_EMM, IPv6);
+
+    case ESM_PDN_TYPE_IPV4V6:
+      OAILOG_FUNC_RETURN(LOG_NAS_EMM, IPv4_AND_v6);
+
+    default: OAILOG_FUNC_RETURN(LOG_NAS_EMM, IPv4);
+  }
 }
