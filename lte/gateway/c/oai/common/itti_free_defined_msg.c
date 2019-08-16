@@ -77,20 +77,28 @@ void itti_free_msg_content(MessageDef *const message_p)
       // DO nothing
       break;
 
-    case MME_APP_CONNECTION_ESTABLISHMENT_CNF: break;
+    case MME_APP_CONNECTION_ESTABLISHMENT_CNF:
+      bdestroy_wrapper(&message_p->ittiMsg.
+        mme_app_connection_establishment_cnf.nas_pdu[0]);
+      AssertFatal(
+        NULL == message_p->ittiMsg.mme_app_connection_establishment_cnf.nas_pdu[0],
+        "TODO clean pointer");
+      break;
 
     case MME_APP_INITIAL_CONTEXT_SETUP_RSP: break;
 
     case MME_APP_DELETE_SESSION_RSP:
       // DO nothing
       break;
+#if 0
+Rashmi TODO remove below lines
     case NAS_CONNECTION_ESTABLISHMENT_CNF:
       bdestroy_wrapper(&message_p->ittiMsg.nas_conn_est_cnf.nas_msg);
       AssertFatal(
         NULL == message_p->ittiMsg.nas_conn_est_cnf.nas_msg,
         "TODO clean pointer");
       break;
-
+#endif
     case NAS_CONNECTION_RELEASE_IND:
       // DO nothing
       break;
@@ -101,14 +109,15 @@ void itti_free_msg_content(MessageDef *const message_p)
         NULL == message_p->ittiMsg.nas_ul_data_ind.nas_msg,
         "TODO clean pointer");
       break;
-
+#if 0
+Rashmi TODO remove below lines
     case NAS_DOWNLINK_DATA_REQ:
       bdestroy_wrapper(&message_p->ittiMsg.nas_dl_data_req.nas_msg);
       AssertFatal(
         NULL == message_p->ittiMsg.nas_dl_data_req.nas_msg,
         "TODO clean pointer");
       break;
-
+#endif
     case NAS_DOWNLINK_DATA_CNF:
       // DO nothing
       break;

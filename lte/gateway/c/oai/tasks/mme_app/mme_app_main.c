@@ -109,12 +109,6 @@ void *mme_app_thread(void *args)
         mme_app_handle_create_dedicated_bearer_rej(
           &MME_APP_CREATE_DEDICATED_BEARER_REJ(received_message_p));
       } break;
-
-      case NAS_CONNECTION_ESTABLISHMENT_CNF: {
-        mme_app_handle_conn_est_cnf(
-          &NAS_CONNECTION_ESTABLISHMENT_CNF(received_message_p));
-      } break;
-
       case NAS_DETACH_REQ: {
         mme_app_handle_detach_req(&received_message_p->ittiMsg.nas_detach_req);
       } break;
@@ -373,10 +367,6 @@ void *mme_app_thread(void *args)
       case S1AP_UE_CONTEXT_RELEASE_COMPLETE: {
         mme_app_handle_s1ap_ue_context_release_complete(
           &received_message_p->ittiMsg.s1ap_ue_context_release_complete);
-      } break;
-
-      case NAS_DOWNLINK_DATA_REQ: {
-        mme_app_handle_nas_dl_req(&received_message_p->ittiMsg.nas_dl_data_req);
       } break;
 
       case S1AP_ENB_DEREGISTERED_IND: {

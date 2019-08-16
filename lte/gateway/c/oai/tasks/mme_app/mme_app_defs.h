@@ -71,7 +71,7 @@ int mme_app_handle_sgs_imsi_detach_ack(
   const const itti_sgsap_imsi_detach_ack_t *const imsi_detach_ack_p);
 
 void mme_app_handle_conn_est_cnf(
-  itti_nas_conn_est_cnf_t *const nas_conn_est_cnf_pP);
+  nas_establish_rsp_t *const nas_conn_est_cnf_pP);
 
 void mme_app_handle_initial_ue_message(
   itti_s1ap_initial_ue_message_t *const conn_est_ind_pP);
@@ -115,7 +115,10 @@ bool mme_app_dump_ue_context(
   void *unused_param_pP,
   void **unused_result_pP);
 
-int mme_app_handle_nas_dl_req(itti_nas_dl_data_req_t *const nas_dl_req_pP);
+int mme_app_handle_nas_dl_req(
+  const mme_ue_s1ap_id_t ue_id,
+  bstring nas_msg,
+  nas_error_code_t transaction_status);
 
 void mme_app_handle_e_rab_setup_rsp(
   itti_s1ap_e_rab_setup_rsp_t *const e_rab_setup_rsp);

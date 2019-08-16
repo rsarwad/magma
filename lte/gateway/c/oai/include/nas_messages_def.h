@@ -35,11 +35,6 @@
   \email: lionel.gauthier@eurecom.fr
 */
 MESSAGE_DEF(
-  NAS_CONNECTION_ESTABLISHMENT_CNF,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_conn_est_cnf_t,
-  nas_conn_est_cnf)
-MESSAGE_DEF(
   NAS_CONNECTION_RELEASE_IND,
   MESSAGE_PRIORITY_MED,
   itti_nas_conn_rel_ind_t,
@@ -49,11 +44,6 @@ MESSAGE_DEF(
   MESSAGE_PRIORITY_MED,
   itti_nas_ul_data_ind_t,
   nas_ul_data_ind)
-MESSAGE_DEF(
-  NAS_DOWNLINK_DATA_REQ,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_dl_data_req_t,
-  nas_dl_data_req)
 MESSAGE_DEF(
   NAS_DOWNLINK_DATA_CNF,
   MESSAGE_PRIORITY_MED,

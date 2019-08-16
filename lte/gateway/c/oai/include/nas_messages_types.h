@@ -49,8 +49,6 @@
 #define NAS_DL_DATA_REQ(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_req
 #define NAS_DL_DATA_CNF(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_cnf
 #define NAS_DL_DATA_REJ(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_rej
-#define NAS_CONNECTION_ESTABLISHMENT_CNF(mSGpTR)                               \
-  (mSGpTR)->ittiMsg.nas_conn_est_cnf
 #define NAS_BEARER_PARAM(mSGpTR) (mSGpTR)->ittiMsg.nas_bearer_param
 #define NAS_AUTHENTICATION_REQ(mSGpTR) (mSGpTR)->ittiMsg.nas_auth_req
 #define NAS_AUTHENTICATION_PARAM_REQ(mSGpTR)                                   \
@@ -93,23 +91,6 @@ typedef struct itti_nas_conn_est_rej_s {
   uint16_t selected_encryption_algorithm;
   uint16_t selected_integrity_algorithm;
 } itti_nas_conn_est_rej_t;
-
-typedef struct itti_nas_conn_est_cnf_s {
-  mme_ue_s1ap_id_t ue_id;    /* UE lower layer identifier   */
-  nas_error_code_t err_code; /* Transaction status          */
-  bstring nas_msg;           /* NAS message to transfer     */
-
-  uint8_t kenb[32];
-
-  uint32_t ul_nas_count;
-  uint16_t encryption_algorithm_capabilities;
-  uint16_t integrity_algorithm_capabilities;
-  uint8_t csfb_response;
-  uint8_t
-    presencemask; /* Indicates the presence of some params like service type */
-  uint8_t service_type;
-} itti_nas_conn_est_cnf_t;
-
 typedef struct itti_nas_conn_rel_ind_s {
 } itti_nas_conn_rel_ind_t;
 
@@ -127,12 +108,6 @@ typedef struct itti_nas_ul_data_ind_s {
   ecgi_t
     cgi; /* Indicating the cell from which the UE has sent the NAS message.   */
 } itti_nas_ul_data_ind_t;
-
-typedef struct itti_nas_dl_data_req_s {
-  mme_ue_s1ap_id_t ue_id;              /* UE lower layer identifier        */
-  nas_error_code_t transaction_status; /* Transaction status               */
-  bstring nas_msg;                     /* Downlink NAS message             */
-} itti_nas_dl_data_req_t;
 
 typedef struct itti_nas_dl_data_cnf_s {
   mme_ue_s1ap_id_t ue_id;    /* UE lower layer identifier        */
