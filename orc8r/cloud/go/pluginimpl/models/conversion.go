@@ -20,7 +20,7 @@ import (
 func (m *Network) ToConfiguratorNetwork() configurator.Network {
 	return configurator.Network{
 		ID:          string(m.ID),
-		Type:        m.Type,
+		Type:        string(m.Type),
 		Name:        string(m.Name),
 		Description: string(m.Description),
 		Configs: map[string]interface{}{
@@ -32,7 +32,7 @@ func (m *Network) ToConfiguratorNetwork() configurator.Network {
 
 func (m *Network) FromConfiguratorNetwork(n configurator.Network) *Network {
 	m.ID = models.NetworkID(n.ID)
-	m.Type = n.Type
+	m.Type = models.NetworkType(n.Type)
 	m.Name = models.NetworkName(n.Name)
 	m.Description = models.NetworkDescription(n.Description)
 	if cfg, exists := n.Configs[orc8r.DnsdNetworkType]; exists {
@@ -47,7 +47,7 @@ func (m *Network) FromConfiguratorNetwork(n configurator.Network) *Network {
 func (m *Network) ToUpdateCriteria() configurator.NetworkUpdateCriteria {
 	return configurator.NetworkUpdateCriteria{
 		ID:             string(m.ID),
-		NewType:        swag.String(m.Type),
+		NewType:        swag.String(string(m.Type)),
 		NewName:        swag.String(string(m.Name)),
 		NewDescription: swag.String(string(m.Description)),
 		ConfigsToAddOrUpdate: map[string]interface{}{
@@ -57,15 +57,30 @@ func (m *Network) ToUpdateCriteria() configurator.NetworkUpdateCriteria {
 	}
 }
 
+func (m *NetworkFeatures) GetFromNetwork(network configurator.Network) interface{} {
+	return GetNetworkConfig(network, orc8r.NetworkFeaturesConfig)
+}
+
+func (m *NetworkFeatures) ToUpdateCriteria(network configurator.Network) (configurator.NetworkUpdateCriteria, error) {
+	return GetNetworkConfigUpdateCriteria(network.ID, orc8r.NetworkFeaturesConfig, m), nil
+}
+
+func (m *NetworkDNSConfig) GetFromNetwork(network configurator.Network) interface{} {
+	return GetNetworkConfig(network, orc8r.DnsdNetworkType)
+}
+
+func (m *NetworkDNSConfig) ToUpdateCriteria(network configurator.Network) (configurator.NetworkUpdateCriteria, error) {
+	return GetNetworkConfigUpdateCriteria(network.ID, orc8r.DnsdNetworkType, m), nil
+}
+
 func (m *MagmadGateway) ToConfiguratorEntities() []configurator.NetworkEntity {
 	gatewayEnt := configurator.NetworkEntity{
-		Type:         orc8r.MagmadGatewayType,
-		Key:          string(m.ID),
-		Name:         string(m.Name),
-		Description:  string(m.Description),
-		Config:       m.Magmad,
-		PhysicalID:   m.Device.HardwareID,
-		Associations: []storage.TypeAndKey{{Type: orc8r.UpgradeTierEntityType, Key: string(m.Tier)}},
+		Type:        orc8r.MagmadGatewayType,
+		Key:         string(m.ID),
+		Name:        string(m.Name),
+		Description: string(m.Description),
+		Config:      m.Magmad,
+		PhysicalID:  m.Device.HardwareID,
 	}
 	return []configurator.NetworkEntity{gatewayEnt}
 }
@@ -83,4 +98,68 @@ func (m *MagmadGateway) FromBackendModels(ent configurator.NetworkEntity, device
 	}
 
 	return m
+}
+
+func (m *MagmadGateway) ToEntityUpdateCriteria(existingEnt configurator.NetworkEntity) []configurator.EntityUpdateCriteria {
+	ret := []configurator.EntityUpdateCriteria{}
+	gatewayUpdate := configurator.EntityUpdateCriteria{
+		Type:      orc8r.MagmadGatewayType,
+		Key:       string(m.ID),
+		NewConfig: m.Magmad,
+	}
+
+	if m.Device.HardwareID != existingEnt.PhysicalID {
+		gatewayUpdate.NewPhysicalID = swag.String(m.Device.HardwareID)
+	}
+	if string(m.Name) != existingEnt.Name {
+		gatewayUpdate.NewName = swag.String(string(m.Name))
+	}
+	if string(m.Description) != existingEnt.Description {
+		gatewayUpdate.NewDescription = swag.String(string(m.Description))
+	}
+
+	oldTierTK, _ := existingEnt.GetFirstParentOfType(orc8r.UpgradeTierEntityType)
+	if oldTierTK.Key != string(m.Tier) {
+		if oldTierTK.Key != "" {
+			ret = append(
+				ret,
+				configurator.EntityUpdateCriteria{
+					Type: orc8r.UpgradeTierEntityType, Key: oldTierTK.Key,
+					AssociationsToDelete: []storage.TypeAndKey{{Type: orc8r.MagmadGatewayType, Key: string(m.ID)}},
+				},
+			)
+		}
+
+		ret = append(
+			ret,
+			configurator.EntityUpdateCriteria{
+				Type: orc8r.UpgradeTierEntityType, Key: string(m.Tier),
+				AssociationsToAdd: []storage.TypeAndKey{{Type: orc8r.MagmadGatewayType, Key: string(m.ID)}},
+			},
+		)
+	}
+
+	// do the tier update to delete the old assoc first
+	ret = append(ret, gatewayUpdate)
+	return ret
+}
+
+func GetNetworkConfig(network configurator.Network, key string) interface{} {
+	if network.Configs == nil {
+		return nil
+	}
+	config, exists := network.Configs[key]
+	if !exists {
+		return nil
+	}
+	return config
+}
+
+func GetNetworkConfigUpdateCriteria(networkID string, key string, iConfig interface{}) configurator.NetworkUpdateCriteria {
+	return configurator.NetworkUpdateCriteria{
+		ID: networkID,
+		ConfigsToAddOrUpdate: map[string]interface{}{
+			key: iConfig,
+		},
+	}
 }

@@ -14,29 +14,51 @@ import (
 	"sort"
 
 	"magma/lte/cloud/go/lte"
-	"magma/lte/cloud/go/plugin/models"
+	ltemodels "magma/lte/cloud/go/plugin/models"
 	merrors "magma/orc8r/cloud/go/errors"
+	"magma/orc8r/cloud/go/models"
 	"magma/orc8r/cloud/go/obsidian"
+	"magma/orc8r/cloud/go/orc8r"
+	"magma/orc8r/cloud/go/pluginimpl/handlers"
+	orc8rmodels "magma/orc8r/cloud/go/pluginimpl/models"
 	"magma/orc8r/cloud/go/services/configurator"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 )
 
 const (
-	LteNetworks       = "ltenetworks"
-	ListNetworksPath  = obsidian.V1Root + LteNetworks
-	ManageNetworkPath = ListNetworksPath + "/:network_id"
+	LteNetworks                       = "ltenetworks"
+	ListNetworksPath                  = obsidian.V1Root + LteNetworks
+	ManageNetworkPath                 = ListNetworksPath + "/:network_id"
+	ManageNetworkNamePath             = ManageNetworkPath + obsidian.UrlSep + "name"
+	ManageNetworkDescriptionPath      = ManageNetworkPath + obsidian.UrlSep + "description"
+	ManageNetworkFeaturesPath         = ManageNetworkPath + obsidian.UrlSep + "features"
+	ManageNetworkDNSPath              = ManageNetworkPath + obsidian.UrlSep + "dns"
+	ManageNetworkCellularPath         = ManageNetworkPath + obsidian.UrlSep + "cellular"
+	ManageNetworkCellularEpcPath      = ManageNetworkCellularPath + obsidian.UrlSep + "epc"
+	ManageNetworkCellularRanPath      = ManageNetworkCellularPath + obsidian.UrlSep + "ran"
+	ManageNetworkCellularFegNetworkID = ManageNetworkCellularPath + obsidian.UrlSep + "feg_network_id"
 )
 
-func getNetworkHandlers() []obsidian.Handler {
-	return []obsidian.Handler{
+func GetNetworkHandlers() []obsidian.Handler {
+	ret := []obsidian.Handler{
 		{Path: ListNetworksPath, Methods: obsidian.GET, HandlerFunc: ListNetworks},
 		{Path: ListNetworksPath, Methods: obsidian.POST, HandlerFunc: CreateNetwork},
 		{Path: ManageNetworkPath, Methods: obsidian.GET, HandlerFunc: GetNetwork},
 		{Path: ManageNetworkPath, Methods: obsidian.PUT, HandlerFunc: UpdateNetwork},
 		{Path: ManageNetworkPath, Methods: obsidian.DELETE, HandlerFunc: DeleteNetwork},
 	}
+	ret = append(ret, handlers.GetPartialNetworkHandlers(ManageNetworkNamePath, new(models.NetworkName), "")...)
+	ret = append(ret, handlers.GetPartialNetworkHandlers(ManageNetworkDescriptionPath, new(models.NetworkDescription), "")...)
+	ret = append(ret, handlers.GetPartialNetworkHandlers(ManageNetworkFeaturesPath, &orc8rmodels.NetworkFeatures{}, orc8r.NetworkFeaturesConfig)...)
+	ret = append(ret, handlers.GetPartialNetworkHandlers(ManageNetworkDNSPath, &orc8rmodels.NetworkDNSConfig{}, orc8r.DnsdNetworkType)...)
+	ret = append(ret, handlers.GetPartialNetworkHandlers(ManageNetworkCellularPath, &ltemodels.NetworkCellularConfigs{}, lte.CellularNetworkType)...)
+	ret = append(ret, handlers.GetPartialNetworkHandlers(ManageNetworkCellularEpcPath, &ltemodels.NetworkEpcConfigs{}, "")...)
+	ret = append(ret, handlers.GetPartialNetworkHandlers(ManageNetworkCellularRanPath, &ltemodels.NetworkRanConfigs{}, "")...)
+	ret = append(ret, handlers.GetPartialNetworkHandlers(ManageNetworkCellularFegNetworkID, new(ltemodels.FegNetworkID), "")...)
+	return ret
 }
 
 func ListNetworks(c echo.Context) error {
@@ -49,8 +71,11 @@ func ListNetworks(c echo.Context) error {
 }
 
 func CreateNetwork(c echo.Context) error {
-	payload := &models.LteNetwork{}
+	payload := &ltemodels.LteNetwork{}
 	if err := c.Bind(payload); err != nil {
+		return obsidian.HttpError(err, http.StatusBadRequest)
+	}
+	if err := payload.Validate(strfmt.Default); err != nil {
 		return obsidian.HttpError(err, http.StatusBadRequest)
 	}
 	err := configurator.CreateNetwork(payload.ToConfiguratorNetwork())
@@ -77,7 +102,7 @@ func GetNetwork(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("network %s is not an LTE network", nid))
 	}
 
-	ret := (&models.LteNetwork{}).FromConfiguratorNetwork(network)
+	ret := (&ltemodels.LteNetwork{}).FromConfiguratorNetwork(network)
 	return c.JSON(http.StatusOK, ret)
 }
 
@@ -87,9 +112,12 @@ func UpdateNetwork(c echo.Context) error {
 		return nerr
 	}
 
-	payload := &models.LteNetwork{}
+	payload := &ltemodels.LteNetwork{}
 	err := c.Bind(payload)
 	if err != nil {
+		return obsidian.HttpError(err, http.StatusBadRequest)
+	}
+	if err := payload.Validate(strfmt.Default); err != nil {
 		return obsidian.HttpError(err, http.StatusBadRequest)
 	}
 

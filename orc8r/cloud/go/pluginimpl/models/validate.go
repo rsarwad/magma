@@ -12,7 +12,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"net"
 
 	"github.com/go-openapi/strfmt"
 )
@@ -20,23 +19,11 @@ import (
 const echoKeyType = "ECHO"
 const ecdsaKeyType = "SOFTWARE_ECDSA_SHA256"
 
-func (m *Network) ValidateModel() error {
-	if m == nil {
-		return errors.New("Network is nil.")
-	}
-	if err := m.Validate(strfmt.Default); err != nil {
-		return err
-	}
-	if err := m.DNS.ValidateModel(); err != nil {
-		return err
-	}
-	return nil
+func (m *NetworkDNSConfig) ValidateModel() error {
+	return m.Validate(strfmt.Default)
 }
 
-func (m *NetworkDNSConfig) ValidateModel() error {
-	if err := validateNetworkDNSRecordsConfig(m.Records); err != nil {
-		return err
-	}
+func (m *NetworkFeatures) ValidateModel() error {
 	return m.Validate(strfmt.Default)
 }
 
@@ -62,7 +49,7 @@ func (m *ChallengeKey) ValidateModel() error {
 		if m.Key == nil {
 			return fmt.Errorf("No key supplied")
 		}
-		_, err := x509.ParsePKIXPublicKey([]byte(*m.Key))
+		_, err := x509.ParsePKIXPublicKey(*m.Key)
 		if err != nil {
 			return fmt.Errorf("Failed to parse key: %s", err)
 		}
@@ -72,48 +59,9 @@ func (m *ChallengeKey) ValidateModel() error {
 	}
 }
 
-func validateNetworkDNSRecordsConfig(records []*DNSConfigRecord) error {
-	if records == nil {
-		return nil
-	}
-
-	for _, item := range records {
-		if err := validateNetworkDNSConfigRecordsItems(item); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func validateNetworkDNSConfigRecordsItems(config *DNSConfigRecord) error {
-	if config == nil {
-		return errors.New("NetworkDNSconfig Records Item is nil.")
-	}
-
-	if err := validateNetworkDNSConfigARecord(config.ARecord); err != nil {
+func (m *MagmadGatewayConfigs) ValidateModel() error {
+	if err := m.Validate(strfmt.Default); err != nil {
 		return err
-	}
-	if err := validateNetworkDNSConfigAaaaRecord(config.AaaaRecord); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func validateNetworkDNSConfigARecord(ARecord []string) error {
-	for _, record := range ARecord {
-		if net.ParseIP(record).To4() == nil {
-			return errors.New("ARecord must be in the form of an IpV4 address.")
-		}
-	}
-	return nil
-}
-
-func validateNetworkDNSConfigAaaaRecord(AaaaRecord []string) error {
-	for _, record := range AaaaRecord {
-		if net.ParseIP(record).To16() == nil {
-			return errors.New("AaaaRecord must be in the form of an IpV6 address.")
-		}
 	}
 	return nil
 }
