@@ -59,7 +59,7 @@ int mme_app_handle_nas_pdn_connectivity_req(
 int mme_app_handle_nas_extended_service_req(
   itti_nas_extended_service_req_t *const nas_extended_service_req_pP);
 
-void mme_app_handle_detach_req(const itti_nas_detach_req_t *const detach_req_p);
+void mme_app_handle_detach_req(mme_ue_s1ap_id_t ue_id);
 
 void mme_app_handle_sgs_detach_req(
   const itti_nas_sgs_detach_req_t *const sgs_detach_req_p);

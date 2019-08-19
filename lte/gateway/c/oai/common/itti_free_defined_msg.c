@@ -130,8 +130,6 @@ Rashmi TODO remove below lines
       break;
 
     case NAS_AUTHENTICATION_PARAM_REQ:
-    case NAS_DETACH_REQ:
-      // DO nothing
       break;
     case S11_CREATE_SESSION_REQUEST: {
       // DO nothing

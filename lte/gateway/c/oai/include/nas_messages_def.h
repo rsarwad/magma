@@ -73,12 +73,6 @@ MESSAGE_DEF(
   itti_nas_sgs_detach_req_t,
   nas_sgs_detach_req)
 MESSAGE_DEF(
-  NAS_DETACH_REQ,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_detach_req_t,
-  nas_detach_req)
-
-MESSAGE_DEF(
   NAS_IMPLICIT_DETACH_UE_IND,
   MESSAGE_PRIORITY_MED,
   itti_nas_implicit_detach_ue_ind_t,

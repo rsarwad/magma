@@ -101,13 +101,13 @@ void mme_app_send_delete_session_request(
 }
 
 //------------------------------------------------------------------------------
-void mme_app_handle_detach_req(const itti_nas_detach_req_t *const detach_req_p)
+void mme_app_handle_detach_req(const mme_ue_s1ap_id_t ue_id)
 {
+  OAILOG_FUNC_IN(LOG_MME_APP);
   struct ue_mm_context_s *ue_context = NULL;
 
-  DevAssert(detach_req_p != NULL);
   ue_context = mme_ue_context_exists_mme_ue_s1ap_id(
-    &mme_app_desc.mme_ue_contexts, detach_req_p->ue_id);
+    &mme_app_desc.mme_ue_contexts, ue_id);
   if (ue_context == NULL) {
     OAILOG_ERROR(
       LOG_MME_APP, "UE context doesn't exist -> Nothing to do :-) \n");

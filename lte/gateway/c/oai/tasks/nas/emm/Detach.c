@@ -31,6 +31,7 @@
 #include "nas_timer.h"
 #include "emm_data.h"
 #include "mme_app_ue_context.h"
+#include "mme_app_defs.h"
 #include "emm_proc.h"
 #include "emm_sap.h"
 #include "esm_sap.h"
@@ -371,7 +372,7 @@ int emm_proc_detach_request(
     increment_counter(
       "ue_detach", 1, 2, "result", "failure", "cause", "no_emm_context");
     // There may be MME APP Context. Trigger clean up in MME APP
-    nas_itti_detach_req(ue_id);
+    mme_app_handle_detach_req(ue_id);
     OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNok);
   }
 
@@ -434,7 +435,7 @@ int emm_proc_detach_request(
     emm_sap.u.emm_reg.ctx = emm_ctx;
     rc = emm_sap_send(&emm_sap);
     // Notify MME APP to trigger Session release towards SGW and S1 signaling release towards S1AP.
-    nas_itti_detach_req(ue_id);
+    mme_app_handle_detach_req(ue_id);
   }
   // Release emm and esm context
   _clear_emm_ctxt(emm_ctx);
@@ -467,7 +468,7 @@ int emm_proc_detach_accept(mme_ue_s1ap_id_t ue_id)
       "No EMM context exists for the UE (ue_id=" MME_UE_S1AP_ID_FMT ")",
       ue_id);
     // There may be MME APP Context. Trigger clean up in MME APP
-    nas_itti_detach_req(ue_id);
+    mme_app_handle_detach_req(ue_id);
     OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNok);
   }
 
@@ -498,7 +499,7 @@ int emm_proc_detach_accept(mme_ue_s1ap_id_t ue_id)
     emm_sap.u.emm_reg.ctx = emm_ctx;
     emm_sap_send(&emm_sap);
     // Notify MME APP to trigger Session release towards SGW and S1 signaling release towards S1AP.
-    nas_itti_detach_req(ue_id);
+    mme_app_handle_detach_req(ue_id);
     // Release emm and esm context
     _clear_emm_ctxt(emm_ctx);
   }

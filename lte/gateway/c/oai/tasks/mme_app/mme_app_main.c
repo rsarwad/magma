@@ -109,9 +109,6 @@ void *mme_app_thread(void *args)
         mme_app_handle_create_dedicated_bearer_rej(
           &MME_APP_CREATE_DEDICATED_BEARER_REJ(received_message_p));
       } break;
-      case NAS_DETACH_REQ: {
-        mme_app_handle_detach_req(&received_message_p->ittiMsg.nas_detach_req);
-      } break;
 
       case S6A_CANCEL_LOCATION_REQ: {
         /*

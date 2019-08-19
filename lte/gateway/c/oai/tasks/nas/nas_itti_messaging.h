@@ -89,8 +89,6 @@ void nas_itti_establish_cnf(
   const uint8_t presencemask,
   const uint8_t service_type);
 
-void nas_itti_detach_req(const mme_ue_s1ap_id_t ue_idP);
-
 void nas_itti_dedicated_eps_bearer_complete(
   const mme_ue_s1ap_id_t ue_idP,
   const ebi_t ebiP);
