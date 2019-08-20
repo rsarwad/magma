@@ -56,6 +56,7 @@
 #include "mme_app_desc.h"
 #include "nas_messages_types.h"
 #include "nas_procedures.h"
+#include "mme_app_itti_messaging.h"
 
 /****************************************************************************/
 /****************  E X T E R N A L    D E F I N I T I O N S  ****************/
@@ -918,6 +919,7 @@ void free_emm_tau_request_ies(emm_tau_request_ies_t **const ies)
 int emm_proc_tau_complete(mme_ue_s1ap_id_t ue_id)
 {
   emm_context_t *emm_ctx = NULL;
+  struct ue_mm_context_s *ue_context_p = NULL;
   int rc = RETURNok;
 
   OAILOG_FUNC_IN(LOG_NAS_EMM);
@@ -967,9 +969,19 @@ int emm_proc_tau_complete(mme_ue_s1ap_id_t ue_id)
      *initiate UE context release
      */
     if (!emm_ctx->csfbparams.tau_active_flag) {
-      nas_itti_tau_complete(ue_id);
+      ue_context_p = PARENT_STRUCT(emm_ctx,
+                                   struct ue_mm_context_s, emm_context);
+      ue_context_p->ue_context_rel_cause = S1AP_NAS_NORMAL_RELEASE;
+      // Notify S1AP to send UE Context Release Command to eNB.
+      mme_app_itti_ue_context_release(
+        ue_context_p, ue_context_p->ue_context_rel_cause);
     }
     emm_context_unlock(emm_ctx);
+  } else {
+    OAILOG_ERROR(
+      LOG_NAS_EMM,
+      "ERROR* Received Invalid UE Id in TAU Complete "MME_UE_S1AP_ID_FMT")\n",
+      ue_id);
   }
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }

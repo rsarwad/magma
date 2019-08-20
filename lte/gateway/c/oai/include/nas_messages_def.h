@@ -40,21 +40,6 @@ MESSAGE_DEF(
   itti_nas_conn_rel_ind_t,
   nas_conn_rel_ind)
 MESSAGE_DEF(
-  NAS_UPLINK_DATA_IND,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_ul_data_ind_t,
-  nas_ul_data_ind)
-MESSAGE_DEF(
-  NAS_DOWNLINK_DATA_CNF,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_dl_data_cnf_t,
-  nas_dl_data_cnf)
-MESSAGE_DEF(
-  NAS_DOWNLINK_DATA_REJ,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_dl_data_rej_t,
-  nas_dl_data_rej)
-MESSAGE_DEF(
   NAS_ERAB_SETUP_REQ,
   MESSAGE_PRIORITY_MED,
   itti_erab_setup_req_t,
@@ -62,11 +47,6 @@ MESSAGE_DEF(
 //MESSAGE_DEF(NAS_RAB_RELEASE_REQ,                MESSAGE_PRIORITY_MED,   itti_nas_rab_rel_req_t,          nas_rab_rel_req)
 
 /* NAS layer -> MME app messages */
-MESSAGE_DEF(
-  NAS_AUTHENTICATION_PARAM_REQ,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_auth_param_req_t,
-  nas_auth_param_req)
 MESSAGE_DEF(
   NAS_SGS_DETACH_REQ,
   MESSAGE_PRIORITY_MED,
@@ -77,11 +57,6 @@ MESSAGE_DEF(
   MESSAGE_PRIORITY_MED,
   itti_nas_implicit_detach_ue_ind_t,
   nas_implicit_detach_ue_ind)
-MESSAGE_DEF(
-  NAS_NW_INITIATED_DETACH_UE_REQ,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_nw_initiated_detach_ue_req_t,
-  nas_nw_initiated_detach_ue_req)
 MESSAGE_DEF(
   NAS_EXTENDED_SERVICE_REQ,
   MESSAGE_PRIORITY_MED,
@@ -107,11 +82,6 @@ MESSAGE_DEF(
   MESSAGE_PRIORITY_MED,
   itti_nas_cs_domain_location_update_fail_t,
   nas_cs_domain_location_update_fail)
-MESSAGE_DEF(
-  NAS_TAU_COMPLETE,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_tau_complete_t,
-  nas_tau_complete)
 MESSAGE_DEF(
   NAS_NOTIFY_SERVICE_REJECT,
   MESSAGE_PRIORITY_MED,

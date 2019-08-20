@@ -118,9 +118,11 @@ void *mme_app_thread(void *args)
         mme_app_handle_s6a_cancel_location_req(
           &received_message_p->ittiMsg.s6a_cancel_location_req);
       } break;
+
       case NAS_ERAB_SETUP_REQ: {
         mme_app_handle_erab_setup_req(&NAS_ERAB_SETUP_REQ(received_message_p));
       } break;
+
       case NAS_UPLINK_DATA_IND: {
         nas_proc_ul_transfer_ind(
           NAS_UL_DATA_IND(received_message_p).ue_id,
@@ -409,12 +411,6 @@ void *mme_app_thread(void *args)
           &received_message_p->ittiMsg.sgsap_location_update_rej);
       } break;
 
-      case NAS_TAU_COMPLETE: {
-        /*Received TAU Complete message from NAS task*/
-        mme_app_handle_nas_tau_complete(
-          &received_message_p->ittiMsg.nas_tau_complete);
-      } break;
-
       case SGSAP_ALERT_REQUEST: {
         /*Received SGSAP Alert Request message from SGS task*/
         mme_app_handle_sgsap_alert_request(
@@ -469,6 +465,20 @@ void *mme_app_thread(void *args)
          */
         nas_proc_authentication_info_answer(
           &S6A_AUTH_INFO_ANS(received_message_p));
+      } break;
+
+      case NAS_DOWNLINK_DATA_CNF: {
+        nas_proc_dl_transfer_cnf(
+          NAS_DL_DATA_CNF(received_message_p).ue_id,
+          NAS_DL_DATA_CNF(received_message_p).err_code,
+          &NAS_DL_DATA_REJ(received_message_p).nas_msg);
+      } break;
+
+      case NAS_DOWNLINK_DATA_REJ: {
+        nas_proc_dl_transfer_rej(
+          NAS_DL_DATA_REJ(received_message_p).ue_id,
+          NAS_DL_DATA_REJ(received_message_p).err_code,
+          &NAS_DL_DATA_REJ(received_message_p).nas_msg);
       } break;
 
       case TERMINATE_MESSAGE: {

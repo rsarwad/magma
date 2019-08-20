@@ -74,3 +74,19 @@ MESSAGE_DEF(
   MESSAGE_PRIORITY_MED,
   itti_mme_app_s1ap_mme_ue_id_notification_t,
   mme_app_s1ap_mme_ue_id_notification)
+MESSAGE_DEF(
+  NAS_UPLINK_DATA_IND,
+  MESSAGE_PRIORITY_MED,
+  itti_nas_ul_data_ind_t,
+  nas_ul_data_ind)
+MESSAGE_DEF(
+  NAS_DOWNLINK_DATA_CNF,
+  MESSAGE_PRIORITY_MED,
+  itti_nas_dl_data_cnf_t,
+  nas_dl_data_cnf)
+MESSAGE_DEF(
+  NAS_DOWNLINK_DATA_REJ,
+  MESSAGE_PRIORITY_MED,
+  itti_nas_dl_data_rej_t,
+  nas_dl_data_rej)
+

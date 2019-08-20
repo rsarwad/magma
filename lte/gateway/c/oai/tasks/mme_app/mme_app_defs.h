@@ -99,9 +99,6 @@ void mme_app_handle_release_access_bearers_resp(
 void mme_app_handle_s11_create_bearer_req(
   const itti_s11_create_bearer_request_t *const create_bearer_request_pP);
 
-void mme_app_handle_nas_auth_param_req(
-  const itti_nas_auth_param_req_t *const nas_auth_param_req_pP);
-
 void mme_app_handle_initial_context_setup_rsp(
   itti_mme_app_initial_context_setup_rsp_t *const initial_ctxt_setup_rsp_pP);
 
@@ -251,9 +248,6 @@ int handle_csfb_s1ap_procedure_failure(
   ue_mm_context_t *ue_context_p,
   char *failed_statement,
   uint8_t failed_procedure);
-
-void mme_app_handle_nas_tau_complete(
-  itti_nas_tau_complete_t *itti_nas_tau_complete_p);
 
 int mme_app_handle_sgsap_service_abort_request(
   itti_sgsap_service_abort_req_t *const itti_sgsap_service_abort_req_p);

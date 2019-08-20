@@ -113,7 +113,7 @@ int s1ap_mme_itti_nas_downlink_cnf(
       "ERROR: Failed to send S1AP message to eNB. mme_ue_s1ap_id =  %d \n",
       ue_id);
   }
-  return itti_send_msg_to_task(TASK_NAS_MME, INSTANCE_DEFAULT, message_p);
+  return itti_send_msg_to_task(TASK_MME_APP, INSTANCE_DEFAULT, message_p);
 }
 
 //------------------------------------------------------------------------------
@@ -233,7 +233,7 @@ void s1ap_mme_itti_nas_non_delivery_ind(
 
   // should be sent to MME_APP, but this one would forward it to NAS_MME, so send it directly to NAS_MME
   // but let's see
-  itti_send_msg_to_task(TASK_NAS_MME, INSTANCE_DEFAULT, message_p);
+  itti_send_msg_to_task(TASK_MME_APP, INSTANCE_DEFAULT, message_p);
   OAILOG_FUNC_OUT(LOG_S1AP);
 }
 

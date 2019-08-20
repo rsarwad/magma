@@ -47,18 +47,12 @@
 
 #define NAS_UL_DATA_IND(mSGpTR) (mSGpTR)->ittiMsg.nas_ul_data_ind
 #define NAS_DL_DATA_REQ(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_req
-#define NAS_DL_DATA_CNF(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_cnf
-#define NAS_DL_DATA_REJ(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_rej
 #define NAS_BEARER_PARAM(mSGpTR) (mSGpTR)->ittiMsg.nas_bearer_param
 #define NAS_AUTHENTICATION_REQ(mSGpTR) (mSGpTR)->ittiMsg.nas_auth_req
-#define NAS_AUTHENTICATION_PARAM_REQ(mSGpTR)                                   \
-  (mSGpTR)->ittiMsg.nas_auth_param_req
 #define NAS_SGS_DETACH_REQ(mSGpTR) (mSGpTR)->ittiMsg.nas_sgs_detach_req
 #define NAS_ERAB_SETUP_REQ(mSGpTR) (mSGpTR)->ittiMsg.itti_erab_setup_req
 #define NAS_IMPLICIT_DETACH_UE_IND(mSGpTR)                                     \
   (mSGpTR)->ittiMsg.nas_implicit_detach_ue_ind
-#define NAS_NW_INITIATED_DETACH_UE_REQ(mSGpTR)                                 \
-  (mSGpTR)->ittiMsg.nas_nw_initiated_detach_ue_req
 #define NAS_CS_DOMAIN_LOCATION_UPDATE_REQ(mSGpTR)                              \
   (mSGpTR)->ittiMsg.nas_cs_domain_location_update_req
 #define NAS_CS_DOMAIN_LOCATION_UPDATE_ACC(mSGpTR)                              \
@@ -70,7 +64,6 @@
 #define NAS_DATA_LENGHT_MAX 256
 #define NAS_EXTENDED_SERVICE_REQ(mSGpTR)                                       \
   (mSGpTR)->ittiMsg.nas_extended_service_req
-#define NAS_TAU_COMPLETE(mSGpTR) (mSGpTR)->ittiMsg.nas_tau_complete
 #define NAS_NOTIFY_SERVICE_REJECT(mSGpTR)                                      \
   (mSGpTR)->ittiMsg.nas_notify_service_reject
 typedef struct itti_nas_cs_service_notification_s {
@@ -99,26 +92,6 @@ typedef struct itti_nas_info_transfer_s {
   bstring nas_msg; /* Uplink NAS message           */
 } itti_nas_info_transfer_t;
 
-typedef struct itti_nas_ul_data_ind_s {
-  mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier        */
-  bstring nas_msg;        /* Uplink NAS message           */
-  tai_t
-    tai; /* Indicating the Tracking Area from which the UE has sent the NAS message.  */
-  ecgi_t
-    cgi; /* Indicating the cell from which the UE has sent the NAS message.   */
-} itti_nas_ul_data_ind_t;
-
-typedef struct itti_nas_dl_data_cnf_s {
-  mme_ue_s1ap_id_t ue_id;    /* UE lower layer identifier        */
-  nas_error_code_t err_code; /* Transaction status               */
-} itti_nas_dl_data_cnf_t;
-
-typedef struct itti_nas_dl_data_rej_s {
-  mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier   */
-  bstring nas_msg;        /* Uplink NAS message           */
-  int err_code;
-} itti_nas_dl_data_rej_t;
-
 typedef struct itti_erab_setup_req_s {
   mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier   */
   ebi_t ebi;              /* EPS bearer id        */
@@ -129,57 +102,10 @@ typedef struct itti_erab_setup_req_s {
   bitrate_t gbr_ul;
 } itti_erab_setup_req_t;
 
-typedef struct itti_nas_attach_req_s {
-  /* TODO: Set the correct size */
-  char apn[100];
-  char imsi[16];
-#define INITIAL_REQUEST (0x1)
-  unsigned initial : 1;
-  s1ap_initial_ue_message_t transparent;
-} itti_nas_attach_req_t;
-
-typedef struct itti_nas_auth_req_s {
-  /* UE imsi */
-  char imsi[16];
-
-#define NAS_FAILURE_OK 0x0
-#define NAS_FAILURE_IND 0x1
-  unsigned failure : 1;
-  int cause;
-} itti_nas_auth_req_t;
-
-typedef struct itti_nas_auth_rsp_s {
-  char imsi[16];
-} itti_nas_auth_rsp_t;
-
-typedef struct itti_nas_auth_param_req_s {
-  /* UE identifier */
-  mme_ue_s1ap_id_t ue_id;
-
-  /* Imsi of the UE (In case of initial request) */
-  char imsi[16];
-  uint8_t imsi_length;
-
-  /* Indicates whether the procedure corresponds to a new connection or not */
-  uint8_t initial_req : 1;
-
-  uint8_t re_synchronization : 1;
-  uint8_t auts[14];
-  uint8_t num_vectors;
-} itti_nas_auth_param_req_t;
-
 typedef struct itti_nas_implicit_detach_ue_ind_s {
   /* UE identifier */
   mme_ue_s1ap_id_t ue_id;
 } itti_nas_implicit_detach_ue_ind_t;
-
-typedef struct itti_nas_nw_initiated_detach_ue_req_s {
-  /* UE identifier */
-  mme_ue_s1ap_id_t ue_id;
-#define HSS_INITIATED_EPS_DETACH 0x00
-#define SGS_INITIATED_IMSI_DETACH 0x01
-  uint8_t detach_type;
-} itti_nas_nw_initiated_detach_ue_req_t;
 
 typedef struct itti_nas_extended_service_req_s {
   /* UE identifier */
@@ -227,11 +153,6 @@ typedef struct itti_nas_cs_domain_location_update_fail_s {
   int reject_cause;
   lai_t laicsfb;
 } itti_nas_cs_domain_location_update_fail_t;
-
-typedef struct itti_nas_tau_complete {
-  /* UE identifier */
-  mme_ue_s1ap_id_t ue_id;
-} itti_nas_tau_complete_t;
 
 /* ITTI message used to intimate service reject for ongoing service request procedure
  * from mme_app to nas

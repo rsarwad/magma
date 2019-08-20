@@ -164,40 +164,6 @@ void nas_itti_auth_info_req(
 
   OAILOG_FUNC_OUT(LOG_NAS);
 }
-
-//------------------------------------------------------------------------------
-void nas_itti_establish_rej(
-  const mme_ue_s1ap_id_t ue_idP,
-  const imsi_t *const imsi_pP,
-  uint8_t initial_reqP)
-{
-  OAILOG_FUNC_IN(LOG_NAS);
-  MessageDef *message_p;
-
-  message_p =
-    itti_alloc_new_message(TASK_NAS_MME, NAS_AUTHENTICATION_PARAM_REQ);
-
-  hexa_to_ascii(
-    (uint8_t *) imsi_pP->u.value,
-    NAS_AUTHENTICATION_PARAM_REQ(message_p).imsi,
-    8);
-
-  NAS_AUTHENTICATION_PARAM_REQ(message_p).imsi[15] = '\0';
-
-  if (isdigit(NAS_AUTHENTICATION_PARAM_REQ(message_p).imsi[14])) {
-    NAS_AUTHENTICATION_PARAM_REQ(message_p).imsi_length = 15;
-  } else {
-    NAS_AUTHENTICATION_PARAM_REQ(message_p).imsi_length = 14;
-    NAS_AUTHENTICATION_PARAM_REQ(message_p).imsi[14] = '\0';
-  }
-
-  NAS_AUTHENTICATION_PARAM_REQ(message_p).initial_req = initial_reqP;
-  NAS_AUTHENTICATION_PARAM_REQ(message_p).ue_id = ue_idP;
-
-  itti_send_msg_to_task(TASK_MME_APP, INSTANCE_DEFAULT, message_p);
-  OAILOG_FUNC_OUT(LOG_NAS);
-}
-
 //------------------------------------------------------------------------------
 void nas_itti_sgs_detach_req(const uint32_t ue_idP, const uint8_t detach_type)
 {
@@ -456,23 +422,6 @@ void nas_itti_cs_domain_location_update_req(
   itti_send_msg_to_task(TASK_MME_APP, INSTANCE_DEFAULT, message_p);
   OAILOG_INFO(
     LOG_NAS_EMM, " Sent CS Domain Location Update Request to MME APP\n");
-
-  OAILOG_FUNC_OUT(LOG_NAS);
-}
-
-/*TAU Complete message to be sent to MME APP*/
-void nas_itti_tau_complete(unsigned int ue_idP)
-{
-  OAILOG_FUNC_IN(LOG_NAS);
-  MessageDef *message_p = NULL;
-
-  message_p = itti_alloc_new_message(TASK_NAS_MME, NAS_TAU_COMPLETE);
-  memset(
-    &message_p->ittiMsg.nas_tau_complete, 0, sizeof(itti_nas_tau_complete_t));
-
-  NAS_TAU_COMPLETE(message_p).ue_id = ue_idP;
-
-  itti_send_msg_to_task(TASK_MME_APP, INSTANCE_DEFAULT, message_p);
 
   OAILOG_FUNC_OUT(LOG_NAS);
 }

@@ -58,6 +58,8 @@
   (mSGpTR)->ittiMsg.mme_app_create_dedicated_bearer_rsp
 #define MME_APP_CREATE_DEDICATED_BEARER_REJ(mSGpTR)                            \
   (mSGpTR)->ittiMsg.mme_app_create_dedicated_bearer_rej
+#define NAS_DL_DATA_CNF(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_cnf
+#define NAS_DL_DATA_REJ(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_rej
 
 typedef struct itti_mme_app_connection_establishment_cnf_s {
   mme_ue_s1ap_id_t ue_id;
@@ -155,5 +157,26 @@ typedef struct itti_mme_app_s1ap_mme_ue_id_notification_s {
   mme_ue_s1ap_id_t mme_ue_s1ap_id;
   sctp_assoc_id_t sctp_assoc_id;
 } itti_mme_app_s1ap_mme_ue_id_notification_t;
+
+typedef struct itti_nas_dl_data_cnf_s {
+  mme_ue_s1ap_id_t ue_id;    /* UE lower layer identifier        */
+  nas_error_code_t err_code; /* Transaction status               */
+} itti_nas_dl_data_cnf_t;
+
+typedef struct itti_nas_dl_data_rej_s {
+  mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier   */
+  bstring nas_msg;        /* Uplink NAS message           */
+  int err_code;
+} itti_nas_dl_data_rej_t;
+
+typedef struct itti_nas_ul_data_ind_s {
+  mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier        */
+  bstring nas_msg;        /* Uplink NAS message           */
+  tai_t tai; /* Indicating the Tracking Area from which the UE has sent the
+                NAS message.  */
+  ecgi_t cgi; /* Indicating the cell from which the UE has sent the NAS
+                message */
+} itti_nas_ul_data_ind_t;
+
 
 #endif /* FILE_MME_APP_MESSAGES_TYPES_SEEN */

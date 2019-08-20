@@ -59,19 +59,6 @@ static void *nas_intertask_interface(void *args_p)
           &MME_APP_CREATE_DEDICATED_BEARER_REQ(received_message_p));
         break;
 
-      case NAS_DOWNLINK_DATA_CNF: {
-        nas_proc_dl_transfer_cnf(
-          NAS_DL_DATA_CNF(received_message_p).ue_id,
-          NAS_DL_DATA_CNF(received_message_p).err_code,
-          &NAS_DL_DATA_REJ(received_message_p).nas_msg);
-      } break;
-
-      case NAS_DOWNLINK_DATA_REJ: {
-        nas_proc_dl_transfer_rej(
-          NAS_DL_DATA_REJ(received_message_p).ue_id,
-          NAS_DL_DATA_REJ(received_message_p).err_code,
-          &NAS_DL_DATA_REJ(received_message_p).nas_msg);
-      } break;
       case NAS_IMPLICIT_DETACH_UE_IND: {
         nas_proc_implicit_detach_ue_ind(
           NAS_IMPLICIT_DETACH_UE_IND(received_message_p).ue_id);
@@ -81,12 +68,6 @@ static void *nas_intertask_interface(void *args_p)
         nas_proc_deregister_ue(
           S1AP_DEREGISTER_UE_REQ(received_message_p).mme_ue_s1ap_id);
       } break;
-
-      case NAS_NW_INITIATED_DETACH_UE_REQ: {
-        nas_proc_nw_initiated_detach_ue_request(
-          &NAS_NW_INITIATED_DETACH_UE_REQ(received_message_p));
-      } break;
-
       case NAS_CS_DOMAIN_LOCATION_UPDATE_ACC: {
         itti_nas_cs_domain_location_update_acc_t
           *itti_nas_location_update_acc_p = NULL;

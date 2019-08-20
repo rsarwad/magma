@@ -129,8 +129,6 @@ Rashmi TODO remove below lines
         "TODO clean pointer");
       break;
 
-    case NAS_AUTHENTICATION_PARAM_REQ:
-      break;
     case S11_CREATE_SESSION_REQUEST: {
       // DO nothing
     } break;
