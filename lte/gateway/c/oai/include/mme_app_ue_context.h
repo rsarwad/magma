@@ -510,8 +510,6 @@ typedef struct ue_mm_context_s {
   //Attach type
   uint8_t attach_type;
   //TAU Update Type
-  uint8_t tau_updt_type; /*TAU Update type - Normal Update, Periodic,
-                                            combined TAU,combined TAU with IMSI*/
   lai_t lai;
   int cs_fallback_indicator;
   uint8_t detach_type; /* SGS Detach type*/

@@ -53,10 +53,6 @@
 #define NAS_ERAB_SETUP_REQ(mSGpTR) (mSGpTR)->ittiMsg.itti_erab_setup_req
 #define NAS_IMPLICIT_DETACH_UE_IND(mSGpTR)                                     \
   (mSGpTR)->ittiMsg.nas_implicit_detach_ue_ind
-#define NAS_CS_DOMAIN_LOCATION_UPDATE_REQ(mSGpTR)                              \
-  (mSGpTR)->ittiMsg.nas_cs_domain_location_update_req
-#define NAS_CS_DOMAIN_LOCATION_UPDATE_ACC(mSGpTR)                              \
-  (mSGpTR)->ittiMsg.nas_cs_domain_location_update_acc
 #define NAS_CS_DOMAIN_LOCATION_UPDATE_FAIL(mSGpTR)                             \
   (mSGpTR)->ittiMsg.nas_cs_domain_location_update_fail
 #define NAS_CS_SERVICE_NOTIFICATION(mSGpTR)                                    \
@@ -139,29 +135,6 @@ typedef struct itti_nas_sgs_detach_req_s {
   /* detach type */
   uint8_t detach_type;
 } itti_nas_sgs_detach_req_t;
-
-typedef struct itti_nas_cs_domain_location_update_req_s {
-/* UE identifier */
-#define ATTACH_REQ (1 << 0)
-#define TAU_REQUEST (1 << 1)
-  uint8_t msg_type;
-  mme_ue_s1ap_id_t ue_id;
-  uint8_t attach_type;
-  additional_updt_t add_updt_type;
-  uint8_t tau_updt_type; /*TAU Update type - Normal Update, Periodic,*/
-} itti_nas_cs_domain_location_update_req_t;
-
-typedef struct itti_nas_cs_domain_location_update_acc_s {
-/* UE identifier */
-#define MOBILE_IDENTITY (1 << 0)
-#define ADD_UPDT_TYPE (1 << 1)
-  uint8_t presencemask;
-  mme_ue_s1ap_id_t ue_id;
-  lai_t laicsfb;
-  mobile_identity_t mobileid;
-  additional_updt_result_t add_updt_res;
-  bool is_sgs_assoc_exists;
-} itti_nas_cs_domain_location_update_acc_t;
 
 typedef struct itti_nas_cs_domain_location_update_fail_s {
 /* UE identifier */

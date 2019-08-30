@@ -194,7 +194,8 @@ int mme_app_send_nas_detach_request(
   uint8_t detach_type);
 
 int mme_app_handle_nas_cs_domain_location_update_req(
-  itti_nas_cs_domain_location_update_req_t *const itti_nas_location_update_req);
+  ue_mm_context_t *ue_context,
+  uint8_t msg_type);
 
 int mme_app_handle_sgsap_location_update_acc(
   itti_sgsap_location_update_acc_t *const itti_sgsap_location_update_acc);
@@ -293,6 +294,18 @@ void mme_app_handle_path_switch_req_ack(
 
 void mme_app_handle_path_switch_req_failure(
     struct ue_mm_context_s *ue_context_p);
+
+void mme_app_send_itti_sgsap_ue_activity_ind(
+    const char *imsi, const unsigned int imsi_len);
+
+int handle_cs_domain_loc_updt_acc(
+    struct ue_mm_context_s *ue_context_p);
+
+int mme_app_create_sgs_context(
+    ue_mm_context_t *ue_context_p);
+
+#define ATTACH_REQ (1 << 0)
+#define TAU_REQUEST (1 << 1)
 
 #define mme_stats_read_lock(mMEsTATS)                                          \
   pthread_rwlock_rdlock(&(mMEsTATS)->rw_lock)

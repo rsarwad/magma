@@ -38,8 +38,6 @@
 #define MAX_IMEISV_SIZE 15
 #define MAX_MME_NAME_LENGTH 255
 #define MAX_VLR_NAME_LENGTH 255
-#define SGS_ASSOC_ACTIVE 1
-#define SGS_ASSOC_INACTIVE 0
 
 typedef uint8_t TimeZone;
 typedef uint8_t UeEmmMode;

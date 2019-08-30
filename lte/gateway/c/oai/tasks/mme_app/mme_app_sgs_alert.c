@@ -124,39 +124,10 @@ int mme_app_handle_sgsap_alert_request(
     OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
   }
   if (ue_context_p->sgs_context == NULL) {
-    OAILOG_INFO(
-      LOG_MME_APP,
-      "SGS context not created for IMSI and creating sgs context"
-      "on reception of Alert Request over SGS" IMSI_64_FMT "\n",
-      imsi64);
-    //Create SGS context
-    ue_context_p->sgs_context = calloc(1, sizeof(sgs_context_t));
-    if (ue_context_p->sgs_context == NULL) {
-      OAILOG_ERROR(
-        LOG_MME_APP,
-        "Cannot create SGS Context for UE ID %d ",
-        ue_context_p->mme_ue_s1ap_id);
-      unlock_ue_contexts(ue_context_p);
-      OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
-    }
-    /*Initialize SGS context to default values*/
-    ue_context_p->sgs_context->sgs_state = SGS_NULL;
-    ue_context_p->sgs_context->vlr_reliable = false;
-    ue_context_p->sgs_context->ts6_1_timer.id = SGS_TIMER_INACTIVE_ID;
-    ue_context_p->sgs_context->ts6_1_timer.sec =
-      mme_config.sgs_config.ts6_1_sec;
-    ue_context_p->sgs_context->ts8_timer.id = SGS_TIMER_INACTIVE_ID;
-    ue_context_p->sgs_context->ts8_timer.sec = mme_config.sgs_config.ts8_sec;
-    ue_context_p->sgs_context->ts9_timer.id = SGS_TIMER_INACTIVE_ID;
-    ue_context_p->sgs_context->ts9_timer.sec = mme_config.sgs_config.ts9_sec;
-    ue_context_p->sgs_context->ts10_timer.id = SGS_TIMER_INACTIVE_ID;
-    ue_context_p->sgs_context->ts10_timer.sec = mme_config.sgs_config.ts10_sec;
-    ue_context_p->sgs_context->ts13_timer.id = SGS_TIMER_INACTIVE_ID;
-    ue_context_p->sgs_context->ts13_timer.sec = mme_config.sgs_config.ts13_sec;
+    mme_app_create_sgs_context(ue_context_p);
   }
 
   ue_context_p->sgs_context->neaf = SET_NEAF;
-
   /* send Alert Ack */
   _mme_app_send_sgsap_alert_ack(sgsap_alert_req_pP, imsi64);
   unlock_ue_contexts(ue_context_p);
