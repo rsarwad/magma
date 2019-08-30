@@ -110,6 +110,11 @@ void *mme_app_thread(void *args)
           &MME_APP_CREATE_DEDICATED_BEARER_REJ(received_message_p));
       } break;
 
+      case MME_APP_DELETE_DEDICATED_BEARER_RSP: {
+        mme_app_handle_delete_dedicated_bearer_rsp(
+          &MME_APP_DELETE_DEDICATED_BEARER_RSP(received_message_p));
+      } break;
+
       case S6A_CANCEL_LOCATION_REQ: {
         /*
          * Check cancellation-type and handle it if it is SUBSCRIPTION_WITHDRAWAL.
@@ -121,6 +126,10 @@ void *mme_app_thread(void *args)
 
       case NAS_ERAB_SETUP_REQ: {
         mme_app_handle_erab_setup_req(&NAS_ERAB_SETUP_REQ(received_message_p));
+      } break;
+
+      case NAS_ERAB_REL_CMD: {
+        mme_app_handle_erab_rel_cmd(&NAS_ERAB_REL_CMD(received_message_p));
       } break;
 
       case NAS_UPLINK_DATA_IND: {
@@ -196,6 +205,11 @@ void *mme_app_thread(void *args)
       case S1AP_E_RAB_SETUP_RSP: {
         mme_app_handle_e_rab_setup_rsp(
           &S1AP_E_RAB_SETUP_RSP(received_message_p));
+      } break;
+
+      case S1AP_E_RAB_REL_RSP: {
+        mme_app_handle_e_rab_rel_rsp(
+          &S1AP_E_RAB_REL_RSP(received_message_p));
       } break;
 
       case NAS_EXTENDED_SERVICE_REQ: {
@@ -448,9 +462,24 @@ void *mme_app_thread(void *args)
           &S11_MODIFY_UE_AMBR_REQUEST(received_message_p));
       } break;
 
+      case S11_NW_INITIATED_ACTIVATE_BEARER_REQUEST: {
+        mme_app_handle_nw_init_ded_bearer_actv_req(
+          &received_message_p->ittiMsg.s11_nw_init_actv_bearer_request);
+      } break;
+
       case SGSAP_STATUS: {
         mme_app_handle_sgs_status_message(
           &received_message_p->ittiMsg.sgsap_status);
+      } break;
+
+      case S11_NW_INITIATED_DEACTIVATE_BEARER_REQUEST: {
+        mme_app_handle_nw_init_bearer_deactv_req(
+          &received_message_p->ittiMsg.s11_nw_init_deactv_bearer_request);
+      } break;
+
+      case MME_APP_DELETE_DEDICATED_BEARER_REJ: {
+        mme_app_handle_delete_dedicated_bearer_rej(
+          &MME_APP_DELETE_DEDICATED_BEARER_REJ(received_message_p));
       } break;
 
       case S1AP_PATH_SWITCH_REQUEST: {

@@ -60,6 +60,12 @@
   (mSGpTR)->ittiMsg.mme_app_create_dedicated_bearer_rej
 #define NAS_DL_DATA_CNF(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_cnf
 #define NAS_DL_DATA_REJ(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_rej
+#define MME_APP_DELETE_DEDICATED_BEARER_REQ(mSGpTR)                            \
+  (mSGpTR)->ittiMsg.mme_app_delete_dedicated_bearer_req
+#define MME_APP_DELETE_DEDICATED_BEARER_RSP(mSGpTR)                            \
+  (mSGpTR)->ittiMsg.mme_app_delete_dedicated_bearer_rsp
+#define MME_APP_DELETE_DEDICATED_BEARER_REJ(mSGpTR)                            \
+  (mSGpTR)->ittiMsg.mme_app_delete_dedicated_bearer_rej
 
 typedef struct itti_mme_app_connection_establishment_cnf_s {
   mme_ue_s1ap_id_t ue_id;
@@ -138,6 +144,7 @@ typedef struct itti_mme_app_create_dedicated_bearer_req_s {
   bearer_qos_t bearer_qos;
   traffic_flow_template_t *tft;
   protocol_configuration_options_t *pco;
+  teid_t gtp_teid;
 } itti_mme_app_create_dedicated_bearer_req_t;
 
 typedef struct itti_mme_app_create_dedicated_bearer_rsp_s {
@@ -169,14 +176,31 @@ typedef struct itti_nas_dl_data_rej_s {
   int err_code;
 } itti_nas_dl_data_rej_t;
 
-typedef struct itti_nas_ul_data_ind_s {
-  mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier        */
-  bstring nas_msg;        /* Uplink NAS message           */
-  tai_t tai; /* Indicating the Tracking Area from which the UE has sent the
-                NAS message.  */
-  ecgi_t cgi; /* Indicating the cell from which the UE has sent the NAS
-                message */
-} itti_nas_ul_data_ind_t;
+typedef struct itti_mme_app_delete_dedicated_bearer_req_s {
+  /* UE identifier */
+  uint32_t no_of_bearers;
+  ebi_t ebi[BEARERS_PER_UE]; //EPS Bearer ID
+  mme_ue_s1ap_id_t ue_id;
+} itti_mme_app_delete_dedicated_bearer_req_t;
+
+
+typedef struct itti_mme_app_delete_dedicated_bearer_rsp_s {
+  /* UE identifier */
+  uint32_t no_of_bearers;
+  ebi_t ebi[BEARERS_PER_UE]; //EPS Bearer ID
+  mme_ue_s1ap_id_t ue_id;
+  bool delete_default_bearer;
+  teid_t s_gw_teid_s11_s4;
+} itti_mme_app_delete_dedicated_bearer_rsp_t;
+
+typedef struct itti_mme_app_delete_dedicated_bearer_rej_s {
+  /* UE identifier */
+  mme_ue_s1ap_id_t ue_id;
+  uint32_t no_of_bearers;
+  ebi_t ebi[BEARERS_PER_UE]; //EPS Bearer ID
+  teid_t s_gw_teid_s11_s4;
+  bool delete_default_bearer;
+} itti_mme_app_delete_dedicated_bearer_rej_t;
 
 
 #endif /* FILE_MME_APP_MESSAGES_TYPES_SEEN */

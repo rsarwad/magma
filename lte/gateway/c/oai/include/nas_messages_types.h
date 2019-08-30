@@ -66,6 +66,8 @@
   (mSGpTR)->ittiMsg.nas_extended_service_req
 #define NAS_NOTIFY_SERVICE_REJECT(mSGpTR)                                      \
   (mSGpTR)->ittiMsg.nas_notify_service_reject
+#define NAS_ERAB_REL_CMD(mSGpTR) (mSGpTR)->ittiMsg.itti_erab_rel_cmd
+
 typedef struct itti_nas_cs_service_notification_s {
   mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier        */
 #define NAS_PAGING_ID_IMSI 0X00
@@ -92,6 +94,16 @@ typedef struct itti_nas_info_transfer_s {
   bstring nas_msg; /* Uplink NAS message           */
 } itti_nas_info_transfer_t;
 
+typedef struct itti_nas_ul_data_ind_s {
+  mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier        */
+  bstring nas_msg;        /* Uplink NAS message           */
+  tai_t
+    tai; /* Indicating the Tracking Area from which the UE has sent the NAS message.  */
+  ecgi_t
+    cgi; /* Indicating the cell from which the UE has sent the NAS message.   */
+} itti_nas_ul_data_ind_t;
+
+
 typedef struct itti_erab_setup_req_s {
   mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier   */
   ebi_t ebi;              /* EPS bearer id        */
@@ -101,6 +113,12 @@ typedef struct itti_erab_setup_req_s {
   bitrate_t gbr_dl;
   bitrate_t gbr_ul;
 } itti_erab_setup_req_t;
+
+typedef struct itti_erab_rel_cmd_s {
+  mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier   */
+  ebi_t ebi;              /* EPS bearer id        */
+  bstring nas_msg; /* NAS erab bearer context activation message           */
+} itti_erab_rel_cmd_t;
 
 typedef struct itti_nas_implicit_detach_ue_ind_s {
   /* UE identifier */
