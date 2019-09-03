@@ -164,7 +164,6 @@ static int _sgs_handle_paging_request_for_mt_sms(const sgs_fsm_t *evt)
       SGS_CAUSE_IMSI_IMPLICITLY_DETACHED_FOR_NONEPS_SERVICE);
     increment_counter(
       "sgsap_paging_reject", 1, 1, "cause", "ue_requested_only_eps");
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
   }
   /* Fetch LAI if present */
@@ -176,7 +175,6 @@ static int _sgs_handle_paging_request_for_mt_sms(const sgs_fsm_t *evt)
         PAGING_REQUEST_LAI_PARAMETER_PRESENT)) {
     rc = _sgsap_handle_paging_request_without_lai(
       ue_context_p, sgsap_paging_req_pP);
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
   }
   if (ue_context_p->ecm_state == ECM_CONNECTED) {
@@ -186,7 +184,6 @@ static int _sgs_handle_paging_request_for_mt_sms(const sgs_fsm_t *evt)
     rc = _sgs_handle_paging_request_for_mt_sms_in_idle(
       ue_context_p, sgsap_paging_req_pP);
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
 
@@ -243,7 +240,6 @@ static int _sgs_handle_paging_request_for_mt_call(const sgs_fsm_t *evt)
       SGS_CAUSE_MT_CSFB_CALL_REJECTED_BY_USER);
     increment_counter(
       "sgsap_paging_reject", 1, 1, "cause", "ue_requested_only_sms");
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
   }
   /* Fetch LAI if present */
@@ -251,7 +247,6 @@ static int _sgs_handle_paging_request_for_mt_call(const sgs_fsm_t *evt)
         PAGING_REQUEST_LAI_PARAMETER_PRESENT)) {
     rc = _sgsap_handle_paging_request_without_lai(
       ue_context_p, sgsap_paging_req_pP);
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
   }
 
@@ -266,7 +261,6 @@ static int _sgs_handle_paging_request_for_mt_call(const sgs_fsm_t *evt)
     /* Handling for paging received without LAI and vlr-reliable flag set to false is same */
     rc = _sgsap_handle_paging_request_without_lai(
       ue_context_p, sgsap_paging_req_pP);
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
   }
 
@@ -277,7 +271,6 @@ static int _sgs_handle_paging_request_for_mt_call(const sgs_fsm_t *evt)
     rc = _sgs_handle_paging_request_for_mt_call_in_idle(
       ue_context_p, sgsap_paging_req_pP);
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
 
@@ -762,7 +755,6 @@ int sgs_handle_null_paging_request(const sgs_fsm_t *evt)
   increment_counter(
     "sgsap_paging_reject", 1, 1, "cause", "paging_request_rx in null_state");
 
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
 
@@ -943,7 +935,6 @@ int mme_app_handle_sgsap_paging_request(
       SGS_CAUSE_IMSI_DETACHED_FOR_NONEPS_SERVICE);
     increment_counter(
       "sgsap_paging_reject", 1, 1, "cause", "SGS context not created");
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
   }
   ue_context_p->sgs_context->sgsap_msg = (void *) sgsap_paging_req_pP;
@@ -959,6 +950,5 @@ int mme_app_handle_sgsap_paging_request(
       ue_context_p->mme_ue_s1ap_id);
   }
   ue_context_p->sgs_context->sgsap_msg = NULL;
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }

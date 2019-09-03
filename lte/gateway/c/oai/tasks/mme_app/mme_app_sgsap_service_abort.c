@@ -82,7 +82,6 @@ int mme_app_handle_sgsap_service_abort_request(
       "SGS context not found in mme_app_handle_sgsap_service_abort_req for "
       "IMSI %s\n",
       itti_sgsap_service_abort_req_p->imsi);
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
   }
 
@@ -97,11 +96,9 @@ int mme_app_handle_sgsap_service_abort_request(
       LOG_MME_APP,
       "Error in invoking FSM handler for primitive %d \n",
       sgs_fsm.primitive);
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
   }
 
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
 

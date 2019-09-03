@@ -948,7 +948,6 @@ void nas_emm_procedure_register_emm_message(
       // forward to ESM, TODO later...
     }
   }
-  unlock_ue_contexts(ue_mm_context);
 }
 
 //-----------------------------------------------------------------------------

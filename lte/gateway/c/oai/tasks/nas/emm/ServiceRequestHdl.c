@@ -135,7 +135,6 @@ static int _emm_service_reject(mme_ue_s1ap_id_t ue_id, uint8_t emm_cause)
     }
   }
 
-  emm_context_unlock(emm_ctx);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 
@@ -207,11 +206,9 @@ int emm_proc_extended_service_request(
       "failure",
       "cause",
       "emm_cause_congestion");
-    emm_context_unlock(emm_ctx);
     OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
   }
   /* notify MME-APP for extended service request reception in ue connected mode */
-  emm_context_unlock(emm_ctx);
   nas_itti_extended_service_req(ue_id, msg->servicetype, msg->csfbresponse);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
@@ -318,7 +315,6 @@ int emm_recv_initial_ext_service_request(
     emm_sap.u.emm_cn.u.emm_cn_nw_initiated_detach.detach_type =
       NW_DETACH_TYPE_IMSI_DETACH;
     rc = emm_sap_send(&emm_sap);
-    emm_context_unlock(emm_ctx);
     OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
   }
 
@@ -340,7 +336,6 @@ int emm_recv_initial_ext_service_request(
   emm_sap.u.emm_as.u.establish.service_type = msg->servicetype;
   rc = emm_sap_send(&emm_sap);
 
-  emm_context_unlock(emm_ctx);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 
@@ -355,7 +350,6 @@ static int _check_paging_received_without_lai(mme_ue_s1ap_id_t ue_id)
        (ue_context->sgs_context->csfb_service_type ==
         CSFB_SERVICE_MT_CALL_OR_SMS_WITHOUT_LAI)) {
       ue_context->sgs_context->csfb_service_type = CSFB_SERVICE_NONE;
-      unlock_ue_contexts(ue_context);
       OAILOG_FUNC_RETURN(LOG_NAS_EMM, true);
     }
   }
@@ -389,6 +383,5 @@ int emm_send_service_reject_in_dl_nas(
     &emm_sap.u.emm_as.u.data.sctx, &emm_ctx->_security, false, true);
 
   rc = emm_sap_send(&emm_sap);
-  emm_context_unlock(emm_ctx);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }

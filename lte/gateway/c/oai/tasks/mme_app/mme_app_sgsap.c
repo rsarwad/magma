@@ -103,7 +103,6 @@ int mme_app_handle_sgsap_paging_request(
       SGS_CAUSE_IMSI_DETACHED_FOR_NONEPS_SERVICE);
     increment_counter(
       "sgsap_paging_reject", 1, 1, "cause", "SGS context not created");
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
   }
   ue_context_p->sgs_context->sgsap_msg = (void *) sgsap_paging_req_pP;
@@ -119,7 +118,6 @@ int mme_app_handle_sgsap_paging_request(
       ue_context_p->mme_ue_s1ap_id);
   }
   ue_context_p->sgs_context->sgsap_msg = NULL;
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
 

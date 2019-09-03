@@ -160,7 +160,6 @@ static int _emm_cn_authentication_res(emm_cn_auth_res_t *const msg)
         "id " MME_UE_S1AP_ID_FMT "...\n",
         msg->ue_id);
     }
-    unlock_ue_contexts(ue_mm_context);
   }
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
@@ -194,7 +193,6 @@ static int _emm_cn_authentication_fail(const emm_cn_auth_fail_t *msg)
         "id " MME_UE_S1AP_ID_FMT "...\n",
         msg->ue_id);
     }
-    unlock_ue_contexts(ue_mm_context);
   }
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
@@ -422,7 +420,6 @@ static int _emm_cn_pdn_config_res(emm_cn_pdn_config_res_t *msg_pP)
         "Failed to Perform PDN connectivity procedure requested by ue"
         "for (ue_id =" MME_UE_S1AP_ID_FMT ")\n",
         ue_mm_context->mme_ue_s1ap_id);
-      unlock_ue_contexts(ue_mm_context);
       OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
     }
     if (!is_pdn_connectivity) {
@@ -433,13 +430,10 @@ static int _emm_cn_pdn_config_res(emm_cn_pdn_config_res_t *msg_pP)
       } else {
         OAILOG_ERROR(LOG_NAS_ESM, "Received Invalid PDN type \n");
       }
-    } else {
     }
 
-    unlock_ue_contexts(ue_mm_context);
     OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNok);
   }
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNerror);
 }
 
@@ -476,7 +470,6 @@ static int _emm_cn_implicit_detach_ue(const uint32_t ue_id)
 
   emm_proc_detach_request(ue_id, &params);
   increment_counter("ue_detach", 1, 1, "cause", "implicit_detach");
-  emm_context_unlock(emm_ctx_p);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 
@@ -649,7 +642,6 @@ static int _emm_cn_pdn_connectivity_res(emm_cn_pdn_res_t *msg_pP)
       /*
        * Return indication that ESM procedure failed
        */
-      unlock_ue_contexts(ue_mm_context);
       OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
     }
   } else {
@@ -666,7 +658,6 @@ static int _emm_cn_pdn_connectivity_res(emm_cn_pdn_res_t *msg_pP)
   /*Send ITTI Location update request message to MME App if 
    *attach_type == EMM_ATTACH_TYPE_COMBINED_EPS_IMSI*/
   if (_is_csfb_enabled(emm_ctx, rsp) == RETURNok) {
-    unlock_ue_contexts(ue_mm_context);
     OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNok);
   }
 
@@ -705,7 +696,6 @@ static int _emm_cn_pdn_connectivity_res(emm_cn_pdn_res_t *msg_pP)
       }
     }
   }
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 
@@ -796,7 +786,6 @@ static int _emm_cn_pdn_connectivity_fail(const emm_cn_pdn_fail_t *msg)
       "pdn_connection_estb_failed");
     rc = emm_proc_attach_reject(msg->ue_id, EMM_CAUSE_ESM_FAILURE);
   }
-  emm_context_unlock(emm_ctx_p);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 
@@ -839,7 +828,6 @@ static int _emm_cn_activate_dedicated_bearer_req(
 
   rc = esm_sap_send(&esm_sap);
 
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 
@@ -871,7 +859,6 @@ static int _emm_cn_deactivate_dedicated_bearer_req(
 
   rc = esm_sap_send(&esm_sap);
 
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 //------------------------------------------------------------------------------
@@ -1060,7 +1047,6 @@ static int _emm_cn_cs_domain_loc_updt_fail(
   //Store SGS Reject Cause to be sent in Attach/TAU
   emm_ctx_p->emm_cause = emm_cn_sgs_location_updt_fail.reject_cause;
 
-  emm_context_unlock(emm_ctx_p);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 
@@ -1102,7 +1088,6 @@ static int _emm_cn_cs_domain_mm_information_req(
     if (ue_context_p->sgs_context == NULL) {
       OAILOG_WARNING(
         LOG_NAS_EMM, " Invalid SGS context for IMSI" IMSI_64_FMT "\n", imsi64);
-      emm_context_unlock(ctxt);
       OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
     }
 
@@ -1127,7 +1112,6 @@ static int _emm_cn_cs_domain_mm_information_req(
       "imsi" IMSI_64_FMT "\n",
       imsi64);
   }
-  emm_context_unlock(ctxt);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 

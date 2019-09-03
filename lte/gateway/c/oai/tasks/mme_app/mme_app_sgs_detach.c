@@ -523,7 +523,6 @@ void mme_app_handle_sgs_detach_req(
     OAILOG_ERROR(
       LOG_MME_APP, "UE SGS context doesn't exist -> Nothing to do :-) \n");
   }
-  unlock_ue_contexts(ue_context);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -585,10 +584,8 @@ int mme_app_handle_sgs_eps_detach_ack(
     OAILOG_ERROR(
       LOG_MME_APP,
       "SGS context not found in mme_app_handle_sgs_eps_detach_ack\n");
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNok);
 }
 
@@ -681,6 +678,5 @@ int mme_app_handle_sgs_imsi_detach_ack(
       "SGS context not found in mme_app_handle_sgs_imsi_detach_ack\n");
     rc = RETURNerror;
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }

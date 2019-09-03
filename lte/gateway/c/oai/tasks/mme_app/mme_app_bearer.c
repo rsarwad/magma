@@ -273,7 +273,6 @@ int mme_app_handle_nas_pdn_connectivity_req(
     increment_counter("mme_spgw_create_session_req", 1, NO_LABELS);
   }
 
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
 
@@ -345,7 +344,6 @@ void mme_app_handle_conn_est_cnf(
       mme_app_send_nas_detach_request(
         ue_context_p->mme_ue_s1ap_id, SGS_INITIATED_IMSI_DETACH);
       ue_context_p->sgs_context->csfb_service_type = CSFB_SERVICE_NONE;
-      unlock_ue_contexts(ue_context_p);
       OAILOG_FUNC_OUT(LOG_MME_APP);
     }
   }
@@ -553,7 +551,6 @@ void mme_app_handle_conn_est_cnf(
       "for UE id  %d \n",
       ue_context_p->mme_ue_s1ap_id);
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -761,8 +758,6 @@ void mme_app_handle_initial_ue_message(
 
   initial_pP->nas = NULL;
 
-  unlock_ue_contexts(ue_context_p);
-
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -842,7 +837,6 @@ void mme_app_handle_erab_setup_req(
       itti_erab_setup_req->ue_id,
       itti_erab_setup_req->ebi);
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -911,7 +905,6 @@ void mme_app_handle_delete_session_rsp(
       "Deleting UE context associated in MME for "
       "mme_ue_s1ap_id " MME_UE_S1AP_ID_FMT "\n ",
       ue_context_p->mme_ue_s1ap_id);
-    unlock_ue_contexts(ue_context_p);
     mme_remove_ue_context(&mme_app_desc.mme_ue_contexts, ue_context_p);
     // return now, otherwize will unlock ue context already free
     OAILOG_FUNC_OUT(LOG_MME_APP);
@@ -942,7 +935,6 @@ void mme_app_handle_delete_session_rsp(
     }
   }
 
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -1013,7 +1005,6 @@ int mme_app_handle_create_sess_resp(
       bearer_id,
       transaction_identifier);
     rc = nas_proc_pdn_connectivity_fail(&nas_pdn_connectivity_fail);
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
   }
   increment_counter("mme_spgw_create_session_rsp", 1, 1, "result", "success");
@@ -1154,7 +1145,6 @@ int mme_app_handle_create_sess_resp(
   }
 
   nas_proc_pdn_connectivity_res(&nas_pdn_connectivity_rsp);
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
 
@@ -1294,7 +1284,6 @@ void mme_app_handle_initial_context_setup_rsp(
     }
   }
 
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -1333,7 +1322,6 @@ void mme_app_handle_release_access_bearers_resp(
       &mme_app_desc.mme_ue_contexts, ue_context_p, ECM_IDLE);
     ue_context_p->ue_context_rel_cause = S1AP_INVALID_CAUSE;
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -1368,7 +1356,6 @@ void mme_app_handle_s11_create_bearer_req(
       " for UE: " MME_UE_S1AP_ID_FMT "\n",
       linked_eps_bearer_id,
       ue_context_p->mme_ue_s1ap_id);
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_OUT(LOG_MME_APP);
   }
 
@@ -1433,7 +1420,6 @@ void mme_app_handle_s11_create_bearer_req(
 
     itti_send_msg_to_task(TASK_NAS_MME, INSTANCE_DEFAULT, message_p);
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -1582,7 +1568,6 @@ void mme_app_handle_e_rab_setup_rsp(
     // not send S11 response
     // TODO create a procedure with bearers to receive a response from NAS
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -1776,7 +1761,6 @@ void mme_app_handle_initial_context_setup_failure(
         INTIAL_CONTEXT_SETUP_PROCEDURE_FAILED);
     }
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 //------------------------------------------------------------------------------
@@ -2112,7 +2096,6 @@ int mme_app_handle_nas_extended_service_req(
         "ue_context %d, %d\n",
         ue_id,
         ue_context_p->mme_ue_s1ap_id);
-      unlock_ue_contexts(ue_context_p);
       OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
     }
   } else {
@@ -2236,7 +2219,6 @@ int mme_app_handle_nas_extended_service_req(
         "ERROR***** Invalid Service Type Received %d\n",
         serviceType);
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
 
@@ -2395,7 +2377,6 @@ void mme_app_handle_create_dedicated_bearer_rsp(
     _send_pcrf_bearer_actv_rsp(
       ue_context_p,create_dedicated_bearer_rsp->ebi,
       REQUEST_ACCEPTED);
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_OUT(LOG_MME_APP);
 #endif
   // TODO:
@@ -2426,7 +2407,6 @@ void mme_app_handle_create_dedicated_bearer_rsp(
       mme_app_delete_s11_procedure_create_bearer(ue_context_p);
     }
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -2458,7 +2438,6 @@ void mme_app_handle_create_dedicated_bearer_rej(
     _send_pcrf_bearer_actv_rsp(
       ue_context_p,create_dedicated_bearer_rej->ebi,
       REQUEST_REJECTED);
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_OUT(LOG_MME_APP);
 #endif
 
@@ -2480,7 +2459,6 @@ void mme_app_handle_create_dedicated_bearer_rej(
       mme_app_delete_s11_procedure_create_bearer(ue_context_p);
     }
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -2540,7 +2518,6 @@ void mme_app_handle_modify_ue_ambr_request(
         for UE id %d\n",
       ue_context_p->mme_ue_s1ap_id);
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -2626,7 +2603,6 @@ void mme_app_handle_nw_init_ded_bearer_actv_req(
     MME_APP_CREATE_DEDICATED_BEARER_REQ(message_p).ue_id,
     ue_context_p->pdn_contexts[cid]->default_ebi);
   itti_send_msg_to_task(TASK_NAS_MME, INSTANCE_DEFAULT, message_p);
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -2804,7 +2780,6 @@ void mme_app_handle_nw_init_bearer_deactv_req(
         REQUEST_ACCEPTED);
      }
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -2992,7 +2967,6 @@ void mme_app_handle_path_switch_request(
   itti_send_msg_to_task(TASK_SPGW, INSTANCE_DEFAULT, message_p);
   ue_context_p->path_switch_req = true;
 
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -3047,7 +3021,6 @@ void mme_app_handle_erab_rel_cmd(
       itti_erab_rel_cmd->ue_id,
       itti_erab_rel_cmd->ebi);
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -3082,7 +3055,6 @@ void mme_app_handle_e_rab_rel_rsp(
     OAILOG_DEBUG(
       LOG_MME_APP,"Received ERAB Release Rsp with ERAB ID %d",e_rab_id);
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -3114,7 +3086,6 @@ void mme_app_handle_delete_dedicated_bearer_rsp(
      delete_dedicated_bearer_rsp->s_gw_teid_s11_s4,
      REQUEST_ACCEPTED);
 
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 
 }
@@ -3147,7 +3118,6 @@ void mme_app_handle_delete_dedicated_bearer_rej(
      delete_dedicated_bearer_rej->s_gw_teid_s11_s4,
      UE_NOT_RESPONDING);
 
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 

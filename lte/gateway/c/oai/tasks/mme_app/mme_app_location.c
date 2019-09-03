@@ -236,13 +236,11 @@ int mme_app_handle_s6a_update_location_ans(
       if (_handle_ula_failure(ue_mm_context) == RETURNok) {
         OAILOG_DEBUG(LOG_MME_APP, "Sent PDN Connectivity failure to NAS for ue_id (%u)\n",
         ue_mm_context->mme_ue_s1ap_id);
-        unlock_ue_contexts(ue_mm_context);
         OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
       } else {
         OAILOG_ERROR(
           LOG_MME_APP, "Failed to send PDN Connectivity failure to NAS for ue_id (%u)\n",
           ue_mm_context->mme_ue_s1ap_id);
-        unlock_ue_contexts(ue_mm_context);
         OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
       }
     }
@@ -258,13 +256,11 @@ int mme_app_handle_s6a_update_location_ans(
     if (_handle_ula_failure(ue_mm_context) == RETURNok) {
       OAILOG_DEBUG(LOG_MME_APP, "Sent PDN Connectivity failure to NAS for ue_id (%u)\n",
       ue_mm_context->mme_ue_s1ap_id);
-      unlock_ue_contexts(ue_mm_context);
       OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
     } else {
       OAILOG_ERROR(
         LOG_MME_APP, "Failed to send PDN Connectivity failure to NAS for ue_id (%u)\n",
         ue_mm_context->mme_ue_s1ap_id);
-      unlock_ue_contexts(ue_mm_context);
       OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
     }
   }
@@ -348,7 +344,6 @@ int mme_app_handle_s6a_update_location_ans(
   }
   rc = nas_proc_pdn_config_res(ue_mm_context->mme_ue_s1ap_id);
 
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
 
@@ -395,7 +390,6 @@ int mme_app_handle_s6a_cancel_location_req(
       "S6a Cancel Location Request: Cancellation_type not supported %d for imsi " IMSI_64_FMT "\n",
       clr_pP->cancellation_type,
       imsi);
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
   }
   /*
@@ -468,7 +462,6 @@ int mme_app_handle_s6a_cancel_location_req(
       mme_app_handle_sgs_detach_req(&sgs_detach_req);
     }
   }
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
 

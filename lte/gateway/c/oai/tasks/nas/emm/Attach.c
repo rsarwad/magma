@@ -282,11 +282,11 @@ int emm_proc_attach_request(
     no_attach_proc.ue_id = ue_id;
     no_attach_proc.emm_cause = ue_ctx.emm_context.emm_cause;
     no_attach_proc.esm_msg_out = NULL;
-  OAILOG_ERROR(
-    LOG_NAS_EMM,
-    "EMM-PROC  - Sending Attach Reject to UE (ue_id = " MME_UE_S1AP_ID_FMT ")\n", ue_id);
+    OAILOG_ERROR(
+      LOG_NAS_EMM,
+      "EMM-PROC  - Sending Attach Reject to UE (ue_id = " MME_UE_S1AP_ID_FMT ")\n", ue_id);
     rc = _emm_attach_reject(
-      &ue_ctx.emm_context, (struct nas_base_proc_s *) &no_attach_proc);
+         &ue_ctx.emm_context, (struct nas_base_proc_s *) &no_attach_proc);
     increment_counter(
       "ue_attach", 1, 2, "result", "failure", "cause", "emergency_attach");
     OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
@@ -315,7 +315,6 @@ int emm_proc_attach_request(
       emm_sap.u.emm_cn.u.emm_cn_implicit_detach.ue_id =
         guti_ue_mm_ctx->mme_ue_s1ap_id;
       rc = emm_sap_send(&emm_sap);
-      unlock_ue_contexts(guti_ue_mm_ctx);
     }
     // Allocate new context and process the new request as fresh attach request
     clear_emm_ctxt = true;
@@ -444,8 +443,6 @@ int emm_proc_attach_request(
             LOG_NAS_EMM, "EMM-PROC  - Sending Detach Request message to MME APP for (ue_id = %u)\n",
             ue_id);
           mme_app_handle_detach_req(ue_id);
-          unlock_ue_contexts(ue_mm_context);
-          unlock_ue_contexts(imsi_ue_mm_ctx);
           OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNok);
         }
       } else if (
@@ -498,8 +495,6 @@ int emm_proc_attach_request(
             LOG_NAS_EMM, "EMM-PROC  - Received duplicated Attach Request\n");
           increment_counter(
             "duplicate_attach_request", 1, 1, "action", "ignored");
-          unlock_ue_contexts(ue_mm_context);
-          unlock_ue_contexts(imsi_ue_mm_ctx);
           OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNok);
         }
       }
@@ -581,7 +576,6 @@ int emm_proc_attach_request(
     _emm_proc_create_procedure_attach_request(ue_mm_context, ies);
   }
   rc = _emm_attach_run_procedure(&ue_mm_context->emm_context);
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 /*
@@ -638,7 +632,6 @@ int emm_proc_attach_reject(mme_ue_s1ap_id_t ue_id, emm_cause_t emm_cause)
       rc = _emm_attach_reject(
       &ue_mm_context->emm_context, (struct nas_base_proc_s *) &no_attach_proc);
     }
-    unlock_ue_contexts(ue_mm_context);
   }
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
@@ -821,7 +814,6 @@ int emm_proc_attach_complete(
     rc = RETURNok;
   }
 
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 

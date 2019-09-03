@@ -685,7 +685,6 @@ int emm_proc_authentication_failure(
           resync_param.data = (unsigned char *) calloc(1, RESYNC_PARAM_LENGTH);
           DevAssert(resync_param.data != NULL);
           if (resync_param.data == NULL) {
-            unlock_ue_contexts(ue_mm_context);
             OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
           }
 
@@ -701,7 +700,6 @@ int emm_proc_authentication_failure(
           free_wrapper((void **) &resync_param.data);
           emm_ctx_clear_auth_vectors(emm_ctx);
           rc = RETURNok;
-          unlock_ue_contexts(ue_mm_context);
           OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
         } else {
           REQUIREMENT_3GPP_24_301(R10_5_4_2_7_e__NOTE3);
@@ -883,11 +881,9 @@ int emm_proc_authentication_failure(
           LOG_NAS_EMM,
           "EMM-PROC  - The MME received an unknown EMM CAUSE %d\n",
           emm_cause);
-        unlock_ue_contexts(ue_mm_context);
         OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
     }
   }
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 
@@ -1035,7 +1031,6 @@ int emm_proc_authentication_complete(
       auth_proc->emm_com_proc.emm_proc.previous_emm_fsm_state;
     rc = emm_sap_send(&emm_sap);
   }
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 
@@ -1139,7 +1134,6 @@ static void _authentication_t3460_handler(void *args)
       emm_sap.u.emm_cn.u.emm_cn_implicit_detach.ue_id = ue_id;
       emm_sap_send(&emm_sap);
       increment_counter("ue_attach", 1, 1, "action", "attach_abort");
-      emm_context_unlock(emm_ctx);
     }
   }
   OAILOG_FUNC_OUT(LOG_NAS_EMM);
@@ -1315,7 +1309,6 @@ static int _authentication_request(nas_emm_auth_proc_t *auth_proc)
           (void *) emm_ctx);
       }
     }
-    unlock_ue_contexts(ue_mm_context);
   }
 
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);

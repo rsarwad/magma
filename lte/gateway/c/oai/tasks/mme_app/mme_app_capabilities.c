@@ -70,6 +70,5 @@ int mme_app_handle_s1ap_ue_capabilities_ind(
     "UE radio capabilities of length %d found and cached\n",
     blength(ue_context_p->ue_radio_capability));
 
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNok);
 }

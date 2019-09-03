@@ -122,6 +122,5 @@ int mme_app_handle_nas_dl_req(
       ue_context, ue_context->ue_context_rel_cause);
   }
 
-  unlock_ue_contexts(ue_context);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }

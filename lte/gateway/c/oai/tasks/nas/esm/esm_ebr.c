@@ -120,15 +120,10 @@ int esm_ebr_assign(emm_context_t *emm_context)
     PARENT_STRUCT(emm_context, struct ue_mm_context_s, emm_context);
   int i;
 
-  lock_ue_contexts(ue_context);
-
   i = _esm_ebr_get_available_entry(emm_context);
   if (i < 0) {
-    unlock_ue_contexts(ue_context);
     OAILOG_FUNC_RETURN(LOG_NAS_ESM, ESM_EBI_UNASSIGNED);
   }
-
-  unlock_ue_contexts(ue_context);
 
   OAILOG_DEBUG(
     LOG_NAS_ESM,

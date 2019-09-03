@@ -182,8 +182,6 @@ void *mme_app_thread(void *args)
               ue_context_p);
             ue_context_p->path_switch_req = false;
           }
-
-          unlock_ue_contexts(ue_context_p);
         }
       } break;
 
@@ -349,9 +347,6 @@ void *mme_app_thread(void *args)
               "Timer expired but no associated timer_id for UE "
               "id " MME_UE_S1AP_ID_FMT "\n",
               mme_ue_s1ap_id);
-          }
-          if (ue_context_p) {
-            unlock_ue_contexts(ue_context_p);
           }
         }
         timer_handle_expired(

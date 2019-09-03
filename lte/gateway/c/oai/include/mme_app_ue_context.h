@@ -653,10 +653,6 @@ void mme_remove_ue_context(
   mme_ue_context_t *const mme_ue_context,
   struct ue_mm_context_s *const ue_context_p);
 
-int lock_ue_contexts(ue_mm_context_t *const ue_context_p);
-
-int unlock_ue_contexts(ue_mm_context_t *const ue_context_p);
-
 /** \brief Allocate memory for a new UE context
  * @returns Pointer to the new structure, NULL if allocation failed
  **/

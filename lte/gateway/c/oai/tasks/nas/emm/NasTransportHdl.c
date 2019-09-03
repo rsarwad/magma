@@ -156,7 +156,6 @@ int emm_proc_uplink_nas_transport(mme_ue_s1ap_id_t ue_id, bstring nas_msg_pP)
          }
       }
     }
-    emm_context_unlock(ue_ctx_p);
   } else {
     OAILOG_WARNING(
       LOG_NAS_EMM,

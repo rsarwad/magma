@@ -120,7 +120,6 @@ int mme_app_handle_sgsap_alert_request(
       sgsap_alert_req_pP, SGS_CAUSE_IMSI_DETACHED_FOR_EPS_SERVICE, imsi64);
     increment_counter(
       "sgsap_alert_reject", 1, 1, "cause", "ue_is_not_registered_to_eps");
-    unlock_ue_contexts(ue_context_p);
     OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
   }
   if (ue_context_p->sgs_context == NULL) {
@@ -130,7 +129,6 @@ int mme_app_handle_sgsap_alert_request(
   ue_context_p->sgs_context->neaf = SET_NEAF;
   /* send Alert Ack */
   _mme_app_send_sgsap_alert_ack(sgsap_alert_req_pP, imsi64);
-  unlock_ue_contexts(ue_context_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNok);
 }
 

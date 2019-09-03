@@ -206,7 +206,6 @@ int emm_proc_tracking_area_update_request(
       if (ue_mm_context) {
         emm_context = &ue_mm_context->emm_context;
         free_emm_tau_request_ies(&ies);
-        unlock_ue_contexts(ue_mm_context);
         OAILOG_DEBUG(LOG_NAS_EMM, "EMM-PROC-  GUTI Context found\n");
       } else {
         // NO S10
@@ -247,7 +246,6 @@ int emm_proc_tracking_area_update_request(
     (_esm_data.conf.features & MME_API_CSFB_SMS_SUPPORTED) ||
     (_esm_data.conf.features & MME_API_SMS_SUPPORTED)) {
     if ((_csfb_handle_tracking_area_req(emm_context, ies)) == RETURNok) {
-      unlock_ue_contexts(ue_mm_context);
       OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNok);
     }
   }
@@ -277,7 +275,6 @@ int emm_proc_tracking_area_update_request(
       "cause",
       "normal_tau_not_supported");
     free_emm_tau_request_ies(&ies);
-    unlock_ue_contexts(ue_mm_context);
     OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
   }
 
@@ -356,12 +353,10 @@ int emm_proc_tracking_area_update_request(
             "EMM-PROC- Processing Tracking Area Update Accept failed for "
             "ue_id=" MME_UE_S1AP_ID_FMT ")\n",
             ue_id);
-          unlock_ue_contexts(ue_mm_context);
           OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNerror);
         }
         increment_counter(
           "tracking_area_update_req", 1, 1, "result", "success");
-        unlock_ue_contexts(ue_mm_context);
         OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
       } else {
           OAILOG_ERROR(LOG_NAS_EMM, "EMM-PROC- Failed to get EMM specific proc"
@@ -371,7 +366,6 @@ int emm_proc_tracking_area_update_request(
   }
 
   free_emm_tau_request_ies(&ies);
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 /****************************************************************************
@@ -552,7 +546,6 @@ static int _emm_tracking_area_update_reject(
     }
   }
 
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 
@@ -726,7 +719,6 @@ static int _emm_tracking_area_update_accept(nas_emm_tau_proc_t *const tau_proc)
             &tau_proc->T3450,
             tau_proc->emm_spec_proc.emm_proc.base_proc.time_out,
             emm_context);
-          unlock_ue_contexts(ue_mm_context);
           increment_counter(
             "tracking_area_update",
             1,
@@ -833,7 +825,6 @@ static int _emm_tracking_area_update_accept(nas_emm_tau_proc_t *const tau_proc)
   } else {
     OAILOG_WARNING(LOG_NAS_EMM, "EMM-PROC  - TAU procedure NULL");
   }
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 
@@ -1000,7 +991,6 @@ int emm_proc_tau_complete(mme_ue_s1ap_id_t ue_id)
       mme_app_itti_ue_context_release(
         ue_context_p, ue_context_p->ue_context_rel_cause);
     }
-    emm_context_unlock(emm_ctx);
   } else {
     OAILOG_ERROR(
       LOG_NAS_EMM,

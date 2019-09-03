@@ -484,7 +484,6 @@ int emm_proc_security_mode_complete(
       emm_ctx_set_attribute_valid(emm_ctx, EMM_CTXT_MEMBER_SECURITY);
       rc = emm_sap_send(&emm_sap);
     }
-    unlock_ue_contexts(ue_mm_context);
     OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
   } else {
     OAILOG_ERROR(LOG_NAS_EMM, "EMM-PROC  - No EPS security context exists\n");
@@ -503,7 +502,6 @@ int emm_proc_security_mode_complete(
     rc = emm_sap_send(&emm_sap);
   }
 
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 
@@ -593,7 +591,6 @@ int emm_proc_security_mode_reject(mme_ue_s1ap_id_t ue_id)
     rc = emm_sap_send(&emm_sap);
   }
   mme_app_handle_detach_req(ue_id);
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 
@@ -777,7 +774,6 @@ static int _security_request(nas_emm_smc_proc_t *const smc_proc)
         emm_ctx);
     }
   }
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 

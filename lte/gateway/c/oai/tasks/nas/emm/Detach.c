@@ -306,7 +306,6 @@ int emm_proc_sgs_detach_request(
     }
   }
 
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNok);
 }
 /****************************************************************************
@@ -422,7 +421,6 @@ int emm_proc_detach_request(
         "Do not clear emm context for UE Initiated IMSI Detach Request "
         " for the UE (ue_id=" MME_UE_S1AP_ID_FMT ")\n",
         ue_id);
-      unlock_ue_contexts(ue_mm_context);
       OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNok);
     }
   }
@@ -442,7 +440,6 @@ int emm_proc_detach_request(
   // Release emm and esm context
   _clear_emm_ctxt(emm_ctx);
 
-  unlock_ue_contexts(ue_mm_context);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNok);
 }
 
@@ -507,7 +504,6 @@ int emm_proc_detach_accept(mme_ue_s1ap_id_t ue_id)
   }
   emm_ctx->is_imsi_only_detach = false;
 
-  emm_context_unlock(emm_ctx);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNok);
 }
 
@@ -599,7 +595,6 @@ int emm_proc_nw_initiated_detach_request(
       emm_ctx->t3422_arg = (void *) data;
     }
   }
-  emm_context_unlock(emm_ctx);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNok);
 }
 //------------------------------------------------------------------------------

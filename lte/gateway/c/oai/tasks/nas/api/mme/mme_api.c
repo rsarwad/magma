@@ -373,7 +373,6 @@ int mme_api_notify_imsi(
       imsi64,
       ue_mm_context->mme_teid_s11,
       &ue_mm_context->emm_context._guti);
-    unlock_ue_contexts(ue_mm_context);
     OAILOG_FUNC_RETURN(LOG_NAS, RETURNok);
   }
 
@@ -409,7 +408,6 @@ int mme_api_notify_new_guti(const mme_ue_s1ap_id_t id, guti_t *const guti)
       ue_mm_context->emm_context._imsi64,
       ue_mm_context->mme_teid_s11,
       guti);
-    unlock_ue_contexts(ue_mm_context);
     OAILOG_FUNC_RETURN(LOG_NAS, RETURNok);
   }
 
@@ -462,7 +460,6 @@ int mme_api_new_guti(
     // TODO Find another way to generate m_tmsi
     guti->m_tmsi = (tmsi_t)(uintptr_t) ue_context;
     if (guti->m_tmsi == INVALID_M_TMSI) {
-      unlock_ue_contexts(ue_context);
       OAILOG_FUNC_RETURN(LOG_NAS, RETURNerror);
     }
     mme_api_notify_new_guti(ue_context->mme_ue_s1ap_id, guti);
@@ -646,7 +643,6 @@ int mme_api_new_guti(
     "UE " MME_UE_S1AP_ID_FMT "  Got GUTI " GUTI_FMT "\n",
     ue_context->mme_ue_s1ap_id,
     GUTI_ARG(guti));
-  unlock_ue_contexts(ue_context);
   OAILOG_FUNC_RETURN(LOG_NAS, RETURNok);
 }
 
