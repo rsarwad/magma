@@ -53,11 +53,6 @@ MESSAGE_DEF(
   itti_nas_implicit_detach_ue_ind_t,
   nas_implicit_detach_ue_ind)
 MESSAGE_DEF(
-  NAS_CS_SERVICE_NOTIFICATION,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_cs_service_notification_t,
-  nas_cs_service_notification)
-MESSAGE_DEF(
   NAS_CS_DOMAIN_LOCATION_UPDATE_FAIL,
   MESSAGE_PRIORITY_MED,
   itti_nas_cs_domain_location_update_fail_t,

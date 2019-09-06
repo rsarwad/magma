@@ -115,17 +115,16 @@ int sgs_handle_associated_paging_request(const sgs_fsm_t *evt)
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
 
-/**********************************************************************************
- **                                                                              **
- ** Name:    _sgs_handle_paging_request_for_mt_sms()                            **
- ** Description   Handle SGSAP-Paging request in SGS-Associated state            **
- **               for Mobile terminating sms                                    **
- ** Inputs:  sgs_fsm_t: pointer for sgs_fsm_primitive structure                  **
- **          ue_context_p: UE context
- ** Outputs:                                                                     **
- **          Return:    RETURNok, RETURNerror                                    **
- **                                                                              **
-***********************************************************************************/
+/*****************************************************************************
+ **                                                                         **
+ ** Name:    _sgs_handle_paging_request_for_mt_sms()                        **
+ ** Description   Handle SGSAP-Paging request in SGS-Associated state       **
+ **               for Mobile terminating sms                                **
+ ** Inputs:  sgs_fsm_t: pointer for sgs_fsm_primitive structure             **
+ ** Outputs:                                                                **
+ **          Return:    RETURNok, RETURNerror                               **
+ **                                                                         **
+******************************************************************************/
 
 static int _sgs_handle_paging_request_for_mt_sms(const sgs_fsm_t *evt)
 {
@@ -193,7 +192,6 @@ static int _sgs_handle_paging_request_for_mt_sms(const sgs_fsm_t *evt)
  ** Description   Handle SGSAP-Paging request in SGS-Associated state            **
  **               for Mobile terminating call                                    **
  ** Inputs:  sgs_fsm_t: pointer for sgs_fsm_primitive structure                  **
- **          ue_context_p: UE context
  ** Outputs:                                                                     **
  **          Return:    RETURNok, RETURNerror                                    **
  **                                                                              **
@@ -297,24 +295,24 @@ int mme_app_send_nas_detach_request(mme_ue_s1ap_id_t ue_id, uint8_t detach_type)
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
 
-/**********************************************************************************
- **                                                                              **
- ** Name:    _sgs_handle_paging_request_for_mt_call_in_connected()               **
- ** Description   Handle SGSAP-Paging request in SGS-Associated state            **
- **               and UE connected state for Mobile terminating call             **
- ** Inputs:  ue_context_p: UE context                                            **
- **          itti_sgsap_paging_request_t : received sgs-paging request           **
- ** Outputs:                                                                     **
- **          Return:    RETURNok, RETURNerror                                    **
- **                                                                              **
-***********************************************************************************/
+/*****************************************************************************
+ **                                                                         **
+ ** Name:    _sgs_handle_paging_request_for_mt_call_in_connected()          **
+ ** Description   Handle SGSAP-Paging request in SGS-Associated state       **
+ **               and UE connected state for Mobile terminating call        **
+ ** Inputs:  ue_context_p: UE context                                       **
+ **          itti_sgsap_paging_request_t : received sgs-paging request      **
+ ** Outputs:                                                                **
+ **          Return:    RETURNok, RETURNerror                               **
+ **                                                                         **
+******************************************************************************/
 
 static int _sgs_handle_paging_request_for_mt_call_in_connected(
   ue_mm_context_t *ue_context_p,
   itti_sgsap_paging_request_t *const sgsap_paging_req_pP)
 {
   int rc = RETURNerror;
-  uint8_t paging_id = NAS_PAGING_ID_IMSI;
+  uint8_t paging_id = MME_APP_PAGING_ID_IMSI;
   bstring cli = NULL;
   OAILOG_FUNC_IN(LOG_MME_APP);
   DevAssert(ue_context_p);
@@ -329,7 +327,7 @@ static int _sgs_handle_paging_request_for_mt_call_in_connected(
   /* Fetch TMSI if present */
   if (
     sgsap_paging_req_pP->presencemask & PAGING_REQUEST_TMSI_PARAMETER_PRESENT) {
-    paging_id = NAS_PAGING_ID_TMSI;
+    paging_id = MME_APP_PAGING_ID_TMSI;
   }
   /* Fetch CLI if present */
   if (
@@ -337,11 +335,12 @@ static int _sgs_handle_paging_request_for_mt_call_in_connected(
     bassign(cli, sgsap_paging_req_pP->opt_cli);
   }
   if (
-    RETURNok != (rc = mme_app_send_nas_cs_service_notification(
+    RETURNok != (rc = nas_proc_cs_service_notification(
                    ue_context_p->mme_ue_s1ap_id, paging_id, cli))) {
     OAILOG_ERROR(
       LOG_MME_APP,
-      "Failed to send CS-Service Notification to NAS for ue-id :%u \n",
+      "Failed to handle CS-Service Notification NAS for"
+      " ue-id:" MME_UE_S1AP_ID_FMT "\n",
       ue_context_p->mme_ue_s1ap_id);
     OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
   }
@@ -417,7 +416,7 @@ static int _sgs_handle_paging_request_for_mt_call_in_idle(
 
 {
   int rc = RETURNerror;
-  uint8_t paging_id = NAS_PAGING_ID_IMSI;
+  uint8_t paging_id = MME_APP_PAGING_ID_IMSI;
   OAILOG_FUNC_IN(LOG_MME_APP);
   DevAssert(ue_context_p);
   DevAssert(sgsap_paging_req_pP);
@@ -440,13 +439,13 @@ static int _sgs_handle_paging_request_for_mt_call_in_idle(
         "IMSI " IMSI_64_FMT "\n",
         ue_context_p->emm_context._imsi64);
       rc = mme_app_paging_request_helper(
-        ue_context_p, false, NAS_PAGING_ID_IMSI, CN_DOMAIN_PS);
+        ue_context_p, false, MME_APP_PAGING_ID_IMSI, CN_DOMAIN_PS);
     } else {
       /* Fetch TMSI if present */
       if (
         sgsap_paging_req_pP->presencemask &
         PAGING_REQUEST_TMSI_PARAMETER_PRESENT) {
-        paging_id = NAS_PAGING_ID_TMSI;
+        paging_id = MME_APP_PAGING_ID_TMSI;
       }
       /* if TMSI is received, then page with S-TMSI otherwise page with IMSI */
       if (
@@ -493,7 +492,7 @@ static int _sgs_handle_paging_request_for_mt_sms_in_idle(
 
 {
   int rc = RETURNerror;
-  uint8_t paging_id = NAS_PAGING_ID_IMSI;
+  uint8_t paging_id = MME_APP_PAGING_ID_IMSI;
   OAILOG_FUNC_IN(LOG_MME_APP);
   DevAssert(ue_context_p);
   DevAssert(sgsap_paging_req_pP);
@@ -516,13 +515,13 @@ static int _sgs_handle_paging_request_for_mt_sms_in_idle(
         "IMSI " IMSI_64_FMT "\n",
         ue_context_p->emm_context._imsi64);
       rc = mme_app_paging_request_helper(
-        ue_context_p, false, NAS_PAGING_ID_IMSI, CN_DOMAIN_PS);
+        ue_context_p, false, MME_APP_PAGING_ID_IMSI, CN_DOMAIN_PS);
     } else {
       /* Fetch TMSI if present */
       if (
         sgsap_paging_req_pP->presencemask &
         PAGING_REQUEST_TMSI_PARAMETER_PRESENT) {
-        paging_id = NAS_PAGING_ID_TMSI;
+        paging_id = MME_APP_PAGING_ID_TMSI;
       }
       /* if TMSI is received, then page with S-TMSI otherwise page with IMSI */
       if (
@@ -607,7 +606,7 @@ int mme_app_send_sgsap_service_request(
   rc = itti_send_msg_to_task(TASK_SGS, INSTANCE_DEFAULT, message_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
-
+#if 0
 /**********************************************************************************
  **                                                                              **
  ** Name:    mme_app_send_nas_cs_service_notification()                          **
@@ -650,18 +649,18 @@ int mme_app_send_nas_cs_service_notification(
 
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
-
-/**********************************************************************************
- **                                                                              **
- ** Name:    mme_app_send_sgsap_paging_reject()                                  **
- ** Description   Build and send Paging reject                                   **
- ** Inputs:  ue_context_p: pointer ue_context                                    **
- **          imsi        : imsi                                                  **
- **          sgs_cause   : paging reject cause                                   **
- ** Outputs:                                                                     **
- **          Return:    RETURNok, RETURNerror                                    **
+#endif
+/*****************************************************************************
+ **                                                                         **
+ ** Name:    mme_app_send_sgsap_paging_reject()                             **
+ ** Description   Build and send Paging reject                              **
+ ** Inputs:  ue_context_p: pointer ue_context                               **
+ **          imsi        : imsi                                             **
+ **          sgs_cause   : paging reject cause                              **
+ ** Outputs:                                                                **
+ **          Return:    RETURNok, RETURNerror                               **
  **
-***********************************************************************************/
+******************************************************************************/
 int mme_app_send_sgsap_paging_reject(
   struct ue_mm_context_s *ue_context_p,
   imsi64_t imsi,
@@ -823,7 +822,7 @@ static int _sgsap_handle_paging_request_without_lai(
 {
   int rc = RETURNok;
   s1ap_cn_domain_t cn_domain = CN_DOMAIN_CS;
-  uint8_t paging_id = NAS_PAGING_ID_IMSI;
+  uint8_t paging_id = MME_APP_PAGING_ID_IMSI;
 
   OAILOG_FUNC_IN(LOG_MME_APP);
   if (!ue_context_p) {
@@ -854,7 +853,7 @@ static int _sgsap_handle_paging_request_without_lai(
     if (ue_context_p->ppf) {
       /* if Paging request received without LAI for MT SMS, always page with S-TMSI */
       if (sgsap_paging_req_pP->service_indicator == SGSAP_SMS_INDICATOR) {
-        paging_id = NAS_PAGING_ID_TMSI;
+        paging_id = MME_APP_PAGING_ID_TMSI;
         cn_domain = CN_DOMAIN_PS;
       }
       /* if Paging request received without LAI for CS call, always page with IMSI */

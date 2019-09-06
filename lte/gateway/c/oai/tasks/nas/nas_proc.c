@@ -790,8 +790,10 @@ int nas_proc_sgs_release_req(itti_sgsap_release_req_t *sgs_release_req)
  ** Description: Processes CS Paging Request message from MSC/VLR          **
  **              over SGs interface                                        **
  **                                                                        **
- ** Inputs:                                                                **
- **      cs_service_notification: The received message from MME app        **
+ ** Inputs:  ue_id:      UE identifier                                     **
+ **          paging_id   Indicates the identity used for                   **
+ **                      paging non-eps services                           **
+ **          cli         Calling Line Identification                       **
  **                                                                        **
  ** Outputs:                                                               **
  **      Return:    RETURNok, RETURNerror                                  **
@@ -799,7 +801,9 @@ int nas_proc_sgs_release_req(itti_sgsap_release_req_t *sgs_release_req)
  ***************************************************************************/
 
 int nas_proc_cs_service_notification(
-  itti_nas_cs_service_notification_t *const cs_service_notification)
+  mme_ue_s1ap_id_t ue_id,
+  uint8_t paging_id,
+  bstring cli)
 {
   int rc = RETURNerror;
   emm_sap_t emm_sap = {0};
@@ -807,14 +811,13 @@ int nas_proc_cs_service_notification(
   OAILOG_FUNC_IN(LOG_NAS_EMM);
   emm_sap.primitive = EMMAS_DATA_REQ;
   emm_sap.u.emm_as.u.data.nas_info = EMM_AS_NAS_DATA_CS_SERVICE_NOTIFICATION;
-  emm_sap.u.emm_as.u.data.ue_id = cs_service_notification->ue_id;
+  emm_sap.u.emm_as.u.data.ue_id = ue_id;
   emm_sap.u.emm_as.u.data.nas_msg = NULL; /*No Esm container*/
-  emm_sap.u.emm_as.u.data.paging_identity = cs_service_notification->paging_id;
-  emm_sap.u.emm_as.u.data.cli = cs_service_notification->cli;
+  emm_sap.u.emm_as.u.data.paging_identity = paging_id;
+  bassign(emm_sap.u.emm_as.u.data.cli, cli);
   rc = emm_sap_send(&emm_sap);
   if (emm_sap.u.emm_as.u.data.cli) {
     bdestroy(emm_sap.u.emm_as.u.data.cli);
-    cs_service_notification->cli = NULL;
   }
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }

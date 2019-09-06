@@ -99,11 +99,11 @@ static void *nas_intertask_interface(void *args_p)
         nas_proc_cs_domain_mm_information_request(
           &SGSAP_MM_INFORMATION_REQ(received_message_p));
       } break;
-      case NAS_CS_SERVICE_NOTIFICATION: {
+     /* case NAS_CS_SERVICE_NOTIFICATION: {
         nas_proc_cs_service_notification(
           &NAS_CS_SERVICE_NOTIFICATION(received_message_p));
       } break;
-
+*/
       case MME_APP_DELETE_DEDICATED_BEARER_REQ:
         nas_proc_delete_dedicated_bearer(
           &MME_APP_DELETE_DEDICATED_BEARER_REQ(received_message_p));

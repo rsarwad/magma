@@ -55,19 +55,9 @@
   (mSGpTR)->ittiMsg.nas_implicit_detach_ue_ind
 #define NAS_CS_DOMAIN_LOCATION_UPDATE_FAIL(mSGpTR)                             \
   (mSGpTR)->ittiMsg.nas_cs_domain_location_update_fail
-#define NAS_CS_SERVICE_NOTIFICATION(mSGpTR)                                    \
-  (mSGpTR)->ittiMsg.nas_cs_service_notification
 #define NAS_DATA_LENGHT_MAX 256
 #define NAS_ERAB_REL_CMD(mSGpTR) (mSGpTR)->ittiMsg.itti_erab_rel_cmd
 
-typedef struct itti_nas_cs_service_notification_s {
-  mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier        */
-#define NAS_PAGING_ID_IMSI 0X00
-#define NAS_PAGING_ID_TMSI 0X01
-  uint8_t paging_id; /* Paging UE ID, to be sent in CS Service Notification */
-  bstring
-    cli; /* If CLI received in Sgsap-Paging_Req,shall sent in CS Service Notification */
-} itti_nas_cs_service_notification_t;
 typedef struct itti_nas_conn_est_rej_s {
   mme_ue_s1ap_id_t ue_id;    /* UE lower layer identifier   */
   s_tmsi_t s_tmsi;           /* UE identity                 */

@@ -141,7 +141,9 @@ int nas_proc_sgs_release_req(itti_sgsap_release_req_t *sgs_rel);
 int nas_proc_cs_domain_mm_information_request(
   itti_sgsap_mm_information_req_t *const mm_information_req_pP);
 int nas_proc_cs_service_notification(
-  itti_nas_cs_service_notification_t *const cs_service_notification);
+  mme_ue_s1ap_id_t ue_id,
+  uint8_t paging_id,
+  bstring cli);
 int nas_proc_delete_dedicated_bearer(
   emm_cn_deactivate_dedicated_bearer_req_t *emm_cn_deactivate);
 #endif /* FILE_NAS_PROC_SEEN*/

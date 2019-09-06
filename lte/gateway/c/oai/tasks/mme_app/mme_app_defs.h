@@ -182,11 +182,6 @@ int mme_app_handle_s6a_reset_req(const s6a_reset_req_t *const rsr_pP);
 
 int mme_app_send_s6a_reset_ans(int rsa_result, void *msg_rsa_p);
 
-int mme_app_send_nas_cs_service_notification(
-  mme_ue_s1ap_id_t ue_id,
-  uint8_t paging_id,
-  bstring cli);
-
 int mme_app_send_sgsap_service_request(
   uint8_t service_indicator,
   struct ue_mm_context_s *ue_context_p);
@@ -310,6 +305,8 @@ int mme_app_create_sgs_context(
 #define TAU_REQUEST (1 << 1)
 #define INTIAL_CONTEXT_SETUP_PROCEDURE_FAILED 0x00
 #define UE_CONTEXT_MODIFICATION_PROCEDURE_FAILED 0x01 
+#define MME_APP_PAGING_ID_IMSI 0X00
+#define MME_APP_PAGING_ID_TMSI 0X01
 
 #define mme_stats_read_lock(mMEsTATS)                                          \
   pthread_rwlock_rdlock(&(mMEsTATS)->rw_lock)
