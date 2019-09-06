@@ -47,6 +47,7 @@
 #include "mme_api.h"
 #include "mme_app_desc.h"
 #include "nas_message.h"
+#include "mme_app_defs.h"
 
 /****************************************************************************/
 /****************  E X T E R N A L    D E F I N I T I O N S  ****************/
@@ -208,8 +209,9 @@ int emm_proc_extended_service_request(
       "emm_cause_congestion");
     OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
   }
-  /* notify MME-APP for extended service request reception in ue connected mode */
-  nas_itti_extended_service_req(ue_id, msg->servicetype, msg->csfbresponse);
+  /* Handle extended service request received in ue connected mode */
+  mme_app_handle_nas_extended_service_req(ue_id, msg->servicetype,
+    msg->csfbresponse);
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);
 }
 

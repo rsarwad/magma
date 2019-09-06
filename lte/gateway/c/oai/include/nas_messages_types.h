@@ -58,10 +58,6 @@
 #define NAS_CS_SERVICE_NOTIFICATION(mSGpTR)                                    \
   (mSGpTR)->ittiMsg.nas_cs_service_notification
 #define NAS_DATA_LENGHT_MAX 256
-#define NAS_EXTENDED_SERVICE_REQ(mSGpTR)                                       \
-  (mSGpTR)->ittiMsg.nas_extended_service_req
-#define NAS_NOTIFY_SERVICE_REJECT(mSGpTR)                                      \
-  (mSGpTR)->ittiMsg.nas_notify_service_reject
 #define NAS_ERAB_REL_CMD(mSGpTR) (mSGpTR)->ittiMsg.itti_erab_rel_cmd
 
 typedef struct itti_nas_cs_service_notification_s {
@@ -121,14 +117,6 @@ typedef struct itti_nas_implicit_detach_ue_ind_s {
   mme_ue_s1ap_id_t ue_id;
 } itti_nas_implicit_detach_ue_ind_t;
 
-typedef struct itti_nas_extended_service_req_s {
-  /* UE identifier */
-  mme_ue_s1ap_id_t ue_id;
-  uint8_t servType; /* service type */
-  /* csfb_response is valid only if service type Mobile Terminating CSFB */
-  uint8_t csfb_response;
-} itti_nas_extended_service_req_t;
-
 typedef struct itti_nas_sgs_detach_req_s {
   /* UE identifier */
   mme_ue_s1ap_id_t ue_id;
@@ -144,18 +132,5 @@ typedef struct itti_nas_cs_domain_location_update_fail_s {
   int reject_cause;
   lai_t laicsfb;
 } itti_nas_cs_domain_location_update_fail_t;
-
-/* ITTI message used to intimate service reject for ongoing service request procedure
- * from mme_app to nas
- */
-typedef struct itti_nas_notify_service_reject_s {
-  mme_ue_s1ap_id_t ue_id;
-  uint8_t emm_cause;
-#define INTIAL_CONTEXT_SETUP_PROCEDURE_FAILED 0x00
-#define UE_CONTEXT_MODIFICATION_PROCEDURE_FAILED 0x01
-#define MT_CALL_CANCELLED_BY_NW_IN_IDLE_STATE 0x02
-#define MT_CALL_CANCELLED_BY_NW_IN_CONNECTED_STATE 0x03
-  uint8_t failed_procedure;
-} itti_nas_notify_service_reject_t;
 
 #endif /* FILE_NAS_MESSAGES_TYPES_SEEN */

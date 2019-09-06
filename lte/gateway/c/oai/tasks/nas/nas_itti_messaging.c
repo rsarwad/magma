@@ -250,32 +250,6 @@ void s6a_auth_info_rsp_timer_expiry_handler(void *args)
   OAILOG_FUNC_OUT(LOG_NAS_EMM);
 }
 
-void nas_itti_extended_service_req(
-  const mme_ue_s1ap_id_t ue_id,
-  const uint8_t servicetype,
-  uint8_t csfb_response)
-{
-  OAILOG_FUNC_IN(LOG_NAS);
-  MessageDef *message_p = NULL;
-
-  message_p = itti_alloc_new_message(TASK_NAS_MME, NAS_EXTENDED_SERVICE_REQ);
-  memset(
-    &message_p->ittiMsg.nas_extended_service_req,
-    0,
-    sizeof(itti_nas_extended_service_req_t));
-  NAS_EXTENDED_SERVICE_REQ(message_p).ue_id = ue_id;
-  NAS_EXTENDED_SERVICE_REQ(message_p).servType = servicetype;
-  NAS_EXTENDED_SERVICE_REQ(message_p).csfb_response = csfb_response;
-
-  OAILOG_INFO(
-    LOG_MME_APP,
-    "Send NAS_EXTENDED_SERVICE_REQ from Nas to Mme-app for ue_id :%u\n",
-    ue_id);
-  itti_send_msg_to_task(TASK_MME_APP, INSTANCE_DEFAULT, message_p);
-
-  OAILOG_FUNC_OUT(LOG_NAS);
-}
-
 void nas_itti_sgsap_uplink_unitdata(
   const char *const imsi,
   uint8_t imsi_len,
@@ -384,7 +358,7 @@ void nas_itti_sgsap_ue_activity_ind(
   OAILOG_FUNC_IN(LOG_NAS);
   MessageDef *message_p = NULL;
 
-  message_p = itti_alloc_new_message(TASK_NAS_MME, SGSAP_UE_ACTIVITY_IND);
+  message_p = itti_alloc_new_message(TASK_MME_APP, SGSAP_UE_ACTIVITY_IND);
   memset(
     &message_p->ittiMsg.sgsap_ue_activity_ind,
     0,

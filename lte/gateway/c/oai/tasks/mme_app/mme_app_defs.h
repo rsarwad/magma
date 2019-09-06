@@ -57,7 +57,9 @@ int mme_app_handle_nas_pdn_connectivity_req(
   imsi64_t imsi64, mme_ue_s1ap_id_t ue_id, pdn_cid_t pdn_cid, int pdn_type);
 
 int mme_app_handle_nas_extended_service_req(
-  itti_nas_extended_service_req_t *const nas_extended_service_req_pP);
+  const mme_ue_s1ap_id_t ue_id,
+  const uint8_t servicetype,
+  uint8_t csfb_response);
 
 void mme_app_handle_detach_req(mme_ue_s1ap_id_t ue_id);
 
@@ -306,6 +308,8 @@ int mme_app_create_sgs_context(
 
 #define ATTACH_REQ (1 << 0)
 #define TAU_REQUEST (1 << 1)
+#define INTIAL_CONTEXT_SETUP_PROCEDURE_FAILED 0x00
+#define UE_CONTEXT_MODIFICATION_PROCEDURE_FAILED 0x01 
 
 #define mme_stats_read_lock(mMEsTATS)                                          \
   pthread_rwlock_rdlock(&(mMEsTATS)->rw_lock)

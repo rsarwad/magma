@@ -93,11 +93,6 @@ void nas_itti_dedicated_eps_bearer_complete(
   const mme_ue_s1ap_id_t ue_idP,
   const ebi_t ebiP);
 
-void nas_itti_extended_service_req(
-  const mme_ue_s1ap_id_t ue_id,
-  const uint8_t servicetype,
-  uint8_t csfb_response);
-
 void nas_itti_dedicated_eps_bearer_reject(
   const mme_ue_s1ap_id_t ue_idP,
   const ebi_t ebiP);

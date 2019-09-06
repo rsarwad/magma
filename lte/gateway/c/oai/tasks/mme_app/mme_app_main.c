@@ -210,11 +210,6 @@ void *mme_app_thread(void *args)
           &S1AP_E_RAB_REL_RSP(received_message_p));
       } break;
 
-      case NAS_EXTENDED_SERVICE_REQ: {
-        mme_app_handle_nas_extended_service_req(
-          &received_message_p->ittiMsg.nas_extended_service_req);
-      } break;
-
       case S1AP_INITIAL_UE_MESSAGE: {
         mme_app_handle_initial_ue_message(
           &S1AP_INITIAL_UE_MESSAGE(received_message_p));

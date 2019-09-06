@@ -53,11 +53,6 @@ MESSAGE_DEF(
   itti_nas_implicit_detach_ue_ind_t,
   nas_implicit_detach_ue_ind)
 MESSAGE_DEF(
-  NAS_EXTENDED_SERVICE_REQ,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_extended_service_req_t,
-  nas_extended_service_req)
-MESSAGE_DEF(
   NAS_CS_SERVICE_NOTIFICATION,
   MESSAGE_PRIORITY_MED,
   itti_nas_cs_service_notification_t,
@@ -67,11 +62,6 @@ MESSAGE_DEF(
   MESSAGE_PRIORITY_MED,
   itti_nas_cs_domain_location_update_fail_t,
   nas_cs_domain_location_update_fail)
-MESSAGE_DEF(
-  NAS_NOTIFY_SERVICE_REJECT,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_notify_service_reject_t,
-  nas_notify_service_reject)
 MESSAGE_DEF(
   NAS_ERAB_REL_CMD,
   MESSAGE_PRIORITY_MED,

@@ -104,11 +104,6 @@ static void *nas_intertask_interface(void *args_p)
           &NAS_CS_SERVICE_NOTIFICATION(received_message_p));
       } break;
 
-      case NAS_NOTIFY_SERVICE_REJECT: {
-        nas_proc_notify_service_reject(
-          &NAS_NOTIFY_SERVICE_REJECT(received_message_p));
-      } break;
-
       case MME_APP_DELETE_DEDICATED_BEARER_REQ:
         nas_proc_delete_dedicated_bearer(
           &MME_APP_DELETE_DEDICATED_BEARER_REQ(received_message_p));
