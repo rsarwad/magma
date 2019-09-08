@@ -438,20 +438,22 @@ int send_itti_sgsap_location_update_req(ue_mm_context_t *ue_context)
     OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
   }
   /* Start Ts6-1 timer and change SGS state to LA_UPDATE_REQUESTED*/
+  nas_itti_timer_arg_t cb = {0};
+  cb.nas_timer_callback = mme_app_handle_ts6_1_timer_expiry;
+  cb.nas_timer_callback_arg = (void *) &(ue_context->mme_ue_s1ap_id);
   sgs_fsm_set_status(
     ue_context->mme_ue_s1ap_id,
     ue_context->sgs_context,
     SGS_LA_UPDATE_REQUESTED);
-  if (
-    timer_setup(
-      ue_context->sgs_context->ts6_1_timer.sec,
-      0,
-      TASK_MME_APP,
-      INSTANCE_DEFAULT,
-      TIMER_ONE_SHOT,
-      (void *) &(ue_context->mme_ue_s1ap_id),
-      sizeof(mme_ue_s1ap_id_t),
-      &(ue_context->sgs_context->ts6_1_timer.id)) < 0) {
+  if (timer_setup(
+    ue_context->sgs_context->ts6_1_timer.sec,
+    0,
+    TASK_MME_APP,
+    INSTANCE_DEFAULT,
+    TIMER_ONE_SHOT,
+    &cb,
+    sizeof(cb),
+    &(ue_context->sgs_context->ts6_1_timer.id)) < 0) {
     OAILOG_ERROR(
       LOG_MME_APP,
       "Failed to start Ts6-1 timer for UE id  %d \n",
@@ -1013,11 +1015,31 @@ int sgs_fsm_la_updt_req_loc_updt_rej(const sgs_fsm_t *fsm_evt)
  **                                                                              **
 ***********************************************************************************/
 
-void mme_app_handle_ts6_1_timer_expiry(struct ue_mm_context_s *ue_context_p)
+void mme_app_handle_ts6_1_timer_expiry(void *args)
 {
   OAILOG_FUNC_IN(LOG_MME_APP);
-  DevAssert(ue_context_p != NULL);
-  DevAssert(ue_context_p->sgs_context != NULL);
+  mme_ue_s1ap_id_t mme_ue_s1ap_id = *((mme_ue_s1ap_id_t *) (args));
+  struct ue_mm_context_s *ue_context_p = NULL;
+
+  ue_context_p = mme_ue_context_exists_mme_ue_s1ap_id(
+            &mme_app_desc.mme_ue_contexts, mme_ue_s1ap_id);
+  if (ue_context_p == NULL) {
+    OAILOG_ERROR(
+      LOG_MME_APP,
+      "Ts6-1 Timer expired but no assoicated UE context for UE "
+      "id " MME_UE_S1AP_ID_FMT "\n",
+      mme_ue_s1ap_id);
+    OAILOG_FUNC_OUT(LOG_MME_APP);
+  }
+ if (ue_context_p->sgs_context == NULL) {
+    OAILOG_ERROR(
+      LOG_MME_APP,
+      "Ts6-1 Timer expired but no assoicated SGS context for UE "
+      "id " MME_UE_S1AP_ID_FMT "\n",
+      mme_ue_s1ap_id);
+    OAILOG_FUNC_OUT(LOG_MME_APP);
+  }
+
   OAILOG_WARNING(
     LOG_MME_APP,
     "Expired- Ts6-1 timer for UE id  %d \n",

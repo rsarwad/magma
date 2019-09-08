@@ -143,16 +143,18 @@ int mme_app_send_s6a_update_location_req(
    */
   if (ue_context_p->location_info_confirmed_in_hss == false) {
     // Start ULR Response timer
-    if (
-      timer_setup(
-        ue_context_p->ulr_response_timer.sec,
-        0,
-        TASK_MME_APP,
-        INSTANCE_DEFAULT,
-        TIMER_ONE_SHOT,
-        (void *) &(ue_context_p->mme_ue_s1ap_id),
-        sizeof(mme_ue_s1ap_id_t),
-        &(ue_context_p->ulr_response_timer.id)) < 0) {
+    nas_itti_timer_arg_t cb = {0};
+    cb.nas_timer_callback = mme_app_handle_ulr_timer_expiry;
+    cb.nas_timer_callback_arg = (void *) &(ue_context_p->mme_ue_s1ap_id);
+    if (timer_setup(
+      ue_context_p->ulr_response_timer.sec,
+      0,
+      TASK_MME_APP,
+      INSTANCE_DEFAULT,
+      TIMER_ONE_SHOT,
+      &cb,
+      sizeof(cb),
+      &(ue_context_p->ulr_response_timer.id)) < 0) {
       OAILOG_ERROR(
         LOG_MME_APP,
         "Failed to start Update location update response timer for UE id  %d "

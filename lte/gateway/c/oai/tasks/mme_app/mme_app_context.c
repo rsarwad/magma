@@ -1622,16 +1622,18 @@ void mme_ue_context_update_ue_sig_connection_state(
 
     if (mme_config.nas_config.t3412_min > 0) {
       // Start Mobile reachability timer only if peroidic TAU timer is not disabled
-      if (
-        timer_setup(
-          ue_context_p->mobile_reachability_timer.sec,
-          0,
-          TASK_MME_APP,
-          INSTANCE_DEFAULT,
-          TIMER_ONE_SHOT,
-          (void *) &(ue_context_p->mme_ue_s1ap_id),
-          sizeof(mme_ue_s1ap_id_t),
-          &(ue_context_p->mobile_reachability_timer.id)) < 0) {
+      nas_itti_timer_arg_t cb = {0};
+      cb.nas_timer_callback = mme_app_handle_mobile_reachability_timer_expiry;
+      cb.nas_timer_callback_arg = (void *) &(ue_context_p->mme_ue_s1ap_id);
+      if (timer_setup(
+        ue_context_p->mobile_reachability_timer.sec,
+        0,
+        TASK_MME_APP,
+        INSTANCE_DEFAULT,
+        TIMER_ONE_SHOT,
+        &cb,
+        sizeof(cb),
+        &(ue_context_p->mobile_reachability_timer.id)) < 0) {
         OAILOG_ERROR(
           LOG_MME_APP,
           "Failed to start Mobile Reachability timer for UE id "

@@ -82,15 +82,15 @@ static int _sgs_handle_paging_request_for_mt_sms_in_connected(
 static int _sgs_handle_paging_request_for_mt_sms_in_idle(
   ue_mm_context_t *ue_context_p,
   itti_sgsap_paging_request_t *const sgsap_paging_req_pP);
-/**********************************************************************************
- **                                                                              **
- ** Name:    sgs_handle_associated_paging_request()                              **
- ** Description   Handle SGSAP-Paging request in SGS-Associated state            **
- ** Inputs:  sgs_fsm_t: pointer for sgs_fsm_primitive structure                  **
- ** Outputs:                                                                     **
- **          Return:    RETURNok, RETURNerror                                    **
- **                                                                              **
-***********************************************************************************/
+/*****************************************************************************
+ **                                                                         **
+ ** Name:    sgs_handle_associated_paging_request()                         **
+ ** Description   Handle SGSAP-Paging request in SGS-Associated state       **
+ ** Inputs:  sgs_fsm_t: pointer for sgs_fsm_primitive structure             **
+ ** Outputs:                                                                **
+ **          Return:    RETURNok, RETURNerror                               **
+ **                                                                         **
+******************************************************************************/
 int sgs_handle_associated_paging_request(const sgs_fsm_t *evt)
 {
   int rc = RETURNerror;
@@ -606,50 +606,7 @@ int mme_app_send_sgsap_service_request(
   rc = itti_send_msg_to_task(TASK_SGS, INSTANCE_DEFAULT, message_p);
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
-#if 0
-/**********************************************************************************
- **                                                                              **
- ** Name:    mme_app_send_nas_cs_service_notification()                          **
- ** Description    If SGSAP-Paging request received in UE ECM_Connected state    **
- **                Send CS Service Notofication                                  **
- ** Inputs:  ue_id:      UE identifier                                           **
- **          paging_id   Indicates the identity used for paging non-eps services **
- **          cli         Calling Line Identification                             **
- ** Outputs:                                                                     **
- **          Return:    RETURNok, RETURNerror                                    **
- **                                                                              **
-***********************************************************************************/
-int mme_app_send_nas_cs_service_notification(
-  mme_ue_s1ap_id_t ue_id,
-  uint8_t paging_id,
-  bstring cli)
-{
-  int rc = RETURNerror;
-  MessageDef *message_p = NULL;
-  itti_nas_cs_service_notification_t *cs_service_notification_p = NULL;
 
-  OAILOG_FUNC_IN(LOG_MME_APP);
-  message_p = itti_alloc_new_message(TASK_MME_APP, NAS_CS_SERVICE_NOTIFICATION);
-  AssertFatal(message_p, "itti_alloc_new_message Failed");
-  cs_service_notification_p = &message_p->ittiMsg.nas_cs_service_notification;
-  memset(
-    (void *) cs_service_notification_p,
-    0,
-    sizeof(itti_nas_cs_service_notification_t));
-
-  cs_service_notification_p->ue_id = ue_id;
-  cs_service_notification_p->paging_id = paging_id;
-  bassign(cs_service_notification_p->cli, cli);
-
-  OAILOG_INFO(
-    LOG_MME_APP,
-    "Send NAS CS Service Notification from MME app for ue_id:%u \n",
-    ue_id);
-  rc = itti_send_msg_to_task(TASK_NAS_MME, INSTANCE_DEFAULT, message_p);
-
-  OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
-}
-#endif
 /*****************************************************************************
  **                                                                         **
  ** Name:    mme_app_send_sgsap_paging_reject()                             **

@@ -99,11 +99,6 @@ static void *nas_intertask_interface(void *args_p)
         nas_proc_cs_domain_mm_information_request(
           &SGSAP_MM_INFORMATION_REQ(received_message_p));
       } break;
-     /* case NAS_CS_SERVICE_NOTIFICATION: {
-        nas_proc_cs_service_notification(
-          &NAS_CS_SERVICE_NOTIFICATION(received_message_p));
-      } break;
-*/
       case MME_APP_DELETE_DEDICATED_BEARER_REQ:
         nas_proc_delete_dedicated_bearer(
           &MME_APP_DELETE_DEDICATED_BEARER_REQ(received_message_p));
@@ -115,15 +110,6 @@ static void *nas_intertask_interface(void *args_p)
         itti_free_msg_content(received_message_p);
         itti_free(ITTI_MSG_ORIGIN_ID(received_message_p), received_message_p);
         itti_exit_task();
-      } break;
-
-      case TIMER_HAS_EXPIRED: {
-        /*
-         * Call the NAS timer api
-         */
-        nas_timer_handle_signal_expiry(
-          TIMER_HAS_EXPIRED(received_message_p).timer_id,
-          TIMER_HAS_EXPIRED(received_message_p).arg);
       } break;
 
       default: {
