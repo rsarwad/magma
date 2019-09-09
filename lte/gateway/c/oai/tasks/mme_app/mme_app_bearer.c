@@ -1642,7 +1642,6 @@ void mme_app_handle_implicit_detach_timer_expiry(void *args)
       "ue-id " MME_UE_S1AP_ID_FMT "\n",
       mme_ue_s1ap_id);
   }
-  MessageDef *message_p = NULL;
   OAILOG_INFO(
     LOG_MME_APP,
     "Expired- Implicit Detach timer for UE id  %d \n",
@@ -1650,11 +1649,7 @@ void mme_app_handle_implicit_detach_timer_expiry(void *args)
   ue_context_p->implicit_detach_timer.id = MME_APP_TIMER_INACTIVE_ID;
 
   // Initiate Implicit Detach for the UE
-  message_p = itti_alloc_new_message(TASK_MME_APP, NAS_IMPLICIT_DETACH_UE_IND);
-  DevAssert(message_p != NULL);
-  message_p->ittiMsg.nas_implicit_detach_ue_ind.ue_id =
-    ue_context_p->mme_ue_s1ap_id;
-  itti_send_msg_to_task(TASK_NAS_MME, INSTANCE_DEFAULT, message_p);
+  nas_proc_implicit_detach_ue_ind(ue_context_p->mme_ue_s1ap_id);
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -1674,7 +1669,6 @@ void mme_app_handle_initial_context_setup_rsp_timer_expiry(void *args)
       "for ue-id " MME_UE_S1AP_ID_FMT "\n",
       mme_ue_s1ap_id);
   }
-  MessageDef *message_p = NULL;
   OAILOG_INFO(
     LOG_MME_APP,
     "Expired- Initial context setup rsp timer for UE id  %d \n",
@@ -1688,12 +1682,7 @@ void mme_app_handle_initial_context_setup_rsp_timer_expiry(void *args)
   ue_context_p->ue_context_rel_cause = S1AP_INITIAL_CONTEXT_SETUP_TMR_EXPRD;
   if (ue_context_p->mm_state == UE_UNREGISTERED) {
     // Initiate Implicit Detach for the UE
-    message_p =
-      itti_alloc_new_message(TASK_MME_APP, NAS_IMPLICIT_DETACH_UE_IND);
-    DevAssert(message_p != NULL);
-    message_p->ittiMsg.nas_implicit_detach_ue_ind.ue_id =
-      ue_context_p->mme_ue_s1ap_id;
-    itti_send_msg_to_task(TASK_NAS_MME, INSTANCE_DEFAULT, message_p);
+    nas_proc_implicit_detach_ue_ind(ue_context_p->mme_ue_s1ap_id);
     increment_counter(
       "ue_attach",
       1,
@@ -1726,7 +1715,6 @@ void mme_app_handle_initial_context_setup_failure(
     *const initial_ctxt_setup_failure_pP)
 {
   struct ue_mm_context_s *ue_context_p = NULL;
-  MessageDef *message_p = NULL;
 
   OAILOG_FUNC_IN(LOG_MME_APP);
   OAILOG_DEBUG(
@@ -1764,12 +1752,7 @@ void mme_app_handle_initial_context_setup_failure(
   ue_context_p->ue_context_rel_cause = S1AP_INITIAL_CONTEXT_SETUP_FAILED;
   if (ue_context_p->mm_state == UE_UNREGISTERED) {
     // Initiate Implicit Detach for the UE
-    message_p =
-      itti_alloc_new_message(TASK_MME_APP, NAS_IMPLICIT_DETACH_UE_IND);
-    DevAssert(message_p != NULL);
-    message_p->ittiMsg.nas_implicit_detach_ue_ind.ue_id =
-      ue_context_p->mme_ue_s1ap_id;
-    itti_send_msg_to_task(TASK_NAS_MME, INSTANCE_DEFAULT, message_p);
+    nas_proc_implicit_detach_ue_ind(ue_context_p->mme_ue_s1ap_id);
     increment_counter(
       "ue_attach",
       1,

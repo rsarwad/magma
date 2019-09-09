@@ -302,7 +302,7 @@ int emm_proc_sgs_detach_request(
        (_esm_data.conf.features & MME_API_CSFB_SMS_SUPPORTED)) &&
       (emm_ctx->attach_type == EMM_ATTACH_TYPE_COMBINED_EPS_IMSI)) {
       // Notify MME APP to trigger SGS Detach Indication  towards SGS task.
-      nas_itti_sgs_detach_req(ue_id, type);
+      mme_app_handle_sgs_detach_req(ue_id, type);
     }
   }
 

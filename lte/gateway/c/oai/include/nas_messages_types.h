@@ -49,10 +49,7 @@
 #define NAS_DL_DATA_REQ(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_req
 #define NAS_BEARER_PARAM(mSGpTR) (mSGpTR)->ittiMsg.nas_bearer_param
 #define NAS_AUTHENTICATION_REQ(mSGpTR) (mSGpTR)->ittiMsg.nas_auth_req
-#define NAS_SGS_DETACH_REQ(mSGpTR) (mSGpTR)->ittiMsg.nas_sgs_detach_req
 #define NAS_ERAB_SETUP_REQ(mSGpTR) (mSGpTR)->ittiMsg.itti_erab_setup_req
-#define NAS_IMPLICIT_DETACH_UE_IND(mSGpTR)                                     \
-  (mSGpTR)->ittiMsg.nas_implicit_detach_ue_ind
 #define NAS_CS_DOMAIN_LOCATION_UPDATE_FAIL(mSGpTR)                             \
   (mSGpTR)->ittiMsg.nas_cs_domain_location_update_fail
 #define NAS_DATA_LENGHT_MAX 256
@@ -101,18 +98,6 @@ typedef struct itti_erab_rel_cmd_s {
   ebi_t ebi;              /* EPS bearer id        */
   bstring nas_msg; /* NAS erab bearer context activation message           */
 } itti_erab_rel_cmd_t;
-
-typedef struct itti_nas_implicit_detach_ue_ind_s {
-  /* UE identifier */
-  mme_ue_s1ap_id_t ue_id;
-} itti_nas_implicit_detach_ue_ind_t;
-
-typedef struct itti_nas_sgs_detach_req_s {
-  /* UE identifier */
-  mme_ue_s1ap_id_t ue_id;
-  /* detach type */
-  uint8_t detach_type;
-} itti_nas_sgs_detach_req_t;
 
 typedef struct itti_nas_cs_domain_location_update_fail_s {
 /* UE identifier */

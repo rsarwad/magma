@@ -215,13 +215,6 @@ void *mme_app_thread(void *args)
         mme_app_handle_initial_ue_message(
           &S1AP_INITIAL_UE_MESSAGE(received_message_p));
       } break;
-
-      case NAS_SGS_DETACH_REQ: {
-        OAILOG_INFO(LOG_MME_APP, "Recieved SGS detach request from NAS\n");
-        mme_app_handle_sgs_detach_req(
-          &received_message_p->ittiMsg.nas_sgs_detach_req);
-      } break;
-
       case S6A_UPDATE_LOCATION_ANS: {
         /*
          * We received the update location answer message from HSS -> Handle it
@@ -421,6 +414,30 @@ void *mme_app_thread(void *args)
           NAS_DL_DATA_REJ(received_message_p).ue_id,
           NAS_DL_DATA_REJ(received_message_p).err_code,
           &NAS_DL_DATA_REJ(received_message_p).nas_msg);
+      } break;
+
+      case SGSAP_DOWNLINK_UNITDATA: {
+        /*
+         * We received the Downlink Unitdata from MSC, trigger a
+         * Downlink Nas Transport message to UE.
+         */
+        nas_proc_downlink_unitdata(
+          &SGSAP_DOWNLINK_UNITDATA(received_message_p));
+      } break;
+
+      case SGSAP_RELEASE_REQ: {
+        /*
+         * We received the SGS Release request from MSC,to indicate that there are no more NAS messages to be exchanged
+         * between the VLR and the UE, or when a further exchange of NAS messages for the specified UE is not possible
+         * due to an error.
+         */
+        nas_proc_sgs_release_req(&SGSAP_RELEASE_REQ(received_message_p));
+      } break;
+
+      case SGSAP_MM_INFORMATION_REQ: {
+        /*Received SGSAP MM Information Request message from SGS task*/
+        nas_proc_cs_domain_mm_information_request(
+          &SGSAP_MM_INFORMATION_REQ(received_message_p));
       } break;
 
       case TERMINATE_MESSAGE: {

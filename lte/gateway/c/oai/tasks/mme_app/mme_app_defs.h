@@ -39,6 +39,7 @@
 #include "mme_app_desc.h"
 #include "mme_app_ue_context.h"
 #include "mme_app_sgs_fsm.h"
+#include "emm_proc.h"
 
 int mme_app_handle_s1ap_ue_capabilities_ind(
   const itti_s1ap_ue_cap_ind_t const *s1ap_ue_cap_ind_pP);
@@ -64,7 +65,8 @@ int mme_app_handle_nas_extended_service_req(
 void mme_app_handle_detach_req(mme_ue_s1ap_id_t ue_id);
 
 void mme_app_handle_sgs_detach_req(
-  const itti_nas_sgs_detach_req_t *const sgs_detach_req_p);
+  mme_ue_s1ap_id_t ue_id,
+  emm_proc_sgs_detach_type_t detach_type);
 
 int mme_app_handle_sgs_eps_detach_ack(
   const const itti_sgsap_eps_detach_ack_t *const eps_detach_ack_p);

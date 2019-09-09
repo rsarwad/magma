@@ -59,11 +59,6 @@ static void *nas_intertask_interface(void *args_p)
           &MME_APP_CREATE_DEDICATED_BEARER_REQ(received_message_p));
         break;
 
-      case NAS_IMPLICIT_DETACH_UE_IND: {
-        nas_proc_implicit_detach_ue_ind(
-          NAS_IMPLICIT_DETACH_UE_IND(received_message_p).ue_id);
-      } break;
-
       case S1AP_DEREGISTER_UE_REQ: {
         nas_proc_deregister_ue(
           S1AP_DEREGISTER_UE_REQ(received_message_p).mme_ue_s1ap_id);
@@ -77,28 +72,6 @@ static void *nas_intertask_interface(void *args_p)
         nas_proc_cs_domain_location_updt_fail(itti_nas_location_update_fail_p);
       } break;
 
-      case SGSAP_DOWNLINK_UNITDATA: {
-        /*
-         * We received the Downlink Unitdata from MSC, trigger a
-         * Downlink Nas Transport message to UE.
-         */
-        nas_proc_downlink_unitdata(
-          &SGSAP_DOWNLINK_UNITDATA(received_message_p));
-      } break;
-
-      case SGSAP_RELEASE_REQ: {
-        /*
-         * We received the SGS Release request from MSC,to indicate that there are no more NAS messages to be exchanged
-         * between the VLR and the UE, or when a further exchange of NAS messages for the specified UE is not possible
-         * due to an error.
-         */
-        nas_proc_sgs_release_req(&SGSAP_RELEASE_REQ(received_message_p));
-      } break;
-      case SGSAP_MM_INFORMATION_REQ: {
-        /*Received SGSAP MM Information Request message from SGS task*/
-        nas_proc_cs_domain_mm_information_request(
-          &SGSAP_MM_INFORMATION_REQ(received_message_p));
-      } break;
       case MME_APP_DELETE_DEDICATED_BEARER_REQ:
         nas_proc_delete_dedicated_bearer(
           &MME_APP_DELETE_DEDICATED_BEARER_REQ(received_message_p));

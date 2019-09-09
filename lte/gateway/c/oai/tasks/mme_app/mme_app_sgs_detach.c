@@ -51,6 +51,7 @@
 #include "nas_messages_types.h"
 #include "s1ap_messages_types.h"
 #include "sgs_messages_types.h"
+#include "emm_proc.h"
 
 /**
  * Function to send a SGS EPS detach indication to SGSAP in either the initial case
@@ -518,15 +519,15 @@ void mme_app_handle_sgs_implicit_imsi_detach_timer_expiry(void *args)
 }
 //------------------------------------------------------------------------------
 void mme_app_handle_sgs_detach_req(
-  const itti_nas_sgs_detach_req_t *const sgs_detach_req_p)
+    mme_ue_s1ap_id_t ue_id,
+    emm_proc_sgs_detach_type_t detach_type)
 {
   struct ue_mm_context_s *ue_context = NULL;
   sgs_fsm_t evnt = {0};
 
   OAILOG_FUNC_IN(LOG_MME_APP);
-  DevAssert(sgs_detach_req_p != NULL);
   ue_context = mme_ue_context_exists_mme_ue_s1ap_id(
-    &mme_app_desc.mme_ue_contexts, sgs_detach_req_p->ue_id);
+    &mme_app_desc.mme_ue_contexts, ue_id);
   if (ue_context == NULL) {
     OAILOG_ERROR(
       LOG_MME_APP, "UE context doesn't exist -> Nothing to do :-) \n");
@@ -536,14 +537,13 @@ void mme_app_handle_sgs_detach_req(
     evnt.ue_id = ue_context->mme_ue_s1ap_id;
     evnt.ctx = ue_context->sgs_context;
     /* check the SGS state and if it is null then do not send te Detach towards SGS*/
-    OAILOG_DEBUG(LOG_MME_APP, "SGS Detach type = ( %d )\n",
-      sgs_detach_req_p->detach_type);
+    OAILOG_DEBUG(LOG_MME_APP, "SGS Detach type = ( %d )\n", detach_type);
     if (sgs_fsm_get_status(evnt.ue_id, evnt.ctx) != SGS_NULL) {
-      switch (sgs_detach_req_p->detach_type) {
+      switch (detach_type) {
           /*
         * Handle Ue initiated EPS detach towards SGS
         */
-        case SGS_DETACH_TYPE_UE_INITIATED_EPS: {
+        case EMM_SGS_UE_INITIATED_EPS_DETACH: {
           ue_context->detach_type = SGS_UE_INITIATED_IMSI_DETACH_FROM_EPS;
           mme_app_send_sgs_eps_detach_indication(
             ue_context, ue_context->detach_type);
@@ -552,7 +552,7 @@ void mme_app_handle_sgs_detach_req(
           /*
         * Handle Ue initiated IMSI detach towards SGS
         */
-        case SGS_DETACH_TYPE_UE_INITIATED_EXPLICIT_NONEPS: {
+        case EMM_SGS_UE_INITIATED_EXPLICIT_NONEPS_DETACH: {
           ue_context->detach_type =
             SGS_EXPLICIT_UE_INITIATED_IMSI_DETACH_FROM_NONEPS;
           mme_app_send_sgs_imsi_detach_indication(
@@ -562,7 +562,7 @@ void mme_app_handle_sgs_detach_req(
           /*
         * Handle Ue initiated Combined EPS/IMSI detach towards SGS
         */
-        case SGS_DETACH_TYPE_UE_INITIATED_COMBINED: {
+        case EMM_SGS_UE_INITIATED_COMBINED_DETACH: {
           ue_context->detach_type =
             SGS_COMBINED_UE_INITIATED_IMSI_DETACH_FROM_EPS_N_NONEPS;
           mme_app_send_sgs_imsi_detach_indication(
@@ -572,7 +572,7 @@ void mme_app_handle_sgs_detach_req(
           /*
         * Handle Network initiated EPS detach towards SGS
         */
-        case SGS_DETACH_TYPE_NW_INITIATED_EPS: {
+        case EMM_SGS_NW_INITIATED_EPS_DETACH: {
           ue_context->detach_type = SGS_NW_INITIATED_IMSI_DETACH_FROM_EPS;
           mme_app_send_sgs_eps_detach_indication(
             ue_context, ue_context->detach_type);
@@ -581,7 +581,7 @@ void mme_app_handle_sgs_detach_req(
           /*
         * Handle Network initiated Implicit IMSI detach towards SGS
         */
-        case SGS_DETACH_TYPE_NW_INITIATED_IMPLICIT_NONEPS: {
+        case EMM_SGS_NW_INITIATED_IMPLICIT_NONEPS_DETACH: {
           ue_context->detach_type =
             SGS_IMPLICIT_NW_INITIATED_IMSI_DETACH_FROM_EPS_N_NONEPS;
           mme_app_send_sgs_imsi_detach_indication(
@@ -591,21 +591,23 @@ void mme_app_handle_sgs_detach_req(
         default:
           OAILOG_INFO(
             LOG_MME_APP,
-            "SGS-DETACH REQ: Ue Id %u Invalid detach type : %u \n",
-            sgs_detach_req_p->ue_id,
+            "SGS-DETACH REQ: ue-id: " MME_UE_S1AP_ID_FMT" Invalid detach type :"
+            " %u \n",
+            ue_id,
             ue_context->detach_type);
           break;
       }
       /*
-    * Call the SGS FSM process function to 
+    * Call the SGS FSM process function to
     * process the respective message in different state
-    * and update the SGS State based on event 
+    * and update the SGS State based on event
     */
       sgs_fsm_process(&evnt);
     }
   } else {
     OAILOG_ERROR(
-      LOG_MME_APP, "UE SGS context doesn't exist -> Nothing to do :-) \n");
+      LOG_MME_APP, "UE SGS context doesn't exist for ue-id"
+      MME_UE_S1AP_ID_FMT "-> Nothing to do :-) \n", ue_id);
   }
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }

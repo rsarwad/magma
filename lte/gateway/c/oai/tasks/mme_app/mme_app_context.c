@@ -73,6 +73,7 @@
 #include "mme_app_desc.h"
 #include "nas_messages_types.h"
 #include "nas_timer.h"
+#include "nas_proc.h"
 #include "obj_hashtable.h"
 #include "s1ap_messages_types.h"
 
@@ -2196,7 +2197,6 @@ static void _mme_app_handle_s1ap_ue_context_release(
 {
   struct ue_mm_context_s *ue_mm_context = NULL;
   enb_s1ap_id_key_t enb_s1ap_id_key = INVALID_ENB_UE_S1AP_ID_KEY;
-  MessageDef *message_p = NULL;
 
   OAILOG_FUNC_IN(LOG_MME_APP);
   ue_mm_context = mme_ue_context_exists_mme_ue_s1ap_id(
@@ -2301,12 +2301,7 @@ static void _mme_app_handle_s1ap_ue_context_release(
 
   if (ue_mm_context->mm_state == UE_UNREGISTERED) {
     // Initiate Implicit Detach for the UE
-    message_p =
-      itti_alloc_new_message(TASK_MME_APP, NAS_IMPLICIT_DETACH_UE_IND);
-    DevAssert(message_p != NULL);
-    message_p->ittiMsg.nas_implicit_detach_ue_ind.ue_id =
-      ue_mm_context->mme_ue_s1ap_id;
-    itti_send_msg_to_task(TASK_NAS_MME, INSTANCE_DEFAULT, message_p);
+    nas_proc_implicit_detach_ue_ind(ue_mm_context->mme_ue_s1ap_id);
   } else {
     if (cause == S1AP_NAS_UE_NOT_AVAILABLE_FOR_PS) {
       for (pdn_cid_t i = 0; i < MAX_APN_PER_UE; i++) {

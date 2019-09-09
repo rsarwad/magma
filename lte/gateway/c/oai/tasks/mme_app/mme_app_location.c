@@ -58,6 +58,7 @@
 #include "esm_proc.h"
 #include "nas_proc.h"
 #include "emm_cnDef.h"
+#include "emm_proc.h"
 
 //------------------------------------------------------------------------------
 int mme_app_send_s6a_update_location_req(
@@ -355,9 +356,7 @@ int mme_app_handle_s6a_cancel_location_req(
   int rc = RETURNok;
   uint64_t imsi = 0;
   struct ue_mm_context_s *ue_context_p = NULL;
-  MessageDef *message_p = NULL;
   int cla_result = DIAMETER_SUCCESS;
-  itti_nas_sgs_detach_req_t sgs_detach_req = {0};
 
   OAILOG_FUNC_IN(LOG_MME_APP);
   DevAssert(clr_pP);
@@ -442,13 +441,8 @@ int mme_app_handle_s6a_cancel_location_req(
       ue_context_p->emm_context.nw_init_bearer_deactv = true;
 
     }
-    // Send Implicit Detach Ind to NAS
-    message_p =
-      itti_alloc_new_message(TASK_MME_APP, NAS_IMPLICIT_DETACH_UE_IND);
-    DevAssert(message_p);
-    message_p->ittiMsg.nas_implicit_detach_ue_ind.ue_id =
-      ue_context_p->mme_ue_s1ap_id;
-    itti_send_msg_to_task(TASK_NAS_MME, INSTANCE_DEFAULT, message_p);
+    // Initiate Implicit Detach for the UE
+    rc = nas_proc_implicit_detach_ue_ind(ue_context_p->mme_ue_s1ap_id);
   } else {
     // Send N/W Initiated Detach Request to NAS
 
@@ -459,9 +453,8 @@ int mme_app_handle_s6a_cancel_location_req(
 
     // Send SGS explicit network initiated Detach Ind to SGS
     if (ue_context_p->sgs_context) {
-      sgs_detach_req.ue_id = ue_context_p->mme_ue_s1ap_id;
-      sgs_detach_req.detach_type = SGS_DETACH_TYPE_NW_INITIATED_EPS;
-      mme_app_handle_sgs_detach_req(&sgs_detach_req);
+      mme_app_handle_sgs_detach_req(ue_context_p->mme_ue_s1ap_id,
+        EMM_SGS_NW_INITIATED_EPS_DETACH);
     }
   }
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);

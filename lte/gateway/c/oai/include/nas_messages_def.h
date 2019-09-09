@@ -43,16 +43,6 @@ MESSAGE_DEF(
 
 /* NAS layer -> MME app messages */
 MESSAGE_DEF(
-  NAS_SGS_DETACH_REQ,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_sgs_detach_req_t,
-  nas_sgs_detach_req)
-MESSAGE_DEF(
-  NAS_IMPLICIT_DETACH_UE_IND,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_implicit_detach_ue_ind_t,
-  nas_implicit_detach_ue_ind)
-MESSAGE_DEF(
   NAS_CS_DOMAIN_LOCATION_UPDATE_FAIL,
   MESSAGE_PRIORITY_MED,
   itti_nas_cs_domain_location_update_fail_t,
