@@ -50,8 +50,6 @@
 #define NAS_BEARER_PARAM(mSGpTR) (mSGpTR)->ittiMsg.nas_bearer_param
 #define NAS_AUTHENTICATION_REQ(mSGpTR) (mSGpTR)->ittiMsg.nas_auth_req
 #define NAS_ERAB_SETUP_REQ(mSGpTR) (mSGpTR)->ittiMsg.itti_erab_setup_req
-#define NAS_CS_DOMAIN_LOCATION_UPDATE_FAIL(mSGpTR)                             \
-  (mSGpTR)->ittiMsg.nas_cs_domain_location_update_fail
 #define NAS_DATA_LENGHT_MAX 256
 #define NAS_ERAB_REL_CMD(mSGpTR) (mSGpTR)->ittiMsg.itti_erab_rel_cmd
 
@@ -98,14 +96,5 @@ typedef struct itti_erab_rel_cmd_s {
   ebi_t ebi;              /* EPS bearer id        */
   bstring nas_msg; /* NAS erab bearer context activation message           */
 } itti_erab_rel_cmd_t;
-
-typedef struct itti_nas_cs_domain_location_update_fail_s {
-/* UE identifier */
-#define LAI (1 << 0)
-  uint8_t presencemask;
-  mme_ue_s1ap_id_t ue_id;
-  int reject_cause;
-  lai_t laicsfb;
-} itti_nas_cs_domain_location_update_fail_t;
 
 #endif /* FILE_NAS_MESSAGES_TYPES_SEEN */

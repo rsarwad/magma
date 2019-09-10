@@ -63,15 +63,6 @@ static void *nas_intertask_interface(void *args_p)
         nas_proc_deregister_ue(
           S1AP_DEREGISTER_UE_REQ(received_message_p).mme_ue_s1ap_id);
       } break;
-
-      case NAS_CS_DOMAIN_LOCATION_UPDATE_FAIL: {
-        itti_nas_cs_domain_location_update_fail_t
-          *itti_nas_location_update_fail_p = NULL;
-        itti_nas_location_update_fail_p =
-          &received_message_p->ittiMsg.nas_cs_domain_location_update_fail;
-        nas_proc_cs_domain_location_updt_fail(itti_nas_location_update_fail_p);
-      } break;
-
       case MME_APP_DELETE_DEDICATED_BEARER_REQ:
         nas_proc_delete_dedicated_bearer(
           &MME_APP_DELETE_DEDICATED_BEARER_REQ(received_message_p));

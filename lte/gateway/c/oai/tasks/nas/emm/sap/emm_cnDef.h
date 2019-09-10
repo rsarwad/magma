@@ -169,8 +169,14 @@ typedef struct emm_cn_nw_initiated_detach_ue_s {
   uint8_t detach_type;
 } emm_cn_nw_initiated_detach_ue_t;
 
-typedef itti_nas_cs_domain_location_update_fail_t
-  emm_cn_cs_domain_location_updt_fail_t;
+typedef struct emm_cn_cs_domain_location_updt_fail_s {
+#define LAI (1 << 0)
+  uint8_t presencemask;
+  mme_ue_s1ap_id_t ue_id;
+  int reject_cause;
+  lai_t laicsfb;
+} emm_cn_cs_domain_location_updt_fail_t;
+
 typedef itti_sgsap_mm_information_req_t emm_cn_cs_domain_mm_information_req_t;
 
 typedef struct emm_mme_ul_s {

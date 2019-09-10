@@ -2620,7 +2620,7 @@ void mme_app_handle_nw_init_ded_bearer_actv_req(
 
   OAILOG_INFO(
     LOG_MME_APP,
-    "Received Dedicated bearer activation Request from SGW with LBI %d\n",
+    "Received Dedicated bearer activation Request from SGW with LBI %u\n",
     nw_init_bearer_actv_req_p->lbi);
 
   ebi_t linked_eps_bearer_id = nw_init_bearer_actv_req_p->lbi;

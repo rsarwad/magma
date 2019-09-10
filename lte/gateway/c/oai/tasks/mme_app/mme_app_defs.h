@@ -201,10 +201,6 @@ int send_itti_sgsap_location_update_req(ue_mm_context_t *ue_context);
 int mme_app_handle_sgsap_location_update_rej(
   itti_sgsap_location_update_rej_t *const itti_sgsap_location_update_rej);
 
-int send_cs_domain_loc_updt_fail_to_nas(
-  SgsRejectCause_t cause,
-  lai_t *lai,
-  mme_ue_s1ap_id_t mme_ue_s1ap_id);
 void mme_app_handle_ts6_1_timer_expiry(void * args);
 
 int mme_app_handle_sgsap_reset_indication(

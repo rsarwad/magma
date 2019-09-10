@@ -43,11 +43,6 @@ MESSAGE_DEF(
 
 /* NAS layer -> MME app messages */
 MESSAGE_DEF(
-  NAS_CS_DOMAIN_LOCATION_UPDATE_FAIL,
-  MESSAGE_PRIORITY_MED,
-  itti_nas_cs_domain_location_update_fail_t,
-  nas_cs_domain_location_update_fail)
-MESSAGE_DEF(
   NAS_ERAB_REL_CMD,
   MESSAGE_PRIORITY_MED,
   itti_erab_rel_cmd_t,
