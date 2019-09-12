@@ -479,7 +479,7 @@ int send_itti_sgsap_location_update_req(ue_mm_context_t *ue_context)
  **
 ***********************************************************************************/
 int mme_app_handle_sgsap_location_update_acc(
-    itti_sgsap_location_update_acc_t *const itti_sgsap_location_update_acc)
+  itti_sgsap_location_update_acc_t *const itti_sgsap_location_update_acc)
 {
   imsi64_t imsi64 = INVALID_IMSI64;
   struct ue_mm_context_s *ue_context_p = NULL;

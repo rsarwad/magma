@@ -99,10 +99,6 @@ typedef struct emm_cn_pdn_config_res_s {
   mme_ue_s1ap_id_t ue_id; // nas ref
 } emm_cn_pdn_config_res_t;
 
-typedef struct itti_nas_pdn_config_fail_s {
-  mme_ue_s1ap_id_t ue_id; // nas ref
-} itti_nas_pdn_config_fail_t;
-
 typedef struct emm_cn_pdn_fail_s {
   mme_ue_s1ap_id_t ue_id;
   int pti;

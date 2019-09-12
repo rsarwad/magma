@@ -519,8 +519,8 @@ void mme_app_handle_sgs_implicit_imsi_detach_timer_expiry(void *args)
 }
 //------------------------------------------------------------------------------
 void mme_app_handle_sgs_detach_req(
-    mme_ue_s1ap_id_t ue_id,
-    emm_proc_sgs_detach_type_t detach_type)
+  mme_ue_s1ap_id_t ue_id,
+  emm_proc_sgs_detach_type_t detach_type)
 {
   struct ue_mm_context_s *ue_context = NULL;
   sgs_fsm_t evnt = {0};

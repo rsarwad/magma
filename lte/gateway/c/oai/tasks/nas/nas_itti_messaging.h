@@ -43,11 +43,6 @@
 #include "bstrlib.h"
 #include "common_types.h"
 
-int nas_itti_dl_data_req(
-  const mme_ue_s1ap_id_t ue_idP,
-  bstring nas_msgP,
-  nas_error_code_t transaction_status);
-
 int nas_itti_erab_setup_req(
   const mme_ue_s1ap_id_t ue_id,
   const ebi_t ebi,

@@ -290,7 +290,7 @@ void mme_app_handle_conn_est_cnf(
 
   OAILOG_DEBUG(
     LOG_MME_APP,
-    "Received NAS_CONNECTION_ESTABLISHMENT_CNF for ue-id " MME_UE_S1AP_ID_FMT
+    "Handle NAS_CONNECTION_ESTABLISHMENT_CNF for ue-id " MME_UE_S1AP_ID_FMT
     "\n",
     nas_conn_est_cnf_pP->ue_id);
   ue_context_p = mme_ue_context_exists_mme_ue_s1ap_id(
@@ -2217,39 +2217,39 @@ int mme_app_handle_nas_extended_service_req(
         if (ue_context_p->sgs_context->call_cancelled) {
           /*Sending Service Reject to UE as MSC/VLR has triggered SGSAP SERVICE ABORT*/
           if (ue_context_p->ecm_state == ECM_IDLE) {
-             /* If ECM state is IDLE send 
-              * service_reject in Establish cnf else send in DL NAS Transport
-              */
-             rc = emm_proc_service_reject(ue_id,
-                EMM_CAUSE_CS_SERVICE_NOT_AVAILABLE);
-             if (RETURNok == rc) {
-                OAILOG_INFO(
-                  LOG_MME_APP,
-                  "Send Service Reject because MT_CALL_CANCEL is set by network"
-                  "for ue-id:" MME_UE_S1AP_ID_FMT "\n",
-                  ue_id);
-              } else {
-                OAILOG_ERROR(
-                  LOG_MME_APP,
-                  "Failed to send Service Reject for ue-id:%u \n",
-                  ue_id);
-              }
+            /* If ECM state is IDLE send 
+             * service_reject in Establish cnf else send in DL NAS Transport
+             */
+            rc = emm_proc_service_reject(ue_id,
+               EMM_CAUSE_CS_SERVICE_NOT_AVAILABLE);
+            if (RETURNok == rc) {
+               OAILOG_INFO(
+                 LOG_MME_APP,
+                 "Send Service Reject because MT_CALL_CANCEL is set by network"
+                 "for ue-id:" MME_UE_S1AP_ID_FMT "\n",
+                 ue_id);
+            } else {
+              OAILOG_ERROR(
+                LOG_MME_APP,
+                "Failed to send Service Reject for ue-id:%u \n",
+                ue_id);
+            }
           } else if (ue_context_p->ecm_state == ECM_CONNECTED) {
             rc = emm_send_service_reject_in_dl_nas(ue_id,
               EMM_CAUSE_CS_SERVICE_NOT_AVAILABLE);
             if (RETURNok == rc) {
-                OAILOG_INFO(
-                  LOG_MME_APP,
-                  "Send Service Reject because MT_CALL_CANCEL is set by network"
-                  "for ue-id:" MME_UE_S1AP_ID_FMT "\n",
-                  ue_id);
-              } else {
-                OAILOG_ERROR(
-                  LOG_MME_APP,
-                  "Failed to send Service Reject for ue-id:"
-                   MME_UE_S1AP_ID_FMT" \n",
-                  ue_id);
-              }
+              OAILOG_INFO(
+                LOG_MME_APP,
+                "Send Service Reject because MT_CALL_CANCEL is set by network"
+                "for ue-id:" MME_UE_S1AP_ID_FMT "\n",
+                ue_id);
+            } else {
+              OAILOG_ERROR(
+                LOG_MME_APP,
+                "Failed to send Service Reject for ue-id:"
+                 MME_UE_S1AP_ID_FMT" \n",
+                ue_id);
+            }
           }
           //Reset call_cancelled flag
           ue_context_p->sgs_context->call_cancelled = false;
@@ -2277,8 +2277,9 @@ int mme_app_handle_nas_extended_service_req(
         mme_app_itti_ue_context_mod_for_csfb(ue_context_p);
       } else {
         /* send Service Reject to UE */
-        mme_app_notify_service_reject_to_nas(ue_context_p->mme_ue_s1ap_id, EMM_CAUSE_CONGESTION,
-             UE_CONTEXT_MODIFICATION_PROCEDURE_FAILED);
+        mme_app_notify_service_reject_to_nas(ue_context_p->mme_ue_s1ap_id,
+          EMM_CAUSE_CONGESTION,
+          UE_CONTEXT_MODIFICATION_PROCEDURE_FAILED);
       }
       break;
     /* packet service via s1 */

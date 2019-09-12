@@ -90,44 +90,13 @@ void itti_free_msg_content(MessageDef *const message_p)
     case MME_APP_DELETE_SESSION_RSP:
       // DO nothing
       break;
-#if 0
-Rashmi TODO remove below lines
-    case NAS_CONNECTION_ESTABLISHMENT_CNF:
-      bdestroy_wrapper(&message_p->ittiMsg.nas_conn_est_cnf.nas_msg);
-      AssertFatal(
-        NULL == message_p->ittiMsg.nas_conn_est_cnf.nas_msg,
-        "TODO clean pointer");
-      break;
-    case NAS_CONNECTION_RELEASE_IND:
-      // DO nothing
-      break;
-#endif
 
-    case NAS_UPLINK_DATA_IND:
-      bdestroy_wrapper(&message_p->ittiMsg.nas_ul_data_ind.nas_msg);
+    case MME_APP_UPLINK_DATA_IND:
+      bdestroy_wrapper(&message_p->ittiMsg.mme_app_ul_data_ind.nas_msg);
       AssertFatal(
-        NULL == message_p->ittiMsg.nas_ul_data_ind.nas_msg,
+        NULL == message_p->ittiMsg.mme_app_ul_data_ind.nas_msg,
         "TODO clean pointer");
       break;
-#if 0
-Rashmi TODO remove below lines
-    case NAS_DOWNLINK_DATA_REQ:
-      bdestroy_wrapper(&message_p->ittiMsg.nas_dl_data_req.nas_msg);
-      AssertFatal(
-        NULL == message_p->ittiMsg.nas_dl_data_req.nas_msg,
-        "TODO clean pointer");
-      break;
-    case NAS_DOWNLINK_DATA_CNF:
-      // DO nothing
-      break;
-
-    case NAS_DOWNLINK_DATA_REJ:
-      bdestroy_wrapper(&message_p->ittiMsg.nas_dl_data_rej.nas_msg);
-      AssertFatal(
-        NULL == message_p->ittiMsg.nas_dl_data_rej.nas_msg,
-        "TODO clean pointer");
-      break;
-#endif
 
     case S11_CREATE_SESSION_REQUEST: {
       // DO nothing

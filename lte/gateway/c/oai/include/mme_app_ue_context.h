@@ -341,8 +341,6 @@ typedef struct ue_mm_context_s {
   /* Basic identifier for ue. IMSI is encoded on maximum of 15 digits of 4 bits,
    * so usage of an unsigned integer on 64 bits is necessary.
    */
-  //uint8_t member_present_mask; // bitmask, see significance of bits below
-//#define UE_CTXT_MEMBER_IMEI_SV (1 << 0)
   // int                    len;
 #define IMSI_UNAUTHENTICATED (0x0)
 #define IMSI_AUTHENTICATED (0x1)

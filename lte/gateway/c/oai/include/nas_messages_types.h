@@ -45,12 +45,7 @@
 #include "common_ies.h"
 #include "nas/networkDef.h"
 
-#define NAS_UL_DATA_IND(mSGpTR) (mSGpTR)->ittiMsg.nas_ul_data_ind
-#define NAS_DL_DATA_REQ(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_req
-#define NAS_BEARER_PARAM(mSGpTR) (mSGpTR)->ittiMsg.nas_bearer_param
-#define NAS_AUTHENTICATION_REQ(mSGpTR) (mSGpTR)->ittiMsg.nas_auth_req
 #define NAS_ERAB_SETUP_REQ(mSGpTR) (mSGpTR)->ittiMsg.itti_erab_setup_req
-#define NAS_DATA_LENGHT_MAX 256
 #define NAS_ERAB_REL_CMD(mSGpTR) (mSGpTR)->ittiMsg.itti_erab_rel_cmd
 
 typedef struct itti_nas_conn_est_rej_s {
@@ -70,16 +65,6 @@ typedef struct itti_nas_info_transfer_s {
   //nas_error_code_t err_code;     /* Transaction status               */
   bstring nas_msg; /* Uplink NAS message           */
 } itti_nas_info_transfer_t;
-
-typedef struct itti_nas_ul_data_ind_s {
-  mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier        */
-  bstring nas_msg;        /* Uplink NAS message           */
-  tai_t
-    tai; /* Indicating the Tracking Area from which the UE has sent the NAS message.  */
-  ecgi_t
-    cgi; /* Indicating the cell from which the UE has sent the NAS message.   */
-} itti_nas_ul_data_ind_t;
-
 
 typedef struct itti_erab_setup_req_s {
   mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier   */

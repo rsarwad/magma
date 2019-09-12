@@ -58,8 +58,9 @@
   (mSGpTR)->ittiMsg.mme_app_create_dedicated_bearer_rsp
 #define MME_APP_CREATE_DEDICATED_BEARER_REJ(mSGpTR)                            \
   (mSGpTR)->ittiMsg.mme_app_create_dedicated_bearer_rej
-#define NAS_DL_DATA_CNF(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_cnf
-#define NAS_DL_DATA_REJ(mSGpTR) (mSGpTR)->ittiMsg.nas_dl_data_rej
+#define MME_APP_UL_DATA_IND(mSGpTR) (mSGpTR)->ittiMsg.mme_app_ul_data_ind
+#define MME_APP_DL_DATA_CNF(mSGpTR) (mSGpTR)->ittiMsg.mme_app_dl_data_cnf
+#define MME_APP_DL_DATA_REJ(mSGpTR) (mSGpTR)->ittiMsg.mme_app_dl_data_rej
 #define MME_APP_DELETE_DEDICATED_BEARER_REQ(mSGpTR)                            \
   (mSGpTR)->ittiMsg.mme_app_delete_dedicated_bearer_req
 #define MME_APP_DELETE_DEDICATED_BEARER_RSP(mSGpTR)                            \
@@ -116,6 +117,7 @@ typedef struct itti_mme_app_connection_establishment_cnf_s {
   // MME UE S1AP ID 2  (optional)
   // Management Based MDT Allowed (optional)
 
+  //itti_nas_conn_est_cnf_t nas_conn_est_cnf;
 } itti_mme_app_connection_establishment_cnf_t;
 
 typedef struct itti_mme_app_initial_context_setup_rsp_s {
@@ -168,13 +170,13 @@ typedef struct itti_mme_app_s1ap_mme_ue_id_notification_s {
 typedef struct itti_nas_dl_data_cnf_s {
   mme_ue_s1ap_id_t ue_id;    /* UE lower layer identifier        */
   nas_error_code_t err_code; /* Transaction status               */
-} itti_nas_dl_data_cnf_t;
+} itti_mme_app_dl_data_cnf_t;
 
 typedef struct itti_nas_dl_data_rej_s {
   mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier   */
   bstring nas_msg;        /* Uplink NAS message           */
   int err_code;
-} itti_nas_dl_data_rej_t;
+} itti_mme_app_dl_data_rej_t;
 
 typedef struct itti_mme_app_delete_dedicated_bearer_req_s {
   /* UE identifier */
@@ -201,6 +203,16 @@ typedef struct itti_mme_app_delete_dedicated_bearer_rej_s {
   teid_t s_gw_teid_s11_s4;
   bool delete_default_bearer;
 } itti_mme_app_delete_dedicated_bearer_rej_t;
+
+typedef struct itti_mme_app_ul_data_ind_s {
+  mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier        */
+  bstring nas_msg;        /* Uplink NAS message           */
+  tai_t
+    tai; /* Indicating the Tracking Area from which the UE has sent the NAS message.  */
+  ecgi_t
+    cgi; /* Indicating the cell from which the UE has sent the NAS message.   */
+} itti_mme_app_ul_data_ind_t;
+
 
 
 #endif /* FILE_MME_APP_MESSAGES_TYPES_SEEN */

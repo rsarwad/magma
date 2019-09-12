@@ -124,6 +124,7 @@ int _csfb_handle_tracking_area_req(
                                 struct ue_mm_context_s, emm_context);
   if(!ue_mm_context) {
     OAILOG_DEBUG(LOG_NAS_EMM, "Got Invalid UE Context during TAU procedure \n");
+    OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNerror);
   }
   OAILOG_INFO(LOG_NAS_EMM, "EMM-PROC"
     "_csfb_handle_tracking_area_req for UE-ID:" MME_UE_S1AP_ID_FMT "\n",
@@ -1052,7 +1053,7 @@ static int _send_tau_accept_and_check_for_neaf_flag (
   if((mme_ue_context_get_ue_sgs_neaf(ue_context->mme_ue_s1ap_id) == true)) {
     OAILOG_INFO(
       LOG_MME_APP,
-      "Sending UE Activity Ind to MSC for UE ID %d\n",
+      "Sending UE Activity Ind to MSC for ue-id: "MME_UE_S1AP_ID_FMT"\n",
       ue_context->mme_ue_s1ap_id);
      /* neaf flag is true*/
      /* send the SGSAP Ue activity indication to MSC/VLR */

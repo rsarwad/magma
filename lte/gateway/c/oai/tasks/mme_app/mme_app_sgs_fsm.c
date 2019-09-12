@@ -141,7 +141,7 @@ int sgs_fsm_process(const sgs_fsm_t *sgs_evt)
   primitive = sgs_evt->primitive;
   sgs_context_t *sgs_ctx = (sgs_context_t *) (sgs_evt->ctx);
 
-  if(sgs_ctx) {
+  if (sgs_ctx) {
     state = sgs_fsm_get_status(sgs_evt->ue_id, sgs_ctx);
     OAILOG_INFO(
       LOG_MME_APP,

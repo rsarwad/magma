@@ -74,12 +74,12 @@ int s1ap_mme_itti_nas_uplink_ind(
     LOG_S1AP,
     "Sending NAS Uplink indication to NAS_MME_APP, mme_ue_s1ap_id = (%u) \n",
     ue_id);
-  message_p = itti_alloc_new_message(TASK_S1AP, NAS_UPLINK_DATA_IND);
-  NAS_UL_DATA_IND(message_p).ue_id = ue_id;
-  NAS_UL_DATA_IND(message_p).nas_msg = *payload;
+  message_p = itti_alloc_new_message(TASK_S1AP, MME_APP_UPLINK_DATA_IND);
+  MME_APP_UL_DATA_IND(message_p).ue_id = ue_id;
+  MME_APP_UL_DATA_IND(message_p).nas_msg = *payload;
   *payload = NULL;
-  NAS_UL_DATA_IND(message_p).tai = *tai;
-  NAS_UL_DATA_IND(message_p).cgi = *cgi;
+  MME_APP_UL_DATA_IND(message_p).tai = *tai;
+  MME_APP_UL_DATA_IND(message_p).cgi = *cgi;
 
   return itti_send_msg_to_task(TASK_MME_APP, INSTANCE_DEFAULT, message_p);
 }
@@ -102,12 +102,12 @@ int s1ap_mme_itti_nas_downlink_cnf(
     // Drop this cnf message here since this is related to connection less S1AP message hence no need to send it to NAS module
     OAILOG_FUNC_RETURN(LOG_S1AP, RETURNok);
   }
-  message_p = itti_alloc_new_message(TASK_S1AP, NAS_DOWNLINK_DATA_CNF);
-  NAS_DL_DATA_CNF(message_p).ue_id = ue_id;
+  message_p = itti_alloc_new_message(TASK_S1AP, MME_APP_DOWNLINK_DATA_CNF);
+  MME_APP_DL_DATA_CNF(message_p).ue_id = ue_id;
   if (is_success) {
-    NAS_DL_DATA_CNF(message_p).err_code = AS_SUCCESS;
+    MME_APP_DL_DATA_CNF(message_p).err_code = AS_SUCCESS;
   } else {
-    NAS_DL_DATA_CNF(message_p).err_code = AS_FAILURE;
+    MME_APP_DL_DATA_CNF(message_p).err_code = AS_FAILURE;
     OAILOG_ERROR(
       LOG_S1AP,
       "ERROR: Failed to send S1AP message to eNB. mme_ue_s1ap_id =  %d \n",
@@ -223,13 +223,13 @@ void s1ap_mme_itti_nas_non_delivery_ind(
   MessageDef *message_p = NULL;
   // TODO translate, insert, cause in message
   OAILOG_FUNC_IN(LOG_S1AP);
-  message_p = itti_alloc_new_message(TASK_S1AP, NAS_DOWNLINK_DATA_REJ);
+  message_p = itti_alloc_new_message(TASK_S1AP, MME_APP_DOWNLINK_DATA_REJ);
 
-  NAS_DL_DATA_REJ(message_p).ue_id = ue_id;
+  MME_APP_DL_DATA_REJ(message_p).ue_id = ue_id;
   /* Mapping between asn1 definition and NAS definition */
-  NAS_DL_DATA_REJ(message_p).err_code =
+  MME_APP_DL_DATA_REJ(message_p).err_code =
     s1ap_mme_non_delivery_cause_2_nas_data_rej_cause(cause);
-  NAS_DL_DATA_REJ(message_p).nas_msg = blk2bstr(nas_msg, nas_msg_length);
+  MME_APP_DL_DATA_REJ(message_p).nas_msg = blk2bstr(nas_msg, nas_msg_length);
 
   // should be sent to MME_APP, but this one would forward it to NAS_MME, so send it directly to NAS_MME
   // but let's see

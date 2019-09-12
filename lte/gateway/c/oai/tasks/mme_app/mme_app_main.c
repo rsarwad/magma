@@ -133,12 +133,12 @@ void *mme_app_thread(void *args)
         mme_app_handle_erab_rel_cmd(&NAS_ERAB_REL_CMD(received_message_p));
       } break;
 
-      case NAS_UPLINK_DATA_IND: {
+      case MME_APP_UPLINK_DATA_IND: {
         nas_proc_ul_transfer_ind(
-          NAS_UL_DATA_IND(received_message_p).ue_id,
-          NAS_UL_DATA_IND(received_message_p).tai,
-          NAS_UL_DATA_IND(received_message_p).cgi,
-          &NAS_UL_DATA_IND(received_message_p).nas_msg);
+          MME_APP_UL_DATA_IND(received_message_p).ue_id,
+          MME_APP_UL_DATA_IND(received_message_p).tai,
+          MME_APP_UL_DATA_IND(received_message_p).cgi,
+          &MME_APP_UL_DATA_IND(received_message_p).nas_msg);
       } break;
 
       case S11_CREATE_BEARER_REQUEST: {
@@ -402,18 +402,18 @@ void *mme_app_thread(void *args)
           &S6A_AUTH_INFO_ANS(received_message_p));
       } break;
 
-      case NAS_DOWNLINK_DATA_CNF: {
+      case MME_APP_DOWNLINK_DATA_CNF: {
         nas_proc_dl_transfer_cnf(
-          NAS_DL_DATA_CNF(received_message_p).ue_id,
-          NAS_DL_DATA_CNF(received_message_p).err_code,
-          &NAS_DL_DATA_REJ(received_message_p).nas_msg);
+          MME_APP_DL_DATA_CNF(received_message_p).ue_id,
+          MME_APP_DL_DATA_CNF(received_message_p).err_code,
+          &MME_APP_DL_DATA_REJ(received_message_p).nas_msg);
       } break;
 
-      case NAS_DOWNLINK_DATA_REJ: {
+      case MME_APP_DOWNLINK_DATA_REJ: {
         nas_proc_dl_transfer_rej(
-          NAS_DL_DATA_REJ(received_message_p).ue_id,
-          NAS_DL_DATA_REJ(received_message_p).err_code,
-          &NAS_DL_DATA_REJ(received_message_p).nas_msg);
+          MME_APP_DL_DATA_REJ(received_message_p).ue_id,
+          MME_APP_DL_DATA_REJ(received_message_p).err_code,
+          &MME_APP_DL_DATA_REJ(received_message_p).nas_msg);
       } break;
 
       case SGSAP_DOWNLINK_UNITDATA: {
