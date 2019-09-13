@@ -87,8 +87,11 @@ int mme_app_handle_create_sess_resp(
 void mme_app_handle_delete_session_rsp(
   const itti_s11_delete_session_response_t *const delete_sess_respP);
 
-void mme_app_handle_erab_setup_req(
-  itti_erab_setup_req_t *const itti_erab_setup_req);
+void mme_app_send_erab_setup_req(
+  const mme_ue_s1ap_id_t ue_id,
+  const ebi_t ebi, const bitrate_t mbr_dl,
+  const bitrate_t mbr_ul, const bitrate_t gbr_dl,
+  const bitrate_t gbr_ul, bstring nas_msg);
 
 int mme_app_handle_establish_ind(
   const nas_establish_ind_t *const nas_establish_ind_pP);
@@ -124,13 +127,11 @@ int mme_app_handle_nas_dl_req(
 void mme_app_handle_e_rab_setup_rsp(
   itti_s1ap_e_rab_setup_rsp_t *const e_rab_setup_rsp);
 
-void mme_app_handle_create_dedicated_bearer_rsp(
-  itti_mme_app_create_dedicated_bearer_rsp_t
-    *const create_dedicated_bearer_rsp);
+void mme_app_send_create_dedicated_bearer_rsp(
+  const mme_ue_s1ap_id_t ue_id, const ebi_t ebi);
 
-void mme_app_handle_create_dedicated_bearer_rej(
-  itti_mme_app_create_dedicated_bearer_rej_t
-    *const create_dedicated_bearer_rej);
+void mme_app_send_create_dedicated_bearer_rej(
+  const mme_ue_s1ap_id_t ue_id, const ebi_t ebi);
 
 void mme_ue_context_update_ue_sig_connection_state(
   mme_ue_context_t *const mme_ue_context_p,

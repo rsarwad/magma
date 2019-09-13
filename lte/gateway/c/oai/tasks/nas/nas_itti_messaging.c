@@ -66,30 +66,6 @@
 #define TASK_ORIGIN TASK_NAS_MME
 
 //------------------------------------------------------------------------------
-int nas_itti_erab_setup_req(
-  const mme_ue_s1ap_id_t ue_id,
-  const ebi_t ebi,
-  const bitrate_t mbr_dl,
-  const bitrate_t mbr_ul,
-  const bitrate_t gbr_dl,
-  const bitrate_t gbr_ul,
-  bstring nas_msg)
-{
-  MessageDef *message_p =
-    itti_alloc_new_message(TASK_NAS_MME, NAS_ERAB_SETUP_REQ);
-  NAS_ERAB_SETUP_REQ(message_p).ue_id = ue_id;
-  NAS_ERAB_SETUP_REQ(message_p).ebi = ebi;
-  NAS_ERAB_SETUP_REQ(message_p).mbr_dl = mbr_dl;
-  NAS_ERAB_SETUP_REQ(message_p).mbr_ul = mbr_ul;
-  NAS_ERAB_SETUP_REQ(message_p).gbr_dl = gbr_dl;
-  NAS_ERAB_SETUP_REQ(message_p).gbr_ul = gbr_ul;
-  NAS_ERAB_SETUP_REQ(message_p).nas_msg = nas_msg;
-  nas_msg = NULL;
-  // make a long way by MME_APP instead of S1AP to retrieve the sctp_association_id key.
-  return itti_send_msg_to_task(TASK_MME_APP, INSTANCE_DEFAULT, message_p);
-}
-
-//------------------------------------------------------------------------------
 int nas_itti_erab_rel_cmd(
   const mme_ue_s1ap_id_t ue_id,
   const ebi_t ebi,
@@ -104,34 +80,6 @@ int nas_itti_erab_rel_cmd(
   return itti_send_msg_to_task(TASK_MME_APP, INSTANCE_DEFAULT, message_p);
 }
 
-
-//------------------------------------------------------------------------------
-void nas_itti_dedicated_eps_bearer_complete(
-  const mme_ue_s1ap_id_t ue_idP,
-  const ebi_t ebiP)
-{
-  OAILOG_FUNC_IN(LOG_NAS);
-  MessageDef *message_p =
-    itti_alloc_new_message(TASK_NAS_MME, MME_APP_CREATE_DEDICATED_BEARER_RSP);
-  MME_APP_CREATE_DEDICATED_BEARER_RSP(message_p).ue_id = ue_idP;
-  MME_APP_CREATE_DEDICATED_BEARER_RSP(message_p).ebi = ebiP;
-  itti_send_msg_to_task(TASK_MME_APP, INSTANCE_DEFAULT, message_p);
-  OAILOG_FUNC_OUT(LOG_NAS);
-}
-
-//------------------------------------------------------------------------------
-void nas_itti_dedicated_eps_bearer_reject(
-  const mme_ue_s1ap_id_t ue_idP,
-  const ebi_t ebiP)
-{
-  OAILOG_FUNC_IN(LOG_NAS);
-  MessageDef *message_p =
-    itti_alloc_new_message(TASK_NAS_MME, MME_APP_CREATE_DEDICATED_BEARER_REJ);
-  MME_APP_CREATE_DEDICATED_BEARER_REJ(message_p).ue_id = ue_idP;
-  MME_APP_CREATE_DEDICATED_BEARER_REJ(message_p).ebi = ebiP;
-  itti_send_msg_to_task(TASK_MME_APP, INSTANCE_DEFAULT, message_p);
-  OAILOG_FUNC_OUT(LOG_NAS);
-}
 //------------------------------------------------------------------------------
 void nas_itti_auth_info_req(
   const mme_ue_s1ap_id_t ue_idP,

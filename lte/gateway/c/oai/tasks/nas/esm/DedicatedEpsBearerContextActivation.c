@@ -42,6 +42,7 @@
 #include "common_defs.h"
 #include "emm_esmDef.h"
 #include "esm_data.h"
+#include "mme_app_defs.h"
 
 /****************************************************************************/
 /****************  E X T E R N A L    D E F I N I T I O N S  ****************/
@@ -305,7 +306,7 @@ int esm_proc_dedicated_eps_bearer_context_accept(
         LOG_NAS_ESM, "ESM-PROC  - EBI %d was already ACTIVE\n", ebi);
       *esm_cause = ESM_CAUSE_PROTOCOL_ERROR;
     }
-    nas_itti_dedicated_eps_bearer_complete(ue_id, ebi);
+    mme_app_send_create_dedicated_bearer_rsp(ue_id, ebi);
   }
 
   OAILOG_FUNC_RETURN(LOG_NAS_ESM, rc);
@@ -375,7 +376,7 @@ int esm_proc_dedicated_eps_bearer_context_reject(
        */
       *esm_cause = ESM_CAUSE_PROTOCOL_ERROR;
     }
-    nas_itti_dedicated_eps_bearer_reject(ue_id, ebi);
+    mme_app_send_create_dedicated_bearer_rej(ue_id, ebi);
   }
 
   OAILOG_FUNC_RETURN(LOG_NAS_ESM, rc);
@@ -472,7 +473,8 @@ static void _dedicated_eps_bearer_activate_t3485_handler(void *args)
           esm_ebr_stop_timer(esm_ebr_timer_data->ctx, esm_ebr_timer_data->ebi);
       }
       //Send dedicated_eps_bearer_reject to MME
-      nas_itti_dedicated_eps_bearer_reject(esm_ebr_timer_data->ue_id,esm_ebr_timer_data->ebi);
+      mme_app_send_create_dedicated_bearer_rej(esm_ebr_timer_data->ue_id,
+        esm_ebr_timer_data->ebi);
 
       if (esm_ebr_timer_data->msg) {
         bdestroy_wrapper(&esm_ebr_timer_data->msg);

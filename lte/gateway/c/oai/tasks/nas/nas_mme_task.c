@@ -54,11 +54,6 @@ static void *nas_intertask_interface(void *args_p)
         OAI_FPRINTF_INFO("TASK_NAS_MME received MESSAGE_TEST\n");
       } break;
 
-      case MME_APP_CREATE_DEDICATED_BEARER_REQ:
-        nas_proc_create_dedicated_bearer(
-          &MME_APP_CREATE_DEDICATED_BEARER_REQ(received_message_p));
-        break;
-
       case MME_APP_DELETE_DEDICATED_BEARER_REQ:
         nas_proc_delete_dedicated_bearer(
           &MME_APP_DELETE_DEDICATED_BEARER_REQ(received_message_p));

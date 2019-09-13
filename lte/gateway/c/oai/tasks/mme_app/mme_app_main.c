@@ -101,16 +101,6 @@ void *mme_app_thread(void *args)
           &MME_APP_INITIAL_CONTEXT_SETUP_RSP(received_message_p));
       } break;
 
-      case MME_APP_CREATE_DEDICATED_BEARER_RSP: {
-        mme_app_handle_create_dedicated_bearer_rsp(
-          &MME_APP_CREATE_DEDICATED_BEARER_RSP(received_message_p));
-      } break;
-
-      case MME_APP_CREATE_DEDICATED_BEARER_REJ: {
-        mme_app_handle_create_dedicated_bearer_rej(
-          &MME_APP_CREATE_DEDICATED_BEARER_REJ(received_message_p));
-      } break;
-
       case MME_APP_DELETE_DEDICATED_BEARER_RSP: {
         mme_app_handle_delete_dedicated_bearer_rsp(
           &MME_APP_DELETE_DEDICATED_BEARER_RSP(received_message_p));
@@ -123,10 +113,6 @@ void *mme_app_thread(void *args)
          */
         mme_app_handle_s6a_cancel_location_req(
           &received_message_p->ittiMsg.s6a_cancel_location_req);
-      } break;
-
-      case NAS_ERAB_SETUP_REQ: {
-        mme_app_handle_erab_setup_req(&NAS_ERAB_SETUP_REQ(received_message_p));
       } break;
 
       case NAS_ERAB_REL_CMD: {

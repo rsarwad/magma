@@ -137,9 +137,18 @@ typedef struct emm_cn_pdn_res_s {
   fteid_t sgw_s1u_fteid;
 } emm_cn_pdn_res_t;
 
-struct itti_mme_app_create_dedicated_bearer_req_s;
-typedef struct itti_mme_app_create_dedicated_bearer_req_s
-  emm_cn_activate_dedicated_bearer_req_t;
+typedef struct emm_cn_activate_dedicated_bearer_req_s {
+  /* UE identifier */
+  mme_ue_s1ap_id_t ue_id;
+  pdn_cid_t cid;
+  ebi_t ebi;
+  ebi_t linked_ebi;
+  bearer_qos_t bearer_qos;
+  traffic_flow_template_t *tft;
+  protocol_configuration_options_t *pco;
+  teid_t gtp_s1u_teid;
+} emm_cn_activate_dedicated_bearer_req_t;
+
 
 typedef struct itti_mme_app_delete_dedicated_bearer_req_s
   emm_cn_deactivate_dedicated_bearer_req_t;

@@ -43,15 +43,6 @@
 #include "bstrlib.h"
 #include "common_types.h"
 
-int nas_itti_erab_setup_req(
-  const mme_ue_s1ap_id_t ue_id,
-  const ebi_t ebi,
-  const bitrate_t mbr_dl,
-  const bitrate_t mbr_ul,
-  const bitrate_t gbr_dl,
-  const bitrate_t gbr_ul,
-  bstring nas_msg);
-
 void nas_itti_pdn_connectivity_req(
   int ptiP,
   const mme_ue_s1ap_id_t ue_idP,
@@ -83,14 +74,6 @@ void nas_itti_establish_cnf(
   const uint8_t csfb_response,
   const uint8_t presencemask,
   const uint8_t service_type);
-
-void nas_itti_dedicated_eps_bearer_complete(
-  const mme_ue_s1ap_id_t ue_idP,
-  const ebi_t ebiP);
-
-void nas_itti_dedicated_eps_bearer_reject(
-  const mme_ue_s1ap_id_t ue_idP,
-  const ebi_t ebiP);
 
 void nas_itti_sgsap_uplink_unitdata(
   const char *const imsi,
