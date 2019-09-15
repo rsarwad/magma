@@ -8,6 +8,8 @@
  * @format
  */
 
+import type {MetricGraphConfig} from '../insights/Metrics';
+
 import AppBar from '@material-ui/core/AppBar';
 import AppContext from '@fbcnms/ui/context/AppContext';
 import Metrics from '../insights/Metrics';
@@ -16,14 +18,10 @@ import NetworkKPIs from './NetworkKPIs';
 import React from 'react';
 import Tab from '@material-ui/core/Tab';
 import Tabs from '@material-ui/core/Tabs';
-
 import {Redirect, Route, Switch} from 'react-router-dom';
 import {findIndex} from 'lodash';
 import {makeStyles} from '@material-ui/styles';
-import {useFeatureFlag} from '@fbcnms/ui/hooks';
-import {useRouter} from '@fbcnms/ui/hooks';
-
-import type {MetricGraphConfig} from '../insights/Metrics';
+import {useFeatureFlag, useRouter} from '@fbcnms/ui/hooks';
 
 const useStyles = makeStyles(theme => ({
   bar: {
@@ -55,24 +53,28 @@ const CONFIGS: Array<MetricGraphConfig> = [
     label: 'Connected Subscribers',
   },
   {
-    basicQueryConfigs: [
+    customQueryConfigs: [
       {
-        metric: 'pdcp_user_plane_bytes_dl',
-        filters: [{name: 'service', value: 'enodebd'}],
+        resolvePrometheusQuery: gw =>
+          `pdcp_user_plane_bytes_dl{gatewayID="${gw}", service="enodebd"}/1000`,
+        resolveGraphiteQuery: _ => '',
       },
     ],
+    basicQueryConfigs: [],
     label: 'Download Throughput',
-    unit: ' Kbps',
+    unit: ' Mbps',
   },
   {
-    basicQueryConfigs: [
+    customQueryConfigs: [
       {
-        metric: 'pdcp_user_plane_bytes_ul',
-        filters: [{name: 'service', value: 'enodebd'}],
+        resolvePrometheusQuery: gw =>
+          `pdcp_user_plane_bytes_ul{gatewayID="${gw}", service="enodebd"}/1000`,
+        resolveGraphiteQuery: _ => '',
       },
     ],
+    basicQueryConfigs: [],
     label: 'Upload Throughput',
-    unit: ' Kbps',
+    unit: ' Mbps',
   },
   {
     basicQueryConfigs: [
@@ -233,7 +235,7 @@ export default function() {
   const classes = useStyles();
   const {match, relativePath, relativeUrl, location} = useRouter();
 
-  const currentTab = findIndex(['gateways', 'network'], route =>
+  const currentTab = findIndex(['gateways', 'network', 'internal'], route =>
     location.pathname.startsWith(match.url + '/' + route),
   );
 
