@@ -55,12 +55,6 @@
 #define MME_APP_UL_DATA_IND(mSGpTR) (mSGpTR)->ittiMsg.mme_app_ul_data_ind
 #define MME_APP_DL_DATA_CNF(mSGpTR) (mSGpTR)->ittiMsg.mme_app_dl_data_cnf
 #define MME_APP_DL_DATA_REJ(mSGpTR) (mSGpTR)->ittiMsg.mme_app_dl_data_rej
-#define MME_APP_DELETE_DEDICATED_BEARER_REQ(mSGpTR)                            \
-  (mSGpTR)->ittiMsg.mme_app_delete_dedicated_bearer_req
-#define MME_APP_DELETE_DEDICATED_BEARER_RSP(mSGpTR)                            \
-  (mSGpTR)->ittiMsg.mme_app_delete_dedicated_bearer_rsp
-#define MME_APP_DELETE_DEDICATED_BEARER_REJ(mSGpTR)                            \
-  (mSGpTR)->ittiMsg.mme_app_delete_dedicated_bearer_rej
 
 typedef struct itti_mme_app_connection_establishment_cnf_s {
   mme_ue_s1ap_id_t ue_id;
@@ -147,32 +141,6 @@ typedef struct itti_nas_dl_data_rej_s {
   bstring nas_msg;        /* Uplink NAS message           */
   int err_code;
 } itti_mme_app_dl_data_rej_t;
-
-typedef struct itti_mme_app_delete_dedicated_bearer_req_s {
-  /* UE identifier */
-  uint32_t no_of_bearers;
-  ebi_t ebi[BEARERS_PER_UE]; //EPS Bearer ID
-  mme_ue_s1ap_id_t ue_id;
-} itti_mme_app_delete_dedicated_bearer_req_t;
-
-
-typedef struct itti_mme_app_delete_dedicated_bearer_rsp_s {
-  /* UE identifier */
-  uint32_t no_of_bearers;
-  ebi_t ebi[BEARERS_PER_UE]; //EPS Bearer ID
-  mme_ue_s1ap_id_t ue_id;
-  bool delete_default_bearer;
-  teid_t s_gw_teid_s11_s4;
-} itti_mme_app_delete_dedicated_bearer_rsp_t;
-
-typedef struct itti_mme_app_delete_dedicated_bearer_rej_s {
-  /* UE identifier */
-  mme_ue_s1ap_id_t ue_id;
-  uint32_t no_of_bearers;
-  ebi_t ebi[BEARERS_PER_UE]; //EPS Bearer ID
-  teid_t s_gw_teid_s11_s4;
-  bool delete_default_bearer;
-} itti_mme_app_delete_dedicated_bearer_rej_t;
 
 typedef struct itti_mme_app_ul_data_ind_s {
   mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier        */

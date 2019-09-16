@@ -149,9 +149,12 @@ typedef struct emm_cn_activate_dedicated_bearer_req_s {
   teid_t gtp_s1u_teid;
 } emm_cn_activate_dedicated_bearer_req_t;
 
-
-typedef struct itti_mme_app_delete_dedicated_bearer_req_s
-  emm_cn_deactivate_dedicated_bearer_req_t;
+typedef struct emm_cn_deactivate_dedicated_bearer_req_s {
+  /* UE identifier */
+  uint32_t no_of_bearers;
+  ebi_t ebi[BEARERS_PER_UE]; //EPS Bearer ID
+  mme_ue_s1ap_id_t ue_id;
+} emm_cn_deactivate_dedicated_bearer_req_t;
 
 typedef struct emm_cn_deregister_ue_s {
   uint32_t ue_id;

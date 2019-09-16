@@ -44,6 +44,7 @@
 #include "esm_sapDef.h"
 #include "nas_itti_messaging.h"
 #include "esm_pt.h"
+#include "mme_app_defs.h"
 
 /****************************************************************************/
 /****************  E X T E R N A L    D E F I N I T I O N S  ****************/
@@ -369,7 +370,7 @@ pdn_cid_t esm_proc_eps_bearer_context_deactivate_accept(
       free_wrapper ((void**)&ue_mm_context->bearer_contexts[bid]);
     }
     //Send deactivate_eps_bearer_context to MME APP
-    nas_itti_deactivate_eps_bearer_context(
+    mme_app_handle_delete_dedicated_bearer_rsp(
       ue_id,
       ebi,
       delete_default_bearer,
@@ -482,7 +483,7 @@ static void _eps_bearer_deactivate_t3495_handler(void *args)
            */
           _pdn_connectivity_delete(esm_ebr_timer_data->ctx, pid);
         }
-        nas_itti_dedicated_eps_bearer_deactivation_reject(
+        mme_app_handle_delete_dedicated_bearer_rej(
           esm_ebr_timer_data->ue_id,
           esm_ebr_timer_data->ebi,
           delete_default_bearer,

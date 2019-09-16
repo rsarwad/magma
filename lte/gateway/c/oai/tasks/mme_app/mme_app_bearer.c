@@ -2764,9 +2764,9 @@ void mme_app_handle_nw_init_bearer_deactv_req(
   ue_mm_context_t *ue_context_p = NULL;
   uint32_t i = 0;
   OAILOG_FUNC_IN(LOG_MME_APP);
-  MessageDef *message_p = NULL;
   ebi_t ebi[BEARERS_PER_UE];
   uint32_t num_bearers_deleted = 0;
+  emm_cn_deactivate_dedicated_bearer_req_t deactivate_ded_bearer_req = {0};
 
   OAILOG_INFO(
     LOG_MME_APP,
@@ -2779,6 +2779,9 @@ void mme_app_handle_nw_init_bearer_deactv_req(
     &mme_app_desc.mme_ue_contexts, nw_init_bearer_deactv_req_p->s11_mme_teid);
 
   if (ue_context_p == NULL) {
+    OAILOG_ERROR(
+      LOG_MME_APP, "Failed to find UE context for S11 Teid" TEID_FMT "\n",
+      nw_init_bearer_deactv_req_p->s11_mme_teid);
     OAILOG_FUNC_OUT(LOG_MME_APP);
   }
 
@@ -2812,28 +2815,14 @@ void mme_app_handle_nw_init_bearer_deactv_req(
      * + ERAB Rel Cmd to NAS
      */
     if (ue_context_p->ecm_state == ECM_CONNECTED) {
-      message_p =
-      itti_alloc_new_message(TASK_MME_APP, MME_APP_DELETE_DEDICATED_BEARER_REQ);
-      if (message_p == NULL) {
-        OAILOG_INFO(
-          LOG_MME_APP,
-          "itti_alloc_new_message failed for"
-          "nw_initiated_deactv_bearer_req\n");
-        OAILOG_FUNC_OUT(LOG_MME_APP);
-      }
-      /* MME_APP_DELETE_DEDICATED_BEARER_REQ ITTI message is used to inform NAS
-       * about dedicated/default bearer deactivation
-       */
-      MME_APP_DELETE_DEDICATED_BEARER_REQ(message_p).ue_id =
-        ue_context_p->mme_ue_s1ap_id;
-      MME_APP_DELETE_DEDICATED_BEARER_REQ(message_p).no_of_bearers =
+      deactivate_ded_bearer_req.ue_id = ue_context_p->mme_ue_s1ap_id;
+      deactivate_ded_bearer_req.no_of_bearers =
         nw_init_bearer_deactv_req_p->no_of_bearers;
       memcpy(
-        &MME_APP_DELETE_DEDICATED_BEARER_REQ(message_p).ebi,
+        deactivate_ded_bearer_req.ebi,
         nw_init_bearer_deactv_req_p->ebi,
-        sizeof(ebi_t));
-      // Send MME_APP_DELETE_DEDICATED_BEARER_REQ to NAS
-      itti_send_msg_to_task(TASK_NAS_MME, INSTANCE_DEFAULT, message_p);
+        ((sizeof(ebi_t)) * deactivate_ded_bearer_req.no_of_bearers));
+      nas_proc_delete_dedicated_bearer(&deactivate_ded_bearer_req);
     } else {
       /* If UE is in IDLE state remove bearer context
        * send delete dedicated bearer rsp to SPGW
@@ -3054,24 +3043,26 @@ void mme_app_handle_path_switch_request(
 
 //------------------------------------------------------------------------------
 void mme_app_handle_erab_rel_cmd(
-  itti_erab_rel_cmd_t *const itti_erab_rel_cmd)
+  const mme_ue_s1ap_id_t ue_id,
+  const ebi_t ebi,
+  bstring nas_msg)
 {
   OAILOG_FUNC_IN(LOG_MME_APP);
   struct ue_mm_context_s *ue_context_p = mme_ue_context_exists_mme_ue_s1ap_id(
-    &mme_app_desc.mme_ue_contexts, itti_erab_rel_cmd->ue_id);
+    &mme_app_desc.mme_ue_contexts, ue_id);
 
   if (!ue_context_p) {
     OAILOG_ERROR(
       LOG_MME_APP,
       "UE context doesn't exist for UE " MME_UE_S1AP_ID_FMT "\n",
-      itti_erab_rel_cmd->ue_id);
+      ue_id);
     // memory leak
-    bdestroy_wrapper(&itti_erab_rel_cmd->nas_msg);
+    bdestroy_wrapper(&nas_msg);
     OAILOG_FUNC_OUT(LOG_MME_APP);
   }
 
   bearer_context_t *bearer_context =
-    mme_app_get_bearer_context(ue_context_p, itti_erab_rel_cmd->ebi);
+    mme_app_get_bearer_context(ue_context_p, ebi);
 
   if (bearer_context) {
     MessageDef *message_p =
@@ -3087,21 +3078,19 @@ void mme_app_handle_erab_rel_cmd(
     s1ap_e_rab_rel_cmd->e_rab_to_be_rel_list.item[0].e_rab_id =
       bearer_context->ebi;
     //s1ap_e_rab_rel_cmd->e_rab_to_be_rel_list.item[0].cause = 0; //Pruthvi TDB
-    s1ap_e_rab_rel_cmd->nas_pdu =
-      itti_erab_rel_cmd->nas_msg;
-    itti_erab_rel_cmd->nas_msg = NULL;
+    s1ap_e_rab_rel_cmd->nas_pdu = nas_msg;
 
     OAILOG_INFO(
       LOG_MME_APP,
-      "Sending ERAB REL CMD to S1AP with UE ID %d and EBI %d",
-      itti_erab_rel_cmd->ue_id,itti_erab_rel_cmd->ebi);
+      "Sending ERAB REL CMD to S1AP with ue-id" MME_UE_S1AP_ID_FMT
+      " and EBI %u \n", ue_id, ebi);
     itti_send_msg_to_task(TASK_S1AP, INSTANCE_DEFAULT, message_p);
   } else {
     OAILOG_ERROR(
       LOG_MME_APP,
-      "No bearer context found ue " MME_UE_S1AP_ID_FMT " ebi %u\n",
-      itti_erab_rel_cmd->ue_id,
-      itti_erab_rel_cmd->ebi);
+      "No bearer context found ue-id " MME_UE_S1AP_ID_FMT " ebi %u\n",
+      ue_id,
+      ebi);
   }
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
@@ -3142,62 +3131,66 @@ void mme_app_handle_e_rab_rel_rsp(
 
 //------------------------------------------------------------------------------
 void mme_app_handle_delete_dedicated_bearer_rsp(
-  itti_mme_app_delete_dedicated_bearer_rsp_t *const delete_dedicated_bearer_rsp)
+    const mme_ue_s1ap_id_t ue_id,
+    const ebi_t ebi,
+    bool delete_default_bearer,
+    teid_t s_gw_teid_s11_s4)
 {
   struct ue_mm_context_s *ue_context_p = NULL;
+  uint32_t no_of_bearers = 1;
+  ebi_t ebi_list[BEARERS_PER_UE] = {0};
 
   OAILOG_FUNC_IN(LOG_MME_APP);
   ue_context_p = mme_ue_context_exists_mme_ue_s1ap_id(
-    &mme_app_desc.mme_ue_contexts, delete_dedicated_bearer_rsp->ue_id);
+    &mme_app_desc.mme_ue_contexts, ue_id);
 
   if (ue_context_p == NULL) {
     OAILOG_ERROR(
       LOG_MME_APP,
-      "We didn't find this mme_ue_s1ap_id in list of UE: " MME_UE_S1AP_ID_FMT
-      "\n",
-      delete_dedicated_bearer_rsp->ue_id);
+      "Failed to find UE context while sending Dedicated Bearer Deactivation"
+      " Resp message for ue-id: " MME_UE_S1AP_ID_FMT "\n", ue_id);
     OAILOG_FUNC_OUT(LOG_MME_APP);
   }
 
   //Send delete_dedicated_bearer_rsp to SPGW
-  _send_delete_dedicated_bearer_rsp(
-     ue_context_p,
-     delete_dedicated_bearer_rsp->delete_default_bearer,
-     delete_dedicated_bearer_rsp->ebi,
-     delete_dedicated_bearer_rsp->no_of_bearers,
-     delete_dedicated_bearer_rsp->s_gw_teid_s11_s4,
-     REQUEST_ACCEPTED);
+  ebi_list[0] = ebi;
+  _send_delete_dedicated_bearer_rsp(ue_context_p, delete_default_bearer,
+     ebi_list, no_of_bearers, s_gw_teid_s11_s4, REQUEST_ACCEPTED);
 
   OAILOG_FUNC_OUT(LOG_MME_APP);
-
 }
 
 //------------------------------------------------------------------------------
 void mme_app_handle_delete_dedicated_bearer_rej(
-  itti_mme_app_delete_dedicated_bearer_rej_t *const delete_dedicated_bearer_rej)
+  const mme_ue_s1ap_id_t ue_id,
+  const ebi_t ebi,
+  bool delete_default_bearer,
+  teid_t s_gw_teid_s11_s4)
 {
   struct ue_mm_context_s *ue_context_p = NULL;
+  uint32_t no_of_bearers = 1;
+  ebi_t ebi_list[BEARERS_PER_UE] = {0};
 
   OAILOG_FUNC_IN(LOG_MME_APP);
   ue_context_p = mme_ue_context_exists_mme_ue_s1ap_id(
-    &mme_app_desc.mme_ue_contexts, delete_dedicated_bearer_rej->ue_id);
+    &mme_app_desc.mme_ue_contexts, ue_id);
 
   if (ue_context_p == NULL) {
     OAILOG_ERROR(
       LOG_MME_APP,
-      "We didn't find this mme_ue_s1ap_id in list of UE: " MME_UE_S1AP_ID_FMT
-      "\n",
-      delete_dedicated_bearer_rej->ue_id);
+      "Failed to find UE context while sending Dedicated Bearer Deactivation"
+      " Rej message for ue-id: " MME_UE_S1AP_ID_FMT "\n", ue_id);
     OAILOG_FUNC_OUT(LOG_MME_APP);
   }
 
+  ebi_list[0] = ebi;
   //Send delete_dedicated_bearer_rsp to SPGW
   _send_delete_dedicated_bearer_rsp(
      ue_context_p,
-     delete_dedicated_bearer_rej->delete_default_bearer,
-     delete_dedicated_bearer_rej->ebi,
-     delete_dedicated_bearer_rej->no_of_bearers,
-     delete_dedicated_bearer_rej->s_gw_teid_s11_s4,
+     delete_default_bearer,
+     ebi_list,
+     no_of_bearers,
+     s_gw_teid_s11_s4,
      UE_NOT_RESPONDING);
 
   OAILOG_FUNC_OUT(LOG_MME_APP);

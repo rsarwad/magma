@@ -101,11 +101,6 @@ void *mme_app_thread(void *args)
           &MME_APP_INITIAL_CONTEXT_SETUP_RSP(received_message_p));
       } break;
 
-      case MME_APP_DELETE_DEDICATED_BEARER_RSP: {
-        mme_app_handle_delete_dedicated_bearer_rsp(
-          &MME_APP_DELETE_DEDICATED_BEARER_RSP(received_message_p));
-      } break;
-
       case S6A_CANCEL_LOCATION_REQ: {
         /*
          * Check cancellation-type and handle it if it is SUBSCRIPTION_WITHDRAWAL.
@@ -113,10 +108,6 @@ void *mme_app_thread(void *args)
          */
         mme_app_handle_s6a_cancel_location_req(
           &received_message_p->ittiMsg.s6a_cancel_location_req);
-      } break;
-
-      case NAS_ERAB_REL_CMD: {
-        mme_app_handle_erab_rel_cmd(&NAS_ERAB_REL_CMD(received_message_p));
       } break;
 
       case MME_APP_UPLINK_DATA_IND: {
@@ -367,11 +358,6 @@ void *mme_app_thread(void *args)
       case S11_NW_INITIATED_DEACTIVATE_BEARER_REQUEST: {
         mme_app_handle_nw_init_bearer_deactv_req(
           &received_message_p->ittiMsg.s11_nw_init_deactv_bearer_request);
-      } break;
-
-      case MME_APP_DELETE_DEDICATED_BEARER_REJ: {
-        mme_app_handle_delete_dedicated_bearer_rej(
-          &MME_APP_DELETE_DEDICATED_BEARER_REJ(received_message_p));
       } break;
 
       case S1AP_PATH_SWITCH_REQUEST: {

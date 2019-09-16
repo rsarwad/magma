@@ -257,11 +257,15 @@ int mme_app_handle_sgs_status_message(
     itti_sgsap_status_t *const sgsap_status_pP);
 
 void mme_app_handle_delete_dedicated_bearer_rsp(
-  itti_mme_app_delete_dedicated_bearer_rsp_t
-  *const delete_dedicated_bearer_rsp);
+    const mme_ue_s1ap_id_t ue_idP,
+    const ebi_t ebiP,
+    bool delete_default_bearer,
+    teid_t s_gw_teid_s11_s4);
 
 void mme_app_handle_erab_rel_cmd(
-  itti_erab_rel_cmd_t *const itti_erab_rel_cmd);
+  const mme_ue_s1ap_id_t ue_id,
+  const ebi_t ebi,
+  bstring nas_msg);
 
 void mme_app_handle_e_rab_rel_rsp(
   itti_s1ap_e_rab_rel_rsp_t *const e_rab_rel_rsp);
@@ -271,8 +275,10 @@ void mme_app_handle_nw_init_bearer_deactv_req(
   *const nw_init_bearer_deactv_req_p);
 
 void mme_app_handle_delete_dedicated_bearer_rej(
-  itti_mme_app_delete_dedicated_bearer_rej_t
-  *const delete_dedicated_bearer_rej);
+  const mme_ue_s1ap_id_t ue_idP,
+  const ebi_t ebiP,
+  bool delete_default_bearer,
+  teid_t s_gw_teid_s11_s4);
 
 void mme_app_handle_path_switch_request(
     itti_s1ap_path_switch_request_t *const path_switch_req_p);
