@@ -37,8 +37,3 @@
 //MESSAGE_DEF(NAS_RAB_RELEASE_REQ,                MESSAGE_PRIORITY_MED,   itti_nas_rab_rel_req_t,          nas_rab_rel_req)
 
 /* NAS layer -> MME app messages */
-MESSAGE_DEF(
-  NAS_ERAB_REL_CMD,
-  MESSAGE_PRIORITY_MED,
-  itti_erab_rel_cmd_t,
-  itti_erab_rel_cmd)

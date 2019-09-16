@@ -45,11 +45,4 @@
 #include "common_ies.h"
 #include "nas/networkDef.h"
 
-#define NAS_ERAB_REL_CMD(mSGpTR) (mSGpTR)->ittiMsg.itti_erab_rel_cmd
-typedef struct itti_erab_rel_cmd_s {
-  mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier   */
-  ebi_t ebi;              /* EPS bearer id        */
-  bstring nas_msg; /* NAS erab bearer context activation message           */
-} itti_erab_rel_cmd_t;
-
 #endif /* FILE_NAS_MESSAGES_TYPES_SEEN */

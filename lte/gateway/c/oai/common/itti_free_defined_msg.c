@@ -161,6 +161,13 @@ void itti_free_msg_content(MessageDef *const message_p)
       break;
     }
 
+    case S1AP_E_RAB_REL_CMD: {
+      itti_s1ap_e_rab_rel_cmd_t s1ap_e_rab_rel_cmd =
+        message_p->ittiMsg.s1ap_e_rab_rel_cmd;
+      bdestroy_wrapper(&(s1ap_e_rab_rel_cmd.nas_pdu));
+      break;
+    }
+
     case S6A_UPDATE_LOCATION_REQ:
     case S6A_UPDATE_LOCATION_ANS:
     case S6A_AUTH_INFO_REQ:
