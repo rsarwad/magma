@@ -856,7 +856,7 @@ static int _emm_cn_deactivate_dedicated_bearer_req(
   memcpy(
     esm_sap.data.eps_bearer_context_deactivate.ebi,
     msg->ebi,
-    ((sizeof(ebi_t) * msg->no_of_bearers));
+    ((sizeof(ebi_t) * (msg->no_of_bearers))));
 
   rc = esm_sap_send(&esm_sap);
 
