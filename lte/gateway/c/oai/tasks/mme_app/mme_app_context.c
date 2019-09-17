@@ -129,32 +129,12 @@ static void _directoryd_remove_location(uint64_t imsi, uint8_t imsi_len)
 ue_mm_context_t *mme_create_new_ue_context(void)
 {
   ue_mm_context_t *new_p = calloc(1, sizeof(ue_mm_context_t));
-  pthread_mutexattr_t mutexattr = {0};
-  int rc = pthread_mutexattr_init(&mutexattr);
-  if (rc) {
+  if (new_p == NULL) {
     OAILOG_ERROR(
       LOG_MME_APP,
-      "Cannot create UE context, failed to init mutex attribute: %s\n",
-      strerror(rc));
+      "Failed to allocate memory for UE context \n");
     return NULL;
   }
-  rc = pthread_mutexattr_settype(&mutexattr, PTHREAD_MUTEX_RECURSIVE);
-  if (rc) {
-    OAILOG_ERROR(
-      LOG_MME_APP,
-      "Cannot create UE context, failed to set mutex attribute type: %s\n",
-      strerror(rc));
-    return NULL;
-  }
-  rc = pthread_mutex_init(&new_p->recmutex, &mutexattr);
-  if (rc) {
-    OAILOG_ERROR(
-      LOG_MME_APP,
-      "Cannot create UE context, failed to init mutex: %s\n",
-      strerror(rc));
-    return NULL;
-  }
-
   new_p->mme_ue_s1ap_id = INVALID_MME_UE_S1AP_ID;
   new_p->enb_s1ap_id_key = INVALID_ENB_UE_S1AP_ID_KEY;
   emm_init_context(&new_p->emm_context, true);

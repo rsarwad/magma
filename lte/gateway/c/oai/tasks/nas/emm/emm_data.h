@@ -215,7 +215,9 @@ typedef struct emm_context_s {
   imsi_t
     _imsi; /* The IMSI provided by the UE or the MME, set valid when identification returns IMSI */
   imsi64_t
-    _imsi64; /* The IMSI provided by the UE or the MME, set valid when identification returns IMSI */
+    _imsi64; /* Basic identifier for ue. IMSI is encoded on maximum of 15 digits of 4 bits,
+              * so usage of an unsigned integer on 64 bits is necessary.
+              */
   imsi64_t saved_imsi64; /* Useful for 5.4.2.7.c */
   imei_t _imei;          /* The IMEI provided by the UE                     */
   imeisv_t _imeisv;      /* The IMEISV provided by the UE                   */

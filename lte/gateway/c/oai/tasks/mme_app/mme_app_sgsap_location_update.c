@@ -1004,7 +1004,6 @@ static void _mme_app_update_granted_service_for_ue(ue_mm_context_t *ue_context)
     ue_context->granted_service = GRANTED_SERVICE_EPS_ONLY;
     OAILOG_INFO(LOG_MME_APP, "Granted service is GRANTED_SERVICE_EPS_ONLY\n");
   }
-// Rashmi need to check for TAU, not initiated on sgs
   if(ue_context->granted_service == GRANTED_SERVICE_SMS_ONLY) {
     ue_context->emm_context.csfbparams.additional_updt_res =
       ADDITONAL_UPDT_RES_SMS_ONLY;

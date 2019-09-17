@@ -39,6 +39,7 @@
 #include "intertask_interface.h"
 #include "itti_free_defined_msg.h"
 #include "mme_config.h"
+#include "nas_network.h"
 #include "timer.h"
 #include "mme_app_extern.h"
 #include "mme_app_ue_context.h"
@@ -478,6 +479,8 @@ int mme_app_init(const mme_config_t *mme_config_p)
   if (mme_app_edns_init(mme_config_p)) {
     OAILOG_FUNC_RETURN(LOG_MME_APP, RETURNerror);
   }
+  /* Initialise NAS module */
+  nas_network_initialize(mme_config_p);
   /*
    * Create the thread associated with MME applicative layer
    */
@@ -541,5 +544,7 @@ void mme_app_exit(void)
     mme_app_desc.mme_ue_contexts.enb_ue_s1ap_id_ue_context_htbl);
   obj_hashtable_uint64_ts_destroy(
     mme_app_desc.mme_ue_contexts.guti_ue_context_htbl);
+  /* Clean-up NAS module */
+  nas_network_cleanup();
   mme_config_exit();
 }

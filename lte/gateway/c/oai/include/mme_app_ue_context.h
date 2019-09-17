@@ -335,13 +335,6 @@ typedef struct sgs_context_s {
  * according to 3GPP TS.23.401 #5.7.2
  */
 typedef struct ue_mm_context_s {
-  pthread_mutex_t
-    recmutex; // mutex on the ue_mm_context_t + emm_context_s + esm_context_t
-
-  /* Basic identifier for ue. IMSI is encoded on maximum of 15 digits of 4 bits,
-   * so usage of an unsigned integer on 64 bits is necessary.
-   */
-  // int                    len;
 #define IMSI_UNAUTHENTICATED (0x0)
 #define IMSI_AUTHENTICATED (0x1)
   /* Indicator to show the IMSI authentication state */

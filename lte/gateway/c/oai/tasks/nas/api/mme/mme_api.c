@@ -105,7 +105,7 @@ static int _mme_api_pdn_id = 0;
  ***************************************************************************/
 int mme_api_get_emm_config(
   mme_api_emm_config_t *config,
-  struct mme_config_s *mme_config_p)
+  const struct mme_config_s *mme_config_p)
 {
   OAILOG_FUNC_IN(LOG_NAS);
   AssertFatal(mme_config_p->served_tai.nb_tai >= 1, "No TAI configured");

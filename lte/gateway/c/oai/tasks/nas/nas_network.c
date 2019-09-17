@@ -51,7 +51,7 @@
  **          Others:    None                                       **
  **                                                                        **
  ***************************************************************************/
-void nas_network_initialize(mme_config_t *mme_config_p)
+void nas_network_initialize(const mme_config_t *mme_config_p)
 {
   OAILOG_FUNC_IN(LOG_NAS);
   /*

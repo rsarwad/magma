@@ -93,7 +93,7 @@ static int _map_sgs_emm_cause(SgsRejectCause_t sgs_cause);
  **      Others:    None                                       **
  **                                                                        **
  ***************************************************************************/
-void nas_proc_initialize(mme_config_t *mme_config_p)
+void nas_proc_initialize(const mme_config_t *mme_config_p)
 {
   OAILOG_FUNC_IN(LOG_NAS_EMM);
   /*
