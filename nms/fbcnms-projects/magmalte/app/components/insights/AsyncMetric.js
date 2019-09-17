@@ -27,7 +27,6 @@ type Props = {
   legendLabels?: Array<string>,
   timeRange: TimeRange,
   networkId?: string,
-  usePrometheusDB: boolean,
 };
 
 const useStyles = makeStyles({
@@ -106,19 +105,35 @@ const RANGE_VALUES: {[TimeRange]: RangeValue} = {
 const COLORS = ['blue', 'red', 'green', 'yellow', 'purple', 'black'];
 
 interface DatabaseHelper<T> {
-  getLegendLabel(data: T): string;
+  getLegendLabel(data: T, tagSets: Array<{[string]: string}>): string;
   queryFunction: (networkID: string) => string;
   datapointFieldName: string;
 }
 
 class PrometheusHelper implements DatabaseHelper<PrometheusResponse> {
-  getLegendLabel(result: PrometheusResponse): string {
+  getLegendLabel(
+    result: PrometheusResponse,
+    tagSets: Array<{[string]: string}>,
+  ): string {
     const {metric} = result;
 
     const tags = [];
-    const droppedTags = ['gatewayID', 'networkID', 'service', '__name__'];
+    const droppedTags = ['networkID', '__name__'];
+    const droppedIfSameTags = ['gatewayID', 'service'];
+
+    const uniqueTagValues = {};
+    droppedIfSameTags.forEach(tagName => {
+      uniqueTagValues[tagName] = Array.from(
+        new Set(tagSets.map(item => item[tagName])),
+      );
+    });
+
     for (const key in metric) {
-      if (metric.hasOwnProperty(key) && !droppedTags.includes(key)) {
+      if (
+        metric.hasOwnProperty(key) &&
+        !droppedTags.includes(key) &&
+        (!uniqueTagValues[key] || uniqueTagValues[key].length !== 1)
+      ) {
         tags.push(key + '=' + metric[key]);
       }
     }
@@ -131,36 +146,8 @@ class PrometheusHelper implements DatabaseHelper<PrometheusResponse> {
   datapointFieldName = 'values';
 }
 
-class GraphiteHelper implements DatabaseHelper<GraphiteResponse> {
-  getLegendLabel(result: GraphiteResponse): string {
-    const {target} = result;
-    const label = JSON.stringify(target)
-      .slice(1, -1) // remove double quotes
-      .split(';'); // token separator for graphite
-    const metric = label.shift();
-
-    // remove gateway, network, and service tags, they're not interesting
-    const tags = label.filter(tag => {
-      const tagName = tag.split('=')[0];
-      return (
-        tagName !== 'gatewayID' &&
-        tagName !== 'networkID' &&
-        tagName !== 'service'
-      );
-    });
-    return tags.length === 0 ? metric : `${metric} (${tags.join(', ')})`;
-  }
-
-  queryFunction = MagmaAPIUrls.graphiteQuery;
-  datapointFieldName = 'datapoints';
-}
-
 type PrometheusResponse = {
   metric: {[key: string]: string},
-};
-
-type GraphiteResponse = {
-  target: JSON,
 };
 
 function Progress() {
@@ -204,11 +191,7 @@ function useDatasetsFetcher(props: Props) {
   const enqueueSnackbar = useEnqueueSnackbar();
   const stringedQueries = JSON.stringify(props.queries);
 
-  const dbHelper = useMemo(
-    () =>
-      props.usePrometheusDB ? new PrometheusHelper() : new GraphiteHelper(),
-    [props.usePrometheusDB],
-  );
+  const dbHelper = useMemo(() => new PrometheusHelper(), []);
 
   useEffect(() => {
     const queries = JSON.parse(stringedQueries);
@@ -242,13 +225,12 @@ function useDatasetsFetcher(props: Props) {
       let index = 0;
       const datasets = [];
       allResponses.filter(Boolean).forEach(({response, label}) => {
-        const result = props.usePrometheusDB
-          ? response.data?.data?.result
-          : response.data?.result;
+        const result = response.data?.data?.result;
         if (result) {
+          const tagSets = result.map(it => it.metric);
           result.map(it =>
             datasets.push({
-              label: label || dbHelper.getLegendLabel(it),
+              label: label || dbHelper.getLegendLabel(it, tagSets),
               unit: props.unit || '',
               fill: false,
               lineTension: 0,
@@ -286,7 +268,6 @@ function useDatasetsFetcher(props: Props) {
     props.legendLabels,
     enqueueSnackbar,
     dbHelper,
-    props.usePrometheusDB,
   ]);
 
   return allDatasets;

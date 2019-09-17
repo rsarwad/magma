@@ -45,8 +45,11 @@ export const isJSON = (text: ?string): boolean => {
 
 // formats server side timestamps (seonds from epoch)
 // to text input required format dd-mm-yyyy
-export const formatDateForTextInput = (dateValue: ?number) => {
-  return !!dateValue
-    ? new Date(dateValue * 1000).toISOString().split('T')[0]
-    : '';
+export const formatDateForTextInput = (dateValue: ?string) => {
+  return !!dateValue ? dateValue.split('T')[0] : '';
 };
+
+export const formatMultiSelectValue = (
+  options: Array<{value: string, label: string}>,
+  value: string,
+) => options.find(option => option.value === value)?.label;
