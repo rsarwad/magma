@@ -80,7 +80,6 @@
 #include "mme_app_desc.h"
 #include "mme_app_messages_types.h"
 #include "mme_app_sgs_fsm.h"
-#include "nas_messages_types.h"
 #include "nas_procedures.h"
 #include "nas/networkDef.h"
 #include "security_types.h"
@@ -506,7 +505,7 @@ static int _is_csfb_enabled(struct emm_context_s *emm_ctx_p, bstring esm_data)
          emm_ctx_p->emm_cause = EMM_CAUSE_CS_SERVICE_NOT_AVAILABLE;
       } else {
         mme_app_handle_nas_cs_domain_location_update_req(ue_mm_context_p,
-            ATTACH_REQUEST);
+          ATTACH_REQUEST);
         /* Store ESM message, Activate Default EPS bearer Context Req to be sent
          * in Attach Accept triggered after receiving
          * SGS-Location Update Accept

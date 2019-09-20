@@ -51,7 +51,6 @@
 #include "intertask_interface_types.h"
 #include "itti_types.h"
 #include "mme_app_desc.h"
-#include "nas_messages_types.h"
 #include "s6a_messages_types.h"
 #include "service303.h"
 #include "sgs_messages_types.h"
@@ -144,17 +143,17 @@ int mme_app_send_s6a_update_location_req(
    */
   if (ue_context_p->location_info_confirmed_in_hss == false) {
     // Start ULR Response timer
-    nas_itti_timer_arg_t cb = {0};
-    cb.nas_timer_callback = mme_app_handle_ulr_timer_expiry;
-    cb.nas_timer_callback_arg = (void *) &(ue_context_p->mme_ue_s1ap_id);
+    nas_itti_timer_arg_t timer_callback_fun = {0};
+    timer_callback_fun.nas_timer_callback = mme_app_handle_ulr_timer_expiry;
+    timer_callback_fun.nas_timer_callback_arg = (void *) &(ue_context_p->mme_ue_s1ap_id);
     if (timer_setup(
       ue_context_p->ulr_response_timer.sec,
       0,
       TASK_MME_APP,
       INSTANCE_DEFAULT,
       TIMER_ONE_SHOT,
-      &cb,
-      sizeof(cb),
+      &timer_callback_fun,
+      sizeof(timer_callback_fun),
       &(ue_context_p->ulr_response_timer.id)) < 0) {
       OAILOG_ERROR(
         LOG_MME_APP,

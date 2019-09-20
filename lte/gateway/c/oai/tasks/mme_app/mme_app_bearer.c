@@ -71,7 +71,6 @@
 #include "mme_api.h"
 #include "mme_app_desc.h"
 #include "mme_app_messages_types.h"
-#include "nas_messages_types.h"
 #include "s11_messages_types.h"
 #include "s1ap_messages_types.h"
 #include "nas/securityDef.h"
@@ -470,11 +469,14 @@ void mme_app_handle_conn_est_cnf(
     ((uint16_t) emm_context._ue_network_capability.eia &
     ~(1 << 7)) << 1;
 
-  AssertFatal(
-    (0 <= emm_context._security.vector_index) &&
-      (MAX_EPS_AUTH_VECTORS > emm_context._security.vector_index),
-    "Invalid vector index %d",
-    emm_context._security.vector_index);
+  if (!((0 <= emm_context._security.vector_index) &&
+    (MAX_EPS_AUTH_VECTORS > emm_context._security.vector_index))) {
+    OAILOG_ERROR(
+      LOG_MME_APP,
+      "Invalid security vector index %d",
+      emm_context._security.vector_index);
+    OAILOG_FUNC_OUT(LOG_MME_APP);
+  }
 
   derive_keNB(
     emm_context._vector[emm_context._security.vector_index].kasme,
@@ -529,17 +531,19 @@ void mme_app_handle_conn_est_cnf(
    * If timer expires treat this as failure of ongoing procedure and abort corresponding NAS procedure such as ATTACH
    * or SERVICE REQUEST. Send UE context release command to eNB
    */
-  nas_itti_timer_arg_t cb = {0};
-  cb.nas_timer_callback = mme_app_handle_initial_context_setup_rsp_timer_expiry;
-  cb.nas_timer_callback_arg = (void *) &(ue_context_p->mme_ue_s1ap_id);
+  nas_itti_timer_arg_t timer_callback_fun = {0};
+  timer_callback_fun.nas_timer_callback =
+    mme_app_handle_initial_context_setup_rsp_timer_expiry;
+  timer_callback_fun.nas_timer_callback_arg =
+    (void *) &(ue_context_p->mme_ue_s1ap_id);
   if (timer_setup(
     ue_context_p->initial_context_setup_rsp_timer.sec,
     0,
     TASK_MME_APP,
     INSTANCE_DEFAULT,
     TIMER_ONE_SHOT,
-    &cb,
-    sizeof(cb),
+    &timer_callback_fun,
+    sizeof(timer_callback_fun),
     &(ue_context_p->initial_context_setup_rsp_timer.id)) < 0) {
     OAILOG_ERROR(
       LOG_MME_APP,
@@ -603,12 +607,14 @@ void mme_app_handle_initial_ue_message(
         if (ue_context_p != NULL) {
           initial_pP->mme_ue_s1ap_id = ue_context_p->mme_ue_s1ap_id;
           if (ue_context_p->enb_s1ap_id_key != INVALID_ENB_UE_S1AP_ID_KEY) {
-            /*
-             * Ideally this should never happen. When UE move to IDLE this key is set to INVALID.
-             * Note - This can happen if eNB detects RLF late and by that time UE sends Initial NAS message via new RRC
-             * connection
-             * However if this key is valid, remove the key from the hashtable.
-             */
+          /*
+           * Ideally this should never happen.
+           * When UE move to IDLE this key is set to INVALID.
+           * Note - This can happen if eNB detects RLF late and
+           * by that time UE sends Initial NAS message via new RRC
+           * connection
+           * However if this key is valid, remove the key from the hashtable.
+           */
 
             OAILOG_ERROR(
               LOG_MME_APP,
@@ -837,7 +843,7 @@ void mme_app_send_erab_setup_req(
 
     itti_send_msg_to_task(TASK_S1AP, INSTANCE_DEFAULT, message_p);
   } else {
-    OAILOG_DEBUG(
+    OAILOG_ERROR(
       LOG_MME_APP,
       "No bearer context found ue " MME_UE_S1AP_ID_FMT " ebi %u\n",
       ue_id,
@@ -1141,7 +1147,8 @@ int mme_app_handle_create_sess_resp(
   nas_pdn_connectivity_rsp.ambr.br_ul = ue_context_p->subscribed_ue_ambr.br_ul;
   nas_pdn_connectivity_rsp.ambr.br_dl = ue_context_p->subscribed_ue_ambr.br_dl;
 
-  // This IE is not applicable for TAU/RAU/Handover. If PGW decides to return PCO to the UE, PGW shall send PCO to
+  // This IE is not applicable for TAU/RAU/Handover.
+  // If PGW decides to return PCO to the UE, PGW shall send PCO to
   // SGW. If SGW receives the PCO IE, SGW shall forward it to MME/SGSN.
   if (create_sess_resp_pP->pco.num_protocol_or_container_id) {
     copy_protocol_configuration_options(
@@ -1162,13 +1169,14 @@ void mme_app_handle_initial_context_setup_rsp(
   MessageDef *message_p = NULL;
 
   OAILOG_INFO(
-    LOG_MME_APP, "Received MME_APP_INITIAL_CONTEXT_SETUP_RSP from S1AP for ue_id = (%u)\n",
+    LOG_MME_APP, "Received MME_APP_INITIAL_CONTEXT_SETUP_RSP"
+    "from S1AP for ue_id =" MME_UE_S1AP_ID_FMT "\n",
     initial_ctxt_setup_rsp_pP->ue_id);
+
   ue_context_p = mme_ue_context_exists_mme_ue_s1ap_id(
     &mme_app_desc.mme_ue_contexts, initial_ctxt_setup_rsp_pP->ue_id);
-
   if (ue_context_p == NULL) {
-    OAILOG_DEBUG(
+    OAILOG_ERROR(
       LOG_MME_APP,
       " We didn't find this mme_ue_s1ap_id in list of UE: " MME_UE_S1AP_ID_FMT
       "\n UE Context NULL...\n",
@@ -1439,7 +1447,7 @@ void mme_app_handle_e_rab_setup_rsp(
     &mme_app_desc.mme_ue_contexts, e_rab_setup_rsp->mme_ue_s1ap_id);
 
   if (ue_context_p == NULL) {
-    OAILOG_DEBUG(
+    OAILOG_ERROR(
       LOG_MME_APP,
       "We didn't find this mme_ue_s1ap_id in list of UE: " MME_UE_S1AP_ID_FMT
       "\n",
@@ -1584,9 +1592,9 @@ void mme_app_handle_mobile_reachability_timer_expiry(void *args)
   struct ue_mm_context_s *ue_context_p = NULL;
 
   ue_context_p = mme_ue_context_exists_mme_ue_s1ap_id(
-            &mme_app_desc.mme_ue_contexts, mme_ue_s1ap_id);
+    &mme_app_desc.mme_ue_contexts, mme_ue_s1ap_id);
   if (ue_context_p == NULL) {
-    OAILOG_WARNING(
+    OAILOG_ERROR(
       LOG_MME_APP,
       "Mobile Reachability Timer expired but no assoicated UE context for"
       "ue-id " MME_UE_S1AP_ID_FMT "\n",
@@ -1600,17 +1608,19 @@ void mme_app_handle_mobile_reachability_timer_expiry(void *args)
   //Set PPF flag to false
   ue_context_p->ppf = false;
   // Start Implicit Detach timer
-  nas_itti_timer_arg_t cb = {0};
-  cb.nas_timer_callback = mme_app_handle_implicit_detach_timer_expiry;
-  cb.nas_timer_callback_arg = (void *) &(ue_context_p->mme_ue_s1ap_id);
+  nas_itti_timer_arg_t timer_callback_fun = {0};
+  timer_callback_fun.nas_timer_callback =
+    mme_app_handle_implicit_detach_timer_expiry;
+  timer_callback_fun.nas_timer_callback_arg =
+    (void *) &(ue_context_p->mme_ue_s1ap_id);
   if (timer_setup(
     ue_context_p->implicit_detach_timer.sec,
     0,
     TASK_MME_APP,
     INSTANCE_DEFAULT,
     TIMER_ONE_SHOT,
-    &cb,
-    sizeof(cb),
+    &timer_callback_fun,
+    sizeof(timer_callback_fun),
     &(ue_context_p->implicit_detach_timer.id)) < 0) {
     OAILOG_ERROR(
       LOG_MME_APP,
@@ -1637,9 +1647,9 @@ void mme_app_handle_implicit_detach_timer_expiry(void *args)
   struct ue_mm_context_s *ue_context_p = NULL;
 
   ue_context_p = mme_ue_context_exists_mme_ue_s1ap_id(
-            &mme_app_desc.mme_ue_contexts, mme_ue_s1ap_id);
+    &mme_app_desc.mme_ue_contexts, mme_ue_s1ap_id);
   if (ue_context_p == NULL) {
-    OAILOG_WARNING(
+    OAILOG_ERROR(
       LOG_MME_APP,
       "Implicit Detach Timer expired but no assoicated UE context for "
       "ue-id " MME_UE_S1AP_ID_FMT "\n",
@@ -1664,9 +1674,9 @@ void mme_app_handle_initial_context_setup_rsp_timer_expiry(void *args)
   struct ue_mm_context_s *ue_context_p = NULL;
 
   ue_context_p = mme_ue_context_exists_mme_ue_s1ap_id(
-            &mme_app_desc.mme_ue_contexts, mme_ue_s1ap_id);
+    &mme_app_desc.mme_ue_contexts, mme_ue_s1ap_id);
   if (ue_context_p == NULL) {
-    OAILOG_WARNING(
+    OAILOG_ERROR(
       LOG_MME_APP,
       "Initial Context Setup Response Timer expired but no assoicated UE context "
       "for ue-id " MME_UE_S1AP_ID_FMT "\n",
@@ -1727,7 +1737,7 @@ void mme_app_handle_initial_context_setup_failure(
     initial_ctxt_setup_failure_pP->mme_ue_s1ap_id);
 
   if (ue_context_p == NULL) {
-    OAILOG_DEBUG(
+    OAILOG_ERROR(
       LOG_MME_APP,
       "We didn't find this mme_ue_s1ap_id in list of UE: %d \n",
       initial_ctxt_setup_failure_pP->mme_ue_s1ap_id);
@@ -1928,17 +1938,19 @@ int mme_app_paging_request_helper(
   if (!set_timer) {
     OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
   }
-  nas_itti_timer_arg_t cb = {0};
-  cb.nas_timer_callback = (void *) mme_app_handle_paging_timer_expiry;
-  cb.nas_timer_callback_arg = (void *) &(ue_context_p->mme_ue_s1ap_id);
+  nas_itti_timer_arg_t timer_callback_fun = {0};
+  timer_callback_fun.nas_timer_callback =
+    (void *) mme_app_handle_paging_timer_expiry;
+  timer_callback_fun.nas_timer_callback_arg =
+    (void *) &(ue_context_p->mme_ue_s1ap_id);
   int timer_rc = timer_setup(
     ue_context_p->paging_response_timer.sec,
     0,
     TASK_MME_APP,
     INSTANCE_DEFAULT,
     TIMER_ONE_SHOT,
-    &cb,
-    sizeof(cb),
+    &timer_callback_fun,
+    sizeof(timer_callback_fun),
     &(ue_context_p->paging_response_timer.id));
   if (timer_rc < 0) {
     OAILOG_ERROR(
@@ -1978,9 +1990,9 @@ int mme_app_handle_paging_timer_expiry(void *args)
   struct ue_mm_context_s *ue_context_p = NULL;
 
   ue_context_p = mme_ue_context_exists_mme_ue_s1ap_id(
-            &mme_app_desc.mme_ue_contexts, mme_ue_s1ap_id);
+    &mme_app_desc.mme_ue_contexts, mme_ue_s1ap_id);
   if (ue_context_p == NULL) {
-    OAILOG_WARNING(
+    OAILOG_ERROR(
       LOG_MME_APP,
       "Paging Timer expired but no assoicated UE context for UE "
       "id " MME_UE_S1AP_ID_FMT "\n",
@@ -1999,7 +2011,7 @@ void mme_app_handle_ulr_timer_expiry(void * args)
   struct ue_mm_context_s *ue_context_p = NULL;
 
   ue_context_p = mme_ue_context_exists_mme_ue_s1ap_id(
-            &mme_app_desc.mme_ue_contexts, mme_ue_s1ap_id);
+    &mme_app_desc.mme_ue_contexts, mme_ue_s1ap_id);
   if (ue_context_p == NULL) {
     OAILOG_ERROR(
       LOG_MME_APP,
@@ -2309,7 +2321,7 @@ void mme_app_handle_ue_context_modification_timer_expiry(void *args)
   struct ue_mm_context_s *ue_context_p = NULL;
 
   ue_context_p = mme_ue_context_exists_mme_ue_s1ap_id(
-            &mme_app_desc.mme_ue_contexts, mme_ue_s1ap_id);
+    &mme_app_desc.mme_ue_contexts, mme_ue_s1ap_id);
   if (ue_context_p == NULL) {
     OAILOG_ERROR(
       LOG_MME_APP,
@@ -2432,7 +2444,7 @@ int mme_app_notify_service_reject_to_nas(
       break;
     }
     default: {
-      OAILOG_INFO(LOG_MME_APP, "Invalid failed procedure for ue-id"
+      OAILOG_ERROR(LOG_MME_APP, "Invalid failed procedure for ue-id"
         MME_UE_S1AP_ID_FMT "\n", ue_id);
       break;
     }
@@ -2451,7 +2463,7 @@ void mme_app_send_create_dedicated_bearer_rsp(
     &mme_app_desc.mme_ue_contexts, ue_id);
 
   if (ue_context_p == NULL) {
-    OAILOG_DEBUG(
+    OAILOG_ERROR(
       LOG_MME_APP,
       "Failed to find UE context, while sending create dedicated bearer"
       " response for ue-id:" MME_UE_S1AP_ID_FMT "\n",ue_id);
@@ -2480,14 +2492,6 @@ void mme_app_send_create_dedicated_bearer_rsp(
     // if received all bearers creation results
     if (s11_proc_create->num_status_received == s11_proc_create->num_bearers) {
       //Send Rsp to SGW if SPGW is embedded
-      bearer_context_t *bc = mme_app_get_bearer_context(ue_context_p, ebi);
-      if (bc == NULL) {
-        OAILOG_ERROR(
-        LOG_MME_APP,
-        "Could not get bearer context for EBI:%d\n",
-        ebi);
-        OAILOG_FUNC_OUT(LOG_MME_APP);
-      }
       mme_app_s11_procedure_create_bearer_send_response(
         ue_context_p, s11_proc_create);
       mme_app_delete_s11_procedure_create_bearer(ue_context_p);
@@ -2508,7 +2512,7 @@ void mme_app_send_create_dedicated_bearer_rej(
     &mme_app_desc.mme_ue_contexts, ue_id);
 
   if (ue_context_p == NULL) {
-    OAILOG_DEBUG(
+    OAILOG_ERROR(
       LOG_MME_APP,
       "Failed to find UE context, while sending create dedicated bearer"
       " reject for ue-id:" MME_UE_S1AP_ID_FMT "\n",ue_id);

@@ -75,7 +75,6 @@ typedef enum pdn_conn_rsp_cause_e {
   CAUSE_ALL_DYNAMIC_ADDRESSES_OCCUPIED = 84
 } pdn_conn_rsp_cause_t;
 
-
 typedef struct emm_cn_auth_res_s {
   /* UE identifier */
   mme_ue_s1ap_id_t ue_id;
@@ -107,8 +106,9 @@ typedef struct emm_cn_pdn_fail_s {
 
 typedef struct emm_cn_pdn_res_s {
   pdn_cid_t pdn_cid;
-  proc_tid_t
-    pti; // nas ref  Identity of the procedure transaction executed to activate the PDN connection entry
+// nas ref  Identity of the procedure transaction executed to
+// activate the PDN connection enty
+  proc_tid_t pti;
   network_qos_t qos;
   protocol_configuration_options_t pco;
   bstring pdn_addr;

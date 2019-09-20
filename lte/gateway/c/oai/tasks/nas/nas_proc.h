@@ -51,7 +51,6 @@ Description NAS procedure call manager
 #include "TrackingAreaIdentity.h"
 #include "nas/as_message.h"
 #include "bstrlib.h"
-#include "nas_messages_types.h"
 #include "s6a_messages_types.h"
 #include "security_types.h"
 #include "sgs_messages_types.h"

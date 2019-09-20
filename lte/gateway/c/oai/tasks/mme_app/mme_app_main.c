@@ -58,7 +58,6 @@
 #include "itti_types.h"
 #include "mme_app_desc.h"
 #include "mme_app_messages_types.h"
-#include "nas_messages_types.h"
 #include "obj_hashtable.h"
 #include "s11_messages_types.h"
 #include "s1ap_messages_types.h"
@@ -242,7 +241,7 @@ void *mme_app_thread(void *args)
           mme_app_desc.statistic_timer_id) {
           mme_app_statistics_display();
         } else if (received_message_p->ittiMsg.timer_has_expired.arg != NULL) {
-          nas_timer_handle_signal_expiry(
+          mme_app_nas_timer_handle_signal_expiry(
             TIMER_HAS_EXPIRED(received_message_p).timer_id,
             TIMER_HAS_EXPIRED(received_message_p).arg);
         }
@@ -400,9 +399,10 @@ void *mme_app_thread(void *args)
 
       case SGSAP_RELEASE_REQ: {
         /*
-         * We received the SGS Release request from MSC,to indicate that there are no more NAS messages to be exchanged
-         * between the VLR and the UE, or when a further exchange of NAS messages for the specified UE is not possible
-         * due to an error.
+         * We received the SGS Release request from MSC,to indicate that there
+         * are no more NAS messages to be exchanged between the VLR and the UE,
+         * or when a further exchange of NAS messages for the specified UE is
+         * not possible due to an error.
          */
         nas_proc_sgs_release_req(&SGSAP_RELEASE_REQ(received_message_p));
       } break;

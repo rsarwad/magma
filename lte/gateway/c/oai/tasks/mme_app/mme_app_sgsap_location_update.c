@@ -53,7 +53,6 @@
 #include "itti_types.h"
 #include "mme_api.h"
 #include "mme_app_desc.h"
-#include "nas_messages_types.h"
 #include "s1ap_messages_types.h"
 #include "sgs_messages_types.h"
 #include "emm_proc.h"
@@ -227,7 +226,7 @@ static int _mme_app_update_csfb_params(
   emm_ctx_p->csfbparams.lai.lac =
     itti_sgsap_location_update_acc->laicsfb.lac;
 
-  OAILOG_INFO(
+  OAILOG_DEBUG(
     LOG_NAS_EMM,
     "MME-APP - Mobile Identity presence mask %u \n",
     itti_sgsap_location_update_acc->presencemask);
@@ -280,16 +279,16 @@ static int _mme_app_update_csfb_params(
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
 
-/**********************************************************************************
- **                                                                              **
- ** Name:                mme_app_handle_nas_cs_domain_location_update_req        **
- ** Description          Upon receiving SGS_LOCATION_UPDATE_REQ                  **
- **                      create sgs context                                      **
- **                                                                              **
- ** Inputs:              Pointer to UE context                                   **
- **                      Type of message:Attach Request or TAU Request           **
- **                                                                              **
-***********************************************************************************/
+/*****************************************************************************
+ **                                                                         **
+ ** Name:                mme_app_handle_nas_cs_domain_location_update_req   **
+ ** Description          Upon receiving SGS_LOCATION_UPDATE_REQ             **
+ **                      create sgs context                                 **
+ **                                                                         **
+ ** Inputs:              Pointer to UE context                              **
+ **                      Type of message:Attach Request or TAU Request      **
+ **                                                                         **
+******************************************************************************/
 int mme_app_handle_nas_cs_domain_location_update_req(
     ue_mm_context_t *ue_context,
     uint8_t msg_type)
@@ -684,15 +683,15 @@ int sgs_fsm_associated_loc_updt_acc(const sgs_fsm_t *fsm_evt)
   OAILOG_FUNC_RETURN(LOG_MME_APP, rc);
 }
 
-/**********************************************************************************
+/******************************************************************************
  **
- ** Name:                sgs_fsm_la_updt_req_loc_updt_acc()                      **
- ** Description          Handling of SGS_LOCATION UPDATE ACCEPT in LA Update     **
- **                      Requested state                                         **
- **                                                                              **
- ** Inputs:              sgs_fsm_t                                               **
- **                                                                              **
-***********************************************************************************/
+ ** Name:                sgs_fsm_la_updt_req_loc_updt_acc()                  **
+ ** Description          Handling of SGS_LOCATION UPDATE ACCEPT in LA Update **
+ **                      Requested state                                     **
+ **                                                                          **
+ ** Inputs:              sgs_fsm_t                                           **
+ **                                                                          **
+*******************************************************************************/
 int sgs_fsm_la_updt_req_loc_updt_acc(const sgs_fsm_t *fsm_evt)
 {
   int rc = RETURNok;

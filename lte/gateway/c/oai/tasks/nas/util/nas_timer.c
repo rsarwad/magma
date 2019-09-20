@@ -114,7 +114,8 @@ long int nas_timer_stop(long int timer_id, void **nas_timer_callback_arg)
 }
 
 //------------------------------------------------------------------------------
-void nas_timer_handle_signal_expiry(long timer_id, nas_itti_timer_arg_t *cb)
+void mme_app_nas_timer_handle_signal_expiry(long timer_id,
+  nas_itti_timer_arg_t *cb)
 {
   OAILOG_FUNC_IN(LOG_NAS);
   if ((!timer_exists(timer_id)) || (cb->nas_timer_callback == NULL)) {

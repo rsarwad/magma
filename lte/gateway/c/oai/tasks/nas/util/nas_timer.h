@@ -82,7 +82,7 @@ long int nas_timer_start(
   nas_timer_callback_t nas_timer_callback,
   void *nas_timer_callback_args);
 long int nas_timer_stop(long int timer_id, void **nas_timer_callback_arg);
-void nas_timer_handle_signal_expiry(
+void mme_app_nas_timer_handle_signal_expiry(
   long timer_id,
   nas_itti_timer_arg_t *nas_itti_timer_arg);
 

@@ -96,7 +96,6 @@
 #include "emm_regDef.h"
 #include "esm_data.h"
 #include "mme_app_desc.h"
-#include "nas_messages_types.h"
 #include "nas_procedures.h"
 #include "dynamic_memory_check.h"
 
@@ -245,7 +244,8 @@ int emm_proc_attach_request(
 
   OAILOG_INFO(
     LOG_NAS_EMM,
-    "EMM-PROC:  ATTACH - EPS attach type = %s (%d)\n", _emm_attach_type_str[ies->type], ies->type);
+    "EMM-PROC:  ATTACH - EPS attach type = %s (%d)\n",
+    _emm_attach_type_str[ies->type], ies->type);
   OAILOG_DEBUG(
     LOG_NAS_EMM,
     "is_initial request = %u\n (ue_id=" MME_UE_S1AP_ID_FMT ") \n(imsi = " IMSI_64_FMT ") \n",
@@ -286,7 +286,7 @@ int emm_proc_attach_request(
       LOG_NAS_EMM,
       "EMM-PROC  - Sending Attach Reject to UE (ue_id = " MME_UE_S1AP_ID_FMT ")\n", ue_id);
     rc = _emm_attach_reject(
-         &ue_ctx.emm_context, (struct nas_base_proc_s *) &no_attach_proc);
+      &ue_ctx.emm_context, (struct nas_base_proc_s *) &no_attach_proc);
     increment_counter(
       "ue_attach", 1, 2, "result", "failure", "cause", "emergency_attach");
     OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);

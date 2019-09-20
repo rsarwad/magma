@@ -43,6 +43,7 @@
 #include "3gpp_36.401.h"
 #include "common_types.h"
 #include "nas/securityDef.h"
+#include "nas/as_message.h"
 
 #define MME_APP_CONNECTION_ESTABLISHMENT_CNF(mSGpTR)                           \
   (mSGpTR)->ittiMsg.mme_app_connection_establishment_cnf
@@ -143,14 +144,12 @@ typedef struct itti_nas_dl_data_rej_s {
 } itti_mme_app_dl_data_rej_t;
 
 typedef struct itti_mme_app_ul_data_ind_s {
-  mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier        */
+  mme_ue_s1ap_id_t ue_id; /* UE lower layer identifier    */
   bstring nas_msg;        /* Uplink NAS message           */
-  tai_t
-    tai; /* Indicating the Tracking Area from which the UE has sent the NAS message.  */
-  ecgi_t
-    cgi; /* Indicating the cell from which the UE has sent the NAS message.   */
+/* Indicating the Tracking Area from which the UE has sent the NAS message */
+  tai_t  tai;
+/* Indicating the cell from which the UE has sent the NAS message  */
+  ecgi_t cgi;
 } itti_mme_app_ul_data_ind_t;
-
-
 
 #endif /* FILE_MME_APP_MESSAGES_TYPES_SEEN */

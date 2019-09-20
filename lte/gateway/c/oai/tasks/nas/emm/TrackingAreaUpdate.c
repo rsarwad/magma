@@ -54,7 +54,6 @@
 #include "esm_data.h"
 #include "mme_api.h"
 #include "mme_app_desc.h"
-#include "nas_messages_types.h"
 #include "nas_procedures.h"
 #include "mme_app_itti_messaging.h"
 #include "mme_app_defs.h"
@@ -1042,7 +1041,7 @@ static int _send_tau_accept_and_check_for_neaf_flag (
   ue_mm_context_t *ue_context)
 {
   OAILOG_FUNC_IN(LOG_NAS_EMM);
-  if((emm_proc_tracking_area_update_accept(tau_proc)) == RETURNerror) {
+  if ((emm_proc_tracking_area_update_accept(tau_proc)) == RETURNerror) {
     OAILOG_ERROR(
       LOG_NAS_EMM,
       "EMMCN-SAP  - "
@@ -1050,18 +1049,18 @@ static int _send_tau_accept_and_check_for_neaf_flag (
       ue_context->mme_ue_s1ap_id);
     OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNerror);
   }
-  if((mme_ue_context_get_ue_sgs_neaf(ue_context->mme_ue_s1ap_id) == true)) {
+  if ((mme_ue_context_get_ue_sgs_neaf(ue_context->mme_ue_s1ap_id) == true)) {
     OAILOG_INFO(
       LOG_MME_APP,
       "Sending UE Activity Ind to MSC for ue-id: "MME_UE_S1AP_ID_FMT"\n",
       ue_context->mme_ue_s1ap_id);
-     /* neaf flag is true*/
-     /* send the SGSAP Ue activity indication to MSC/VLR */
-     char imsi_str[IMSI_BCD_DIGITS_MAX + 1];
-     IMSI64_TO_STRING(ue_context->emm_context._imsi64, imsi_str,
-          ue_context->emm_context._imsi.length);
-     mme_app_send_itti_sgsap_ue_activity_ind(imsi_str, strlen(imsi_str));
-     mme_ue_context_update_ue_sgs_neaf(ue_context->mme_ue_s1ap_id, false);
+    /* neaf flag is true*/
+    /* send the SGSAP Ue activity indication to MSC/VLR */
+    char imsi_str[IMSI_BCD_DIGITS_MAX + 1];
+    IMSI64_TO_STRING(ue_context->emm_context._imsi64, imsi_str,
+      ue_context->emm_context._imsi.length);
+    mme_app_send_itti_sgsap_ue_activity_ind(imsi_str, strlen(imsi_str));
+    mme_ue_context_update_ue_sgs_neaf(ue_context->mme_ue_s1ap_id, false);
   }
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, RETURNok);
 }

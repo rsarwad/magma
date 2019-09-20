@@ -35,7 +35,6 @@
 #include "itti_free_defined_msg.h"
 #include "async_system_messages_types.h"
 #include "ip_forward_messages_types.h"
-#include "nas_messages_types.h"
 #include "s11_messages_types.h"
 #include "sctp_messages_types.h"
 

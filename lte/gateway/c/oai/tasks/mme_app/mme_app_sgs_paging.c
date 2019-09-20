@@ -51,7 +51,6 @@
 #include "mme_app_desc.h"
 #include "emm_cnDef.h"
 #include "nas_proc.h"
-#include "nas_messages_types.h"
 #include "s1ap_messages_types.h"
 #include "sgs_messages_types.h"
 
@@ -336,7 +335,7 @@ static int _sgs_handle_paging_request_for_mt_call_in_connected(
   }
   if (
     RETURNok != (rc = nas_proc_cs_service_notification(
-                   ue_context_p->mme_ue_s1ap_id, paging_id, cli))) {
+      ue_context_p->mme_ue_s1ap_id, paging_id, cli))) {
     OAILOG_ERROR(
       LOG_MME_APP,
       "Failed to handle CS-Service Notification NAS for"
@@ -346,7 +345,7 @@ static int _sgs_handle_paging_request_for_mt_call_in_connected(
   }
   if (
     RETURNok != (rc = mme_app_send_sgsap_service_request(
-                   sgsap_paging_req_pP->service_indicator, ue_context_p))) {
+      sgsap_paging_req_pP->service_indicator, ue_context_p))) {
     OAILOG_ERROR(
       LOG_MME_APP,
       "Failed to send CS-Service Request to SGS-Task for ue-id :%u \n",
@@ -387,7 +386,7 @@ static int _sgs_handle_paging_request_for_mt_sms_in_connected(
 
   if (
     RETURNok != (rc = mme_app_send_sgsap_service_request(
-                   sgsap_paging_req_pP->service_indicator, ue_context_p))) {
+      sgsap_paging_req_pP->service_indicator, ue_context_p))) {
     OAILOG_ERROR(
       LOG_MME_APP,
       "Failed to send CS-Service Request to SGS-Task for ue-id :%u \n",

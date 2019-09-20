@@ -71,7 +71,6 @@
 #include "itti_types.h"
 #include "mme_api.h"
 #include "mme_app_desc.h"
-#include "nas_messages_types.h"
 #include "nas_timer.h"
 #include "nas_proc.h"
 #include "obj_hashtable.h"
@@ -125,7 +124,6 @@ static void _directoryd_remove_location(uint64_t imsi, uint8_t imsi_len)
 }
 
 //------------------------------------------------------------------------------
-// warning: lock the UE context
 ue_mm_context_t *mme_create_new_ue_context(void)
 {
   ue_mm_context_t *new_p = calloc(1, sizeof(ue_mm_context_t));
@@ -1603,17 +1601,19 @@ void mme_ue_context_update_ue_sig_connection_state(
 
     if (mme_config.nas_config.t3412_min > 0) {
       // Start Mobile reachability timer only if peroidic TAU timer is not disabled
-      nas_itti_timer_arg_t cb = {0};
-      cb.nas_timer_callback = mme_app_handle_mobile_reachability_timer_expiry;
-      cb.nas_timer_callback_arg = (void *) &(ue_context_p->mme_ue_s1ap_id);
+      nas_itti_timer_arg_t timer_callback_fun = {0};
+      timer_callback_fun.nas_timer_callback =
+        mme_app_handle_mobile_reachability_timer_expiry;
+      timer_callback_fun.nas_timer_callback_arg =
+        (void *) &(ue_context_p->mme_ue_s1ap_id);
       if (timer_setup(
         ue_context_p->mobile_reachability_timer.sec,
         0,
         TASK_MME_APP,
         INSTANCE_DEFAULT,
         TIMER_ONE_SHOT,
-        &cb,
-        sizeof(cb),
+        &timer_callback_fun,
+        sizeof(timer_callback_fun),
         &(ue_context_p->mobile_reachability_timer.id)) < 0) {
         OAILOG_ERROR(
           LOG_MME_APP,
