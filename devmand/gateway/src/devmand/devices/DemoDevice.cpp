@@ -63,7 +63,7 @@ folly::dynamic DemoDevice::getDemoState() {
 
   // ##########################################################################
   auto& system = data["ietf-system:system"] = folly::dynamic::object;
-  system["name"] = "demo";
+  system["hostname"] = "demo";
   system["contact"] = "fb@fb.com";
   system["location"] = "Boston Mass.";
 
@@ -88,36 +88,6 @@ folly::dynamic DemoDevice::getDemoState() {
 
   return std::move(data);
 }
-
-/*
-module: openconfig-ap-manager
-  +--rw provision-aps
-  |  +--rw provision-ap* [mac]
-  |     +--rw mac       -> ../config/mac
-  |     +--rw config
-  |     |  +--rw mac?            oc-yang:mac-address
-  |     |  +--rw hostname?       oc-inet:domain-name
-  |     |  +--rw country-code?   string
-  |     +--ro state
-  |        +--ro mac?            oc-yang:mac-address
-  |        +--ro hostname?       oc-inet:domain-name
-  |        +--ro country-code?   string
-  +--rw joined-aps
-     +--ro joined-ap* [hostname]
-        +--ro hostname    -> ../state/hostname
-        +--ro state
-           +--ro mac?                oc-yang:mac-address
-           +--ro hostname?           oc-inet:domain-name
-           +--ro opstate?            identityref
-           +--ro uptime?             uint32
-           +--ro enabled?            boolean
-           +--ro serial?             string
-           +--ro model?              string
-           +--ro software-version?   string
-           +--ro ipv4?               oc-inet:ipv4-address
-           +--ro ipv6?               oc-inet:ipv6-address
-           +--ro power-source?       enumeration
-*/
 
 } // namespace devices
 } // namespace devmand
