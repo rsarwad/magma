@@ -45,7 +45,7 @@
 #include "emm_proc.h"
 #include "log.h"
 #include "emm_data.h"
-#include "nas_itti_messaging.h"
+#include "mme_app_itti_messaging.h"
 #include "conversions.h"
 #include "3gpp_23.003.h"
 #include "3gpp_36.401.h"

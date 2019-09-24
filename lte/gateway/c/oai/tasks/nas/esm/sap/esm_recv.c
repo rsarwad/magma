@@ -28,7 +28,6 @@
 #include "3gpp_24.007.h"
 #include "3gpp_24.008.h"
 #include "mme_app_ue_context.h"
-#include "nas_itti_messaging.h"
 #include "esm_recv.h"
 #include "esm_pt.h"
 #include "esm_ebr.h"

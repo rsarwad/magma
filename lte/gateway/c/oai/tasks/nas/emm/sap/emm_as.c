@@ -35,7 +35,7 @@
 #include "mme_app_ue_context.h"
 #include "nas/as_message.h"
 #include "emm_cause.h"
-#include "nas_itti_messaging.h"
+#include "mme_app_itti_messaging.h"
 #include "emm_as.h"
 #include "emm_recv.h"
 #include "LowerLayer.h"

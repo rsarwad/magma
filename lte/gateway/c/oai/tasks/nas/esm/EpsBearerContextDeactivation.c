@@ -42,7 +42,6 @@
 #include "common_defs.h"
 #include "emm_esmDef.h"
 #include "esm_sapDef.h"
-#include "nas_itti_messaging.h"
 #include "esm_pt.h"
 #include "mme_app_defs.h"
 

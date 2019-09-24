@@ -38,7 +38,6 @@
 #include "emm_data.h"
 #include "emm_sap.h"
 #include "emm_cause.h"
-#include "nas_itti_messaging.h"
 #include "service303.h"
 #include "EmmCommon.h"
 #include "3gpp_23.003.h"

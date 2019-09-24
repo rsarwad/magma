@@ -61,7 +61,6 @@
 #include "conversions.h"
 #include "esm_sap.h"
 #include "service303.h"
-#include "nas_itti_messaging.h"
 #include "mme_app_apn_selection.h"
 #include "mme_config.h"
 #include "3gpp_23.003.h"
