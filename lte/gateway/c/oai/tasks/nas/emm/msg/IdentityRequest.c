@@ -25,7 +25,7 @@
 #include "TLVEncoder.h"
 #include "TLVDecoder.h"
 #include "IdentityRequest.h"
-
+#if 0
 int decode_identity_request(
   identity_request_msg *identity_request,
   uint8_t *buffer,
@@ -52,6 +52,7 @@ int decode_identity_request(
   decoded++;
   return decoded;
 }
+#endif
 
 int encode_identity_request(
   identity_request_msg *identity_request,

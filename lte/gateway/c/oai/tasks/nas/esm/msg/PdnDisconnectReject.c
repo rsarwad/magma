@@ -27,7 +27,7 @@
 #include "EsmCause.h"
 #include "PdnDisconnectReject.h"
 #include "common_defs.h"
-
+#if 0
 int decode_pdn_disconnect_reject(
   pdn_disconnect_reject_msg *pdn_disconnect_reject,
   uint8_t *buffer,
@@ -86,7 +86,7 @@ int decode_pdn_disconnect_reject(
 
   return decoded;
 }
-
+#endif
 int encode_pdn_disconnect_reject(
   pdn_disconnect_reject_msg *pdn_disconnect_reject,
   uint8_t *buffer,

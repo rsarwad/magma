@@ -27,7 +27,7 @@
 #include "EsmCause.h"
 #include "PdnConnectivityReject.h"
 #include "common_defs.h"
-
+#if 0
 int decode_pdn_connectivity_reject(
   pdn_connectivity_reject_msg *pdn_connectivity_reject,
   uint8_t *buffer,
@@ -88,7 +88,7 @@ int decode_pdn_connectivity_reject(
 
   return decoded;
 }
-
+#endif
 int encode_pdn_connectivity_reject(
   pdn_connectivity_reject_msg *pdn_connectivity_reject,
   uint8_t *buffer,

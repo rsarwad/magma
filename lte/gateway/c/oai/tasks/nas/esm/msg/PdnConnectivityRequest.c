@@ -141,7 +141,7 @@ int decode_pdn_connectivity_request(
 
   return decoded;
 }
-
+#if 0
 int encode_pdn_connectivity_request(
   pdn_connectivity_request_msg *pdn_connectivity_request,
   uint8_t *buffer,
@@ -210,3 +210,4 @@ int encode_pdn_connectivity_request(
 
   return encoded;
 }
+#endif

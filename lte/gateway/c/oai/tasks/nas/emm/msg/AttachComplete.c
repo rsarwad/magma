@@ -52,7 +52,7 @@ int decode_attach_complete(
 
   return decoded;
 }
-
+#if 0
 int encode_attach_complete(
   attach_complete_msg *attach_complete,
   uint8_t *buffer,
@@ -79,3 +79,4 @@ int encode_attach_complete(
 
   return encoded;
 }
+#endif

@@ -138,7 +138,7 @@ coverage:
 	@echo "Generated coverage output to $(COV_HTML_DIR_TOTAL)/index.html"
 
 coverage_oai:
-	rm -f `find $(OAI_BUILD) -name *.gcda`
+	#rm -f `find $(OAI_BUILD) -name *.gcda`
 	sudo pkill -USR1 mme
 	@echo "Waiting for $(SLEEP_SECS) for gcov to write files"
 	sleep $(SLEEP_SECS)

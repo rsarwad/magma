@@ -25,7 +25,7 @@
 #include "TLVDecoder.h"
 #include "GutiReallocationCommand.h"
 #include "common_defs.h"
-
+#if 0
 int decode_guti_reallocation_command(
   guti_reallocation_command_msg *guti_reallocation_command,
   uint8_t *buffer,
@@ -84,7 +84,7 @@ int decode_guti_reallocation_command(
 
   return decoded;
 }
-
+#endif
 int encode_guti_reallocation_command(
   guti_reallocation_command_msg *guti_reallocation_command,
   uint8_t *buffer,

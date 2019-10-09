@@ -65,9 +65,9 @@ int decode_security_mode_complete(
   uint8_t *buffer,
   uint32_t len);
 
-int encode_security_mode_complete(
+/*int encode_security_mode_complete(
   security_mode_complete_msg *securitymodecomplete,
   uint8_t *buffer,
   uint32_t len);
-
+*/
 #endif /* ! defined(FILE_SECURITY_MODE_COMPLETE_SEEN) */

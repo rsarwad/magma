@@ -105,11 +105,11 @@ int emm_msg_decode(EMM_msg *msg, uint8_t *buffer, uint32_t len)
     LOG_NAS_EMM, "EMM-MSG   - Message Type 0x%02x\n", msg->header.message_type);
 
   switch (msg->header.message_type) {
-    case EMM_INFORMATION:
+    /*case EMM_INFORMATION:
       decode_result =
         decode_emm_information(&msg->emm_information, buffer, len);
       break;
-
+*/
     case UPLINK_NAS_TRANSPORT:
       decode_result =
         decode_uplink_nas_transport(&msg->uplink_nas_transport, buffer, len);
@@ -129,14 +129,14 @@ int emm_msg_decode(EMM_msg *msg, uint8_t *buffer, uint32_t len)
       decode_result = decode_detach_accept(&msg->detach_accept, buffer, len);
       break;
 
-    case SERVICE_REJECT:
+    /*case SERVICE_REJECT:
       decode_result = decode_service_reject(&msg->service_reject, buffer, len);
       break;
-
     case AUTHENTICATION_REQUEST:
       decode_result = decode_authentication_request(
         &msg->authentication_request, buffer, len);
       break;
+*/
 
     case TRACKING_AREA_UPDATE_REQUEST:
       decode_result = decode_tracking_area_update_request(
@@ -156,11 +156,10 @@ int emm_msg_decode(EMM_msg *msg, uint8_t *buffer, uint32_t len)
         decode_identity_response(&msg->identity_response, buffer, len);
       break;
 
-    case IDENTITY_REQUEST:
+    /*case IDENTITY_REQUEST:
       decode_result =
         decode_identity_request(&msg->identity_request, buffer, len);
       break;
-
     case GUTI_REALLOCATION_COMMAND:
       decode_result = decode_guti_reallocation_command(
         &msg->guti_reallocation_command, buffer, len);
@@ -170,25 +169,27 @@ int emm_msg_decode(EMM_msg *msg, uint8_t *buffer, uint32_t len)
       decode_result = decode_tracking_area_update_reject(
         &msg->tracking_area_update_reject, buffer, len);
       break;
+*/
 
-    case ATTACH_ACCEPT:
+    /*case ATTACH_ACCEPT:
       decode_result = decode_attach_accept(&msg->attach_accept, buffer, len);
       break;
-
+*/
     case SECURITY_MODE_COMPLETE:
       decode_result = decode_security_mode_complete(
         &msg->security_mode_complete, buffer, len);
       break;
 
-    case TRACKING_AREA_UPDATE_ACCEPT:
+/*    case TRACKING_AREA_UPDATE_ACCEPT:
       decode_result = decode_tracking_area_update_accept(
         &msg->tracking_area_update_accept, buffer, len);
       break;
+*/
 
-    case ATTACH_REJECT:
+/*    case ATTACH_REJECT:
       decode_result = decode_attach_reject(&msg->attach_reject, buffer, len);
       break;
-
+*/
     case ATTACH_COMPLETE:
       decode_result =
         decode_attach_complete(&msg->attach_complete, buffer, len);
@@ -218,11 +219,11 @@ int emm_msg_decode(EMM_msg *msg, uint8_t *buffer, uint32_t len)
         &msg->guti_reallocation_complete, buffer, len);
       break;
 
-    case SECURITY_MODE_COMMAND:
+    /*case SECURITY_MODE_COMMAND:
       decode_result =
         decode_security_mode_command(&msg->security_mode_command, buffer, len);
       break;
-
+*/
     case DOWNLINK_NAS_TRANSPORT:
       decode_result = decode_downlink_nas_transport(
         &msg->downlink_nas_transport, buffer, len);
@@ -307,20 +308,20 @@ int emm_msg_encode(EMM_msg *msg, uint8_t *buffer, uint32_t len)
       encode_result = encode_attach_accept(&msg->attach_accept, buffer, len);
       break;
 
-    case ATTACH_COMPLETE:
+   /* case ATTACH_COMPLETE:
       encode_result =
         encode_attach_complete(&msg->attach_complete, buffer, len);
       break;
-
+*/
     case ATTACH_REJECT:
       encode_result = encode_attach_reject(&msg->attach_reject, buffer, len);
       break;
 
-    case AUTHENTICATION_FAILURE:
+   /* case AUTHENTICATION_FAILURE:
       encode_result = encode_authentication_failure(
         &msg->authentication_failure, buffer, len);
       break;
-
+*/
     case AUTHENTICATION_REJECT:
       encode_result =
         encode_authentication_reject(&msg->authentication_reject, buffer, len);
@@ -331,11 +332,11 @@ int emm_msg_encode(EMM_msg *msg, uint8_t *buffer, uint32_t len)
         &msg->authentication_request, buffer, len);
       break;
 
-    case AUTHENTICATION_RESPONSE:
+ /*   case AUTHENTICATION_RESPONSE:
       encode_result = encode_authentication_response(
         &msg->authentication_response, buffer, len);
       break;
-
+*/
     case CS_SERVICE_NOTIFICATION:
       encode_result = encode_cs_service_notification(
         &msg->cs_service_notification, buffer, len);
@@ -359,45 +360,46 @@ int emm_msg_encode(EMM_msg *msg, uint8_t *buffer, uint32_t len)
         encode_emm_information(&msg->emm_information, buffer, len);
       break;
 
-    case EMM_STATUS:
+    /*case EMM_STATUS:
       encode_result = encode_emm_status(&msg->emm_status, buffer, len);
       break;
-
     case EXTENDED_SERVICE_REQUEST:
       encode_result = encode_extended_service_request(
         &msg->extended_service_request, buffer, len);
       break;
+*/
 
     case GUTI_REALLOCATION_COMMAND:
       encode_result = encode_guti_reallocation_command(
         &msg->guti_reallocation_command, buffer, len);
       break;
 
-    case GUTI_REALLOCATION_COMPLETE:
+/*    case GUTI_REALLOCATION_COMPLETE:
       encode_result = encode_guti_reallocation_complete(
         &msg->guti_reallocation_complete, buffer, len);
       break;
+*/
 
     case IDENTITY_REQUEST:
       encode_result =
         encode_identity_request(&msg->identity_request, buffer, len);
       break;
 
-    case IDENTITY_RESPONSE:
+    /*case IDENTITY_RESPONSE:
       encode_result =
         encode_identity_response(&msg->identity_response, buffer, len);
       break;
-
+*/
     case SECURITY_MODE_COMMAND:
       encode_result =
         encode_security_mode_command(&msg->security_mode_command, buffer, len);
       break;
 
-    case SECURITY_MODE_COMPLETE:
+    /*case SECURITY_MODE_COMPLETE:
       encode_result = encode_security_mode_complete(
         &msg->security_mode_complete, buffer, len);
       break;
-
+*/
     case SECURITY_MODE_REJECT:
       encode_result =
         encode_security_mode_reject(&msg->security_mode_reject, buffer, len);
@@ -407,30 +409,32 @@ int emm_msg_encode(EMM_msg *msg, uint8_t *buffer, uint32_t len)
       encode_result = encode_service_reject(&msg->service_reject, buffer, len);
       break;
 
-    case SERVICE_REQUEST:
+    /*case SERVICE_REQUEST:
       encode_result =
         encode_service_request(&msg->service_request, buffer, len);
       break;
-
+*/
     case TRACKING_AREA_UPDATE_ACCEPT:
       encode_result = encode_tracking_area_update_accept(
         &msg->tracking_area_update_accept, buffer, len);
       break;
 
-    case TRACKING_AREA_UPDATE_COMPLETE:
+/*    case TRACKING_AREA_UPDATE_COMPLETE:
       encode_result = encode_tracking_area_update_complete(
         &msg->tracking_area_update_complete, buffer, len);
       break;
+*/
 
     case TRACKING_AREA_UPDATE_REJECT:
       encode_result = encode_tracking_area_update_reject(
         &msg->tracking_area_update_reject, buffer, len);
       break;
 
-    case TRACKING_AREA_UPDATE_REQUEST:
+/*    case TRACKING_AREA_UPDATE_REQUEST:
       encode_result = encode_tracking_area_update_request(
         &msg->tracking_area_update_request, buffer, len);
       break;
+*/
 
     case NW_DETACH_REQUEST:
       encode_result =

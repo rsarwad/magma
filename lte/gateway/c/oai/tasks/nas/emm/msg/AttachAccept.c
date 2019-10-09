@@ -26,7 +26,7 @@
 #include "TLVDecoder.h"
 #include "AttachAccept.h"
 #include "common_defs.h"
-
+#if 0
 int decode_attach_accept(
   attach_accept_msg *attach_accept,
   uint8_t *buffer,
@@ -259,6 +259,7 @@ int decode_attach_accept(
   return decoded;
 }
 
+#endif
 //------------------------------------------------------------------------------
 int encode_attach_accept(
   attach_accept_msg *attach_accept,

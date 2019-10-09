@@ -378,7 +378,7 @@ int decode_attach_request(
 
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, decoded);
 }
-
+#if 0
 int encode_attach_request(
   attach_request_msg *attach_request,
   uint8_t *buffer,
@@ -648,3 +648,4 @@ int encode_attach_request(
 
   return encoded;
 }
+#endif

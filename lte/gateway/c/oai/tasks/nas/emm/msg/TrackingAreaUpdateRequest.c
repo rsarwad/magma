@@ -435,7 +435,7 @@ int decode_tracking_area_update_request(
 
   return decoded;
 }
-
+#if 0
 int encode_tracking_area_update_request(
   tracking_area_update_request_msg *tracking_area_update_request,
   uint8_t *buffer,
@@ -759,3 +759,4 @@ int encode_tracking_area_update_request(
 
   return encoded;
 }
+#endif

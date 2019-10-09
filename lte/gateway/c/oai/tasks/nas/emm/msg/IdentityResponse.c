@@ -52,7 +52,7 @@ int decode_identity_response(
 
   return decoded;
 }
-
+#if 0
 int encode_identity_response(
   identity_response_msg *identity_response,
   uint8_t *buffer,
@@ -79,3 +79,4 @@ int encode_identity_response(
 
   return encoded;
 }
+#endif

@@ -89,7 +89,7 @@ int decode_activate_default_eps_bearer_context_reject(
 
   return decoded;
 }
-
+#if 0
 int encode_activate_default_eps_bearer_context_reject(
   activate_default_eps_bearer_context_reject_msg
     *activate_default_eps_bearer_context_reject,
@@ -134,3 +134,4 @@ int encode_activate_default_eps_bearer_context_reject(
 
   return encoded;
 }
+#endif

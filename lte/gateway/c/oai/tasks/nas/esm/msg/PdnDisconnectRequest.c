@@ -88,7 +88,7 @@ int decode_pdn_disconnect_request(
 
   return decoded;
 }
-
+#if 0
 int encode_pdn_disconnect_request(
   pdn_disconnect_request_msg *pdn_disconnect_request,
   uint8_t *buffer,
@@ -126,3 +126,4 @@ int encode_pdn_disconnect_request(
 
   return encoded;
 }
+#endif

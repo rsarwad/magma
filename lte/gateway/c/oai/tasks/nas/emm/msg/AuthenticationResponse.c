@@ -52,7 +52,7 @@ int decode_authentication_response(
 
   return decoded;
 }
-
+#if 0
 int encode_authentication_response(
   authentication_response_msg *authentication_response,
   uint8_t *buffer,
@@ -79,3 +79,4 @@ int encode_authentication_response(
 
   return encoded;
 }
+#endif

@@ -25,7 +25,7 @@
 #include "TLVDecoder.h"
 #include "EmmInformation.h"
 #include "common_defs.h"
-
+#if 0
 int decode_emm_information(
   emm_information_msg *emm_information,
   uint8_t *buffer,
@@ -144,6 +144,7 @@ int decode_emm_information(
 
   return decoded;
 }
+#endif
 
 int encode_emm_information(
   emm_information_msg *emm_information,

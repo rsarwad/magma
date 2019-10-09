@@ -88,7 +88,7 @@ int decode_modify_eps_bearer_context_reject(
 
   return decoded;
 }
-
+#if 0
 int encode_modify_eps_bearer_context_reject(
   modify_eps_bearer_context_reject_msg *modify_eps_bearer_context_reject,
   uint8_t *buffer,
@@ -131,3 +131,4 @@ int encode_modify_eps_bearer_context_reject(
 
   return encoded;
 }
+#endif

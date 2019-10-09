@@ -145,9 +145,9 @@ int decode_attach_request(
   uint8_t *buffer,
   uint32_t len);
 
-int encode_attach_request(
+/*int encode_attach_request(
   attach_request_msg *attachrequest,
   uint8_t *buffer,
   uint32_t len);
-
+*/
 #endif /* ! defined(FILE_ATTACH_REQUEST_SEEN) */

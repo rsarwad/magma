@@ -77,7 +77,7 @@ int decode_security_mode_complete(
 
   return decoded;
 }
-
+#if 0
 int encode_security_mode_complete(
   security_mode_complete_msg *security_mode_complete,
   uint8_t *buffer,
@@ -110,3 +110,4 @@ int encode_security_mode_complete(
 
   return encoded;
 }
+#endif

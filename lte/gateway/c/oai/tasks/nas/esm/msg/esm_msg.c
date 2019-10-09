@@ -143,10 +143,11 @@ int esm_msg_decode(ESM_msg *msg, uint8_t *buffer, uint32_t len)
         &msg->activate_default_eps_bearer_context_accept, buffer, len);
       break;
 
-    case PDN_CONNECTIVITY_REJECT:
+    /*case PDN_CONNECTIVITY_REJECT:
       decode_result = decode_pdn_connectivity_reject(
         &msg->pdn_connectivity_reject, buffer, len);
       break;
+*/
 
     case MODIFY_EPS_BEARER_CONTEXT_REJECT:
       decode_result = decode_modify_eps_bearer_context_reject(
@@ -163,11 +164,11 @@ int esm_msg_decode(ESM_msg *msg, uint8_t *buffer, uint32_t len)
         &msg->modify_eps_bearer_context_accept, buffer, len);
       break;
 
-    case DEACTIVATE_EPS_BEARER_CONTEXT_REQUEST:
+/*    case DEACTIVATE_EPS_BEARER_CONTEXT_REQUEST:
       decode_result = decode_deactivate_eps_bearer_context_request(
         &msg->deactivate_eps_bearer_context_request, buffer, len);
       break;
-
+*/
     case ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT:
       decode_result = decode_activate_dedicated_eps_bearer_context_accept(
         &msg->activate_dedicated_eps_bearer_context_accept, buffer, len);
@@ -178,7 +179,7 @@ int esm_msg_decode(ESM_msg *msg, uint8_t *buffer, uint32_t len)
         &msg->activate_default_eps_bearer_context_reject, buffer, len);
       break;
 
-    case MODIFY_EPS_BEARER_CONTEXT_REQUEST:
+/*    case MODIFY_EPS_BEARER_CONTEXT_REQUEST:
       decode_result = decode_modify_eps_bearer_context_request(
         &msg->modify_eps_bearer_context_request, buffer, len);
       break;
@@ -202,12 +203,13 @@ int esm_msg_decode(ESM_msg *msg, uint8_t *buffer, uint32_t len)
       decode_result = decode_bearer_resource_allocation_reject(
         &msg->bearer_resource_allocation_reject, buffer, len);
       break;
+*/
 
-    case ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST:
+    /*case ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST:
       decode_result = decode_activate_default_eps_bearer_context_request(
         &msg->activate_default_eps_bearer_context_request, buffer, len);
       break;
-
+*/
     case PDN_CONNECTIVITY_REQUEST:
       decode_result = decode_pdn_connectivity_request(
         &msg->pdn_connectivity_request, buffer, len);
@@ -223,10 +225,11 @@ int esm_msg_decode(ESM_msg *msg, uint8_t *buffer, uint32_t len)
         &msg->bearer_resource_modification_request, buffer, len);
       break;
 
-    case ESM_INFORMATION_REQUEST:
+/*    case ESM_INFORMATION_REQUEST:
       decode_result = decode_esm_information_request(
         &msg->esm_information_request, buffer, len);
       break;
+*/
 
     case ESM_STATUS:
       decode_result = decode_esm_status(&msg->esm_status, buffer, len);
@@ -299,7 +302,7 @@ int esm_msg_encode(ESM_msg *msg, uint8_t *buffer, uint32_t len)
   len -= header_result;
 
   switch (msg->header.message_type) {
-    case PDN_DISCONNECT_REQUEST:
+  /*  case PDN_DISCONNECT_REQUEST:
       encode_result = encode_pdn_disconnect_request(
         &msg->pdn_disconnect_request, buffer, len);
       break;
@@ -308,23 +311,25 @@ int esm_msg_encode(ESM_msg *msg, uint8_t *buffer, uint32_t len)
       encode_result = encode_deactivate_eps_bearer_context_accept(
         &msg->deactivate_eps_bearer_context_accept, buffer, len);
       break;
+*/
 
     case BEARER_RESOURCE_ALLOCATION_REQUEST:
       encode_result = encode_bearer_resource_allocation_request(
         &msg->bearer_resource_allocation_request, buffer, len);
       break;
 
-    case ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT:
+/*    case ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT:
       encode_result = encode_activate_default_eps_bearer_context_accept(
         &msg->activate_default_eps_bearer_context_accept, buffer, len);
       break;
+*/
 
     case PDN_CONNECTIVITY_REJECT:
       encode_result = encode_pdn_connectivity_reject(
         &msg->pdn_connectivity_reject, buffer, len);
       break;
 
-    case MODIFY_EPS_BEARER_CONTEXT_REJECT:
+/*    case MODIFY_EPS_BEARER_CONTEXT_REJECT:
       encode_result = encode_modify_eps_bearer_context_reject(
         &msg->modify_eps_bearer_context_reject, buffer, len);
       break;
@@ -338,13 +343,14 @@ int esm_msg_encode(ESM_msg *msg, uint8_t *buffer, uint32_t len)
       encode_result = encode_modify_eps_bearer_context_accept(
         &msg->modify_eps_bearer_context_accept, buffer, len);
       break;
+*/
 
     case DEACTIVATE_EPS_BEARER_CONTEXT_REQUEST:
       encode_result = encode_deactivate_eps_bearer_context_request(
         &msg->deactivate_eps_bearer_context_request, buffer, len);
       break;
 
-    case ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT:
+/*    case ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT:
       encode_result = encode_activate_dedicated_eps_bearer_context_accept(
         &msg->activate_dedicated_eps_bearer_context_accept, buffer, len);
       break;
@@ -353,7 +359,7 @@ int esm_msg_encode(ESM_msg *msg, uint8_t *buffer, uint32_t len)
       encode_result = encode_activate_default_eps_bearer_context_reject(
         &msg->activate_default_eps_bearer_context_reject, buffer, len);
       break;
-
+*/
     case MODIFY_EPS_BEARER_CONTEXT_REQUEST:
       encode_result = encode_modify_eps_bearer_context_request(
         &msg->modify_eps_bearer_context_request, buffer, len);
@@ -384,7 +390,7 @@ int esm_msg_encode(ESM_msg *msg, uint8_t *buffer, uint32_t len)
         &msg->activate_default_eps_bearer_context_request, buffer, len);
       break;
 
-    case PDN_CONNECTIVITY_REQUEST:
+/*    case PDN_CONNECTIVITY_REQUEST:
       encode_result = encode_pdn_connectivity_request(
         &msg->pdn_connectivity_request, buffer, len);
       break;
@@ -393,6 +399,7 @@ int esm_msg_encode(ESM_msg *msg, uint8_t *buffer, uint32_t len)
       encode_result = encode_esm_information_response(
         &msg->esm_information_response, buffer, len);
       break;
+*/
 
     case BEARER_RESOURCE_MODIFICATION_REQUEST:
       encode_result = encode_bearer_resource_modification_request(

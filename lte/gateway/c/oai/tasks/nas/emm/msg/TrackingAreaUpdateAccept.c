@@ -26,7 +26,7 @@
 #include "TLVDecoder.h"
 #include "TrackingAreaUpdateAccept.h"
 #include "common_defs.h"
-
+#if 0
 int decode_tracking_area_update_accept(
   tracking_area_update_accept_msg *tracking_area_update_accept,
   uint8_t *buffer,
@@ -291,7 +291,7 @@ int decode_tracking_area_update_accept(
 
   return decoded;
 }
-
+#endif
 int encode_tracking_area_update_accept(
   tracking_area_update_accept_msg *tracking_area_update_accept,
   uint8_t *buffer,

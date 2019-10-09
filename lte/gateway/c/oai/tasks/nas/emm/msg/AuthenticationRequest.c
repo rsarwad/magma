@@ -25,7 +25,7 @@
 #include "TLVEncoder.h"
 #include "TLVDecoder.h"
 #include "AuthenticationRequest.h"
-
+#if 0
 int decode_authentication_request(
   authentication_request_msg *authentication_request,
   uint8_t *buffer,
@@ -73,6 +73,7 @@ int decode_authentication_request(
 
   return decoded;
 }
+#endif
 
 int encode_authentication_request(
   authentication_request_msg *authentication_request,

@@ -66,11 +66,11 @@ typedef struct attach_reject_msg_tag {
   EsmMessageContainer esmmessagecontainer;
 } attach_reject_msg;
 
-int decode_attach_reject(
+/*int decode_attach_reject(
   attach_reject_msg *attachreject,
   uint8_t *buffer,
   uint32_t len);
-
+*/
 int encode_attach_reject(
   attach_reject_msg *attachreject,
   uint8_t *buffer,

@@ -61,9 +61,9 @@ int decode_service_request(
   uint8_t *buffer,
   uint32_t len);
 
-int encode_service_request(
+/*int encode_service_request(
   service_request_msg *servicerequest,
   uint8_t *buffer,
   uint32_t len);
-
+*/
 #endif /* ! defined(FILE_SERVICE_REQUEST_SEEN) */

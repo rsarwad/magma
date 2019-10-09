@@ -64,7 +64,7 @@ int decode_service_request(
 
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, decoded);
 }
-
+#if 0
 int encode_service_request(
   service_request_msg *service_request,
   uint8_t *buffer,
@@ -102,3 +102,4 @@ int encode_service_request(
 
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, encoded);
 }
+#endif

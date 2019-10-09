@@ -26,7 +26,7 @@
 #include "TLVDecoder.h"
 #include "BearerResourceModificationReject.h"
 #include "common_defs.h"
-
+#if 0
 int decode_bearer_resource_modification_reject(
   bearer_resource_modification_reject_msg *bearer_resource_modification_reject,
   uint8_t *buffer,
@@ -87,7 +87,7 @@ int decode_bearer_resource_modification_reject(
 
   return decoded;
 }
-
+#endif
 int encode_bearer_resource_modification_reject(
   bearer_resource_modification_reject_msg *bearer_resource_modification_reject,
   uint8_t *buffer,

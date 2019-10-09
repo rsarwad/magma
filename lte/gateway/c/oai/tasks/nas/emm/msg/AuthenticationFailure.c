@@ -84,7 +84,7 @@ int decode_authentication_failure(
 
   return decoded;
 }
-
+#if 0
 int encode_authentication_failure(
   authentication_failure_msg *authentication_failure,
   uint8_t *buffer,
@@ -125,3 +125,4 @@ int encode_authentication_failure(
 
   return encoded;
 }
+#endif

@@ -25,7 +25,7 @@
 #include "TLVEncoder.h"
 #include "TLVDecoder.h"
 #include "EsmInformationRequest.h"
-
+#if 0
 int decode_esm_information_request(
   esm_information_request_msg *esm_information_request,
   uint8_t *buffer,
@@ -42,6 +42,7 @@ int decode_esm_information_request(
    */
   OAILOG_FUNC_RETURN(LOG_NAS_ESM, decoded);
 }
+#endif
 
 int encode_esm_information_request(
   esm_information_request_msg *esm_information_request,

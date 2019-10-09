@@ -24,7 +24,7 @@
 #include "TLVEncoder.h"
 #include "TLVDecoder.h"
 #include "ServiceReject.h"
-
+#if 0
 int decode_service_reject(
   service_reject_msg *service_reject,
   uint8_t *buffer,
@@ -49,6 +49,7 @@ int decode_service_reject(
 
   return decoded;
 }
+#endif
 
 int encode_service_reject(
   service_reject_msg *service_reject,

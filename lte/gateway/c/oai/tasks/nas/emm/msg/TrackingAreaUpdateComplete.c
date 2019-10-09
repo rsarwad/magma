@@ -40,7 +40,7 @@ int decode_tracking_area_update_complete(
    */
   return decoded;
 }
-
+#if 0
 int encode_tracking_area_update_complete(
   tracking_area_update_complete_msg *tracking_area_update_complete,
   uint8_t *buffer,
@@ -55,3 +55,4 @@ int encode_tracking_area_update_complete(
     buffer, TRACKING_AREA_UPDATE_COMPLETE_MINIMUM_LENGTH, len);
   return encoded;
 }
+#endif

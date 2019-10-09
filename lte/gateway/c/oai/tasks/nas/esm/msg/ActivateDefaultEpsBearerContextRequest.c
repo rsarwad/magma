@@ -27,7 +27,7 @@
 #include "TLVDecoder.h"
 #include "ActivateDefaultEpsBearerContextRequest.h"
 #include "common_defs.h"
-
+#if 0
 int decode_activate_default_eps_bearer_context_request(
   activate_default_eps_bearer_context_request_msg
     *activate_default_eps_bearer_context_request,
@@ -230,6 +230,7 @@ int decode_activate_default_eps_bearer_context_request(
 
   return decoded;
 }
+#endif
 
 int encode_activate_default_eps_bearer_context_request(
   activate_default_eps_bearer_context_request_msg

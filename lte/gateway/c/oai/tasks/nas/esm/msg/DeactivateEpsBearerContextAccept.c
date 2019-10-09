@@ -79,7 +79,7 @@ int decode_deactivate_eps_bearer_context_accept(
 
   return decoded;
 }
-
+#if 0
 int encode_deactivate_eps_bearer_context_accept(
   deactivate_eps_bearer_context_accept_msg
     *deactivate_eps_bearer_context_accept,
@@ -113,3 +113,4 @@ int encode_deactivate_eps_bearer_context_accept(
 
   return encoded;
 }
+#endif

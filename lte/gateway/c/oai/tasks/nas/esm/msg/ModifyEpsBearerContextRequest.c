@@ -29,7 +29,7 @@
 #include "ApnAggregateMaximumBitRate.h"
 #include "ModifyEpsBearerContextRequest.h"
 #include "common_defs.h"
-
+#if 0
 int decode_modify_eps_bearer_context_request(
   modify_eps_bearer_context_request_msg *modify_eps_bearer_context_request,
   uint8_t *buffer,
@@ -199,7 +199,7 @@ int decode_modify_eps_bearer_context_request(
 
   return decoded;
 }
-
+#endif
 int encode_modify_eps_bearer_context_request(
   modify_eps_bearer_context_request_msg *modify_eps_bearer_context_request,
   uint8_t *buffer,

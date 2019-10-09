@@ -24,7 +24,7 @@
 #include "TLVEncoder.h"
 #include "TLVDecoder.h"
 #include "TrackingAreaUpdateReject.h"
-
+#if 0
 int decode_tracking_area_update_reject(
   tracking_area_update_reject_msg *tracking_area_update_reject,
   uint8_t *buffer,
@@ -52,7 +52,7 @@ int decode_tracking_area_update_reject(
 
   return decoded;
 }
-
+#endif
 int encode_tracking_area_update_reject(
   tracking_area_update_reject_msg *tracking_area_update_reject,
   uint8_t *buffer,

@@ -56,9 +56,9 @@ int decode_identity_response(
   uint8_t *buffer,
   uint32_t len);
 
-int encode_identity_response(
+/*int encode_identity_response(
   identity_response_msg *identityresponse,
   uint8_t *buffer,
   uint32_t len);
-
+*/
 #endif /* ! defined(FILE_IDENTITY_RESPONSE_SEEN) */

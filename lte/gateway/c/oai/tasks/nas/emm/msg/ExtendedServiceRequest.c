@@ -85,7 +85,7 @@ int decode_extended_service_request(
   }
   return decoded;
 }
-
+#if 0
 int encode_extended_service_request(
   extended_service_request_msg *extended_service_request,
   uint8_t *buffer,
@@ -127,3 +127,4 @@ int encode_extended_service_request(
 
   return encoded;
 }
+#endif
