@@ -14,10 +14,10 @@ from fabric.api import cd, env, execute, local, run, settings
 from fabric.operations import get
 
 sys.path.append('../../orc8r')
-import tools.fab.dev_utils as dev_utils
-import tools.fab.pkg as pkg
-from tools.fab.hosts import ansible_setup, split_hoststring, vagrant_setup
-from tools.fab.vagrant import setup_env_vagrant
+#import dev_utils as dev_utils
+import pkg as pkg
+from hosts import ansible_setup, split_hoststring, vagrant_setup
+from vagrant import setup_env_vagrant
 
 """
 Magma Gateway packaging tool:
@@ -112,37 +112,8 @@ def upload_to_aws():
 
     pkg.upload_pkgs_to_aws()
 
-
-def connect_gateway_to_cloud(control_proxy_setting_path=None,
-                             cert_path=DEFAULT_CERT):
-    """
-    Setup the gateway VM to connects to the cloud
-    Path to control_proxy.yml and rootCA.pem could be specified to use
-    non-default control proxy setting and certificates
-    """
-    setup_env_vagrant()
-    dev_utils.connect_gateway_to_cloud(control_proxy_setting_path, cert_path)
-
-
-def s1ap_setup_cloud():
-    """ Prepare VMs for s1ap tests touching the cloud. """
-    # Use the local cloud for integ tests
-    connect_gateway_to_cloud()
-
-    # Update the gateway's streamer timeout and restart services
-    run("sudo mkdir -p /var/opt/magma/configs")
-    _set_service_config_var('streamer', 'reconnect_sec', 3)
-
-    # Update the gateway's metricsd collect/sync intervals
-    _set_service_config_var('metricsd', 'collect_interval', 5)
-    _set_service_config_var('metricsd', 'sync_interval', 5)
-
-    run("sudo systemctl stop magma@*")
-    run("sudo systemctl restart magma@magmad")
-
-
 def integ_test(gateway_host=None, test_host=None, trf_host=None,
-               destroy_vm="True"):
+               destroy_vm="False"):
     """
     Run the integration tests. This defaults to running on local vagrant
     machines, but can also be pointed to an arbitrary host (e.g. amazon) by
@@ -172,12 +143,13 @@ def integ_test(gateway_host=None, test_host=None, trf_host=None,
         ansible_setup(gateway_host, "dev", "magma_dev.yml")
         gateway_ip = gateway_host.split('@')[1].split(':')[0]
 
-    execute(_dist_upgrade)
-    execute(_build_magma)
-    execute(_run_unit_tests)
-    execute(_python_coverage)
-    execute(_start_gateway)
+    #execute(_dist_upgrade)
+    #execute(_build_magma)
+    #execute(_run_unit_tests)
+    #execute(_python_coverage)
+    #execute(_start_gateway)
 
+    print("Rashmi done make run")
     # Run suite of integ tests that are required to be run on the access gateway
     # instead of the test VM
     # TODO: fix the integration test T38069907
@@ -185,16 +157,18 @@ def integ_test(gateway_host=None, test_host=None, trf_host=None,
 
     # Setup the trfserver: use the provided trfserver if given, else default to the
     # vagrant machine
+    print("Rashmi b4 trfserver")
     if not trf_host:
-        trf_host = vagrant_setup("magma_trfserver", destroy_vm)
+        trf_host = vagrant_setup("magma_trfserver", 1)
     else:
         ansible_setup(trf_host, "trfserver", "magma_trfserver.yml")
     execute(_start_trfserver)
 
     # Run the tests: use the provided test machine if given, else default to
     # the vagrant machine
+    print("Rashmi b4 magma_test")
     if not test_host:
-        test_host = vagrant_setup("magma_test", destroy_vm)
+        test_host = vagrant_setup("magma_test", 1)
     else:
         ansible_setup(test_host, "test", "magma_test.yml")
 

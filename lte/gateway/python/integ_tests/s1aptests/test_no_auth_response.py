@@ -7,13 +7,18 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
+import sys
 import unittest
 
 import orc8r.protos.metricsd_pb2 as metricsd
 import s1ap_types
 import s1ap_wrapper
+#sys.path.append('../../python/integ_tests')
 from python.integ_tests.common.service303_utils import MetricValue, \
     verify_gateway_metrics
+
+#from python/integ_tests/common.service303_utils import MetricValue, \
+#    verify_gateway_metrics
 
 
 class TestNoAuthResponse(unittest.TestCase):

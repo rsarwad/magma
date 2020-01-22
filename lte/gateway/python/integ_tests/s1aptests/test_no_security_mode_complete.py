@@ -12,7 +12,7 @@ import unittest
 import orc8r.protos.metricsd_pb2 as metricsd
 import s1ap_types
 import s1ap_wrapper
-from python.integ_tests.common.service303_utils import MetricValue, \
+from common.service303_utils import MetricValue, \
     verify_gateway_metrics
 
 
