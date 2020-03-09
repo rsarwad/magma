@@ -6,6 +6,7 @@ package resolver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -26,6 +27,7 @@ import (
 	"github.com/facebookincubator/symphony/graph/ent/locationtype"
 	"github.com/facebookincubator/symphony/graph/ent/property"
 	"github.com/facebookincubator/symphony/graph/ent/propertytype"
+	"github.com/facebookincubator/symphony/graph/ent/reportfilter"
 	"github.com/facebookincubator/symphony/graph/ent/service"
 	"github.com/facebookincubator/symphony/graph/ent/serviceendpoint"
 	"github.com/facebookincubator/symphony/graph/ent/servicetype"
@@ -50,6 +52,8 @@ type mutationResolver struct{ resolver }
 func (mutationResolver) Me(ctx context.Context) *viewer.Viewer {
 	return viewer.FromContext(ctx)
 }
+
+var BadID = -1
 
 func (mutationResolver) isEmptyProp(ptype *ent.PropertyType, input interface{}) (bool, error) {
 	var (
@@ -312,7 +316,8 @@ func (r mutationResolver) CreateCellScans(ctx context.Context, inputs []*models.
 	return scans, nil
 }
 
-func (r mutationResolver) CreateSurvey(ctx context.Context, data models.SurveyCreateData) (*int, error) {
+func (r mutationResolver) CreateSurvey(ctx context.Context, data models.SurveyCreateData) (int, error) {
+
 	client := r.ClientFrom(ctx)
 	query := client.Survey.
 		Create().
@@ -325,7 +330,7 @@ func (r mutationResolver) CreateSurvey(ctx context.Context, data models.SurveyCr
 	}
 	srv, err := query.Save(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating survey")
+		return BadID, errors.Wrap(err, "creating survey")
 	}
 
 	for _, sr := range data.SurveyResponses {
@@ -369,14 +374,14 @@ func (r mutationResolver) CreateSurvey(ctx context.Context, data models.SurveyCr
 					},
 				)
 			if err != nil {
-				return nil, err
+				return BadID, err
 			}
 			query.AddPhotoData(f)
 		}
 
 		question, err := query.Save(ctx)
 		if err != nil {
-			return nil, errors.Wrap(err, "creating survey question")
+			return BadID, errors.Wrap(err, "creating survey question")
 		}
 
 		switch *sr.QuestionFormat {
@@ -386,10 +391,10 @@ func (r mutationResolver) CreateSurvey(ctx context.Context, data models.SurveyCr
 			_, err = r.CreateCellScans(ctx, sr.CellData, &question.ID, nil)
 		}
 		if err != nil {
-			return nil, err
+			return BadID, err
 		}
 	}
-	return &srv.ID, nil
+	return srv.ID, nil
 }
 
 func (r mutationResolver) validateRootLocationUniqueness(ctx context.Context, typeid int, name string) error {
@@ -2666,13 +2671,13 @@ func (r mutationResolver) updateSurveyTemplateQuestion(ctx context.Context, inpu
 	return nil
 }
 
-func (r mutationResolver) MarkLocationPropertyAsExternalID(ctx context.Context, name string) (*string, error) {
+func (r mutationResolver) MarkLocationPropertyAsExternalID(ctx context.Context, name string) (string, error) {
 	client := r.ClientFrom(ctx)
 	sites, err := client.Location.Query().
 		Where(location.HasPropertiesWith(property.HasTypeWith(propertytype.Name(name)))).
 		All(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "querying locations with property")
+		return "", errors.Wrap(err, "querying locations with property")
 	}
 
 	for _, site := range sites {
@@ -2680,15 +2685,15 @@ func (r mutationResolver) MarkLocationPropertyAsExternalID(ctx context.Context, 
 			Where(property.HasTypeWith(propertytype.Name(name))).
 			Only(ctx)
 		if err != nil {
-			return nil, errors.Wrap(err, "querying property type")
+			return "", errors.Wrap(err, "querying property type")
 		}
 		if err := client.Location.UpdateOne(site).
 			SetExternalID(p.StringVal).
 			Exec(ctx); err != nil {
-			return nil, errors.Wrap(err, "updating external id")
+			return "", errors.Wrap(err, "updating external id")
 		}
 	}
-	return &name, nil
+	return name, nil
 }
 
 func (r mutationResolver) deleteLocationHierarchy(ctx context.Context, l *ent.Location) error {
@@ -2967,4 +2972,62 @@ func (r mutationResolver) TechnicianWorkOrderCheckIn(ctx context.Context, id int
 		return nil, fmt.Errorf("adding technician check-in comment: %w", err)
 	}
 	return wo, nil
+}
+
+func validateFilterTypeEntity(input models.ReportFilterInput) error {
+	var valid bool
+	for _, f := range input.Filters {
+		switch input.Entity {
+		case models.FilterEntityEquipment:
+			casted := models.EquipmentFilterType(f.FilterType)
+			valid = casted.IsValid()
+		case models.FilterEntityLink:
+			casted := models.LinkFilterType(f.FilterType)
+			valid = casted.IsValid()
+		case models.FilterEntityLocation:
+			casted := models.LocationFilterType(f.FilterType)
+			valid = casted.IsValid()
+		case models.FilterEntityPort:
+			casted := models.PortFilterType(f.FilterType)
+			valid = casted.IsValid()
+		case models.FilterEntityService:
+			casted := models.ServiceFilterType(f.FilterType)
+			valid = casted.IsValid()
+		case models.FilterEntityWorkOrder:
+			casted := models.WorkOrderFilterType(f.FilterType)
+			valid = casted.IsValid()
+		}
+		if !valid {
+			return fmt.Errorf("entity (%s) and filter type does not match: %s", input.Entity, f.FilterType)
+		}
+	}
+	return nil
+}
+
+func (r mutationResolver) AddReportFilter(ctx context.Context, input models.ReportFilterInput) (*ent.ReportFilter, error) {
+	client := r.ClientFrom(ctx)
+	err := validateFilterTypeEntity(input)
+	if err != nil {
+		return nil, err
+	}
+	fstr, err := json.Marshal(input.Filters)
+	if err != nil {
+		return nil, err
+	}
+	rf, err := client.ReportFilter.Create().
+		SetName(input.Name).
+		SetEntity(reportfilter.Entity(input.Entity)).
+		SetFilters(string(fstr)).
+		Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return rf, nil
+}
+
+func (r mutationResolver) EditReportFilter(ctx context.Context, input models.EditReportFilterInput) (*ent.ReportFilter, error) {
+	client := r.ClientFrom(ctx)
+	return client.ReportFilter.UpdateOneID(input.ID).
+		SetName(input.Name).
+		Save(ctx)
 }

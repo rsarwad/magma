@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# pyre-strict
 # Copyright (c) 2004-present Facebook All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
@@ -13,6 +12,7 @@ from dacite import Config, from_dict
 from .consts import (
     TYPE_AND_FIELD_NAME,
     DataTypeName,
+    Entity,
     PropertyDefinition,
     PropertyValue,
     ReturnType,
@@ -89,7 +89,7 @@ def get_graphql_property_type_inputs(
 
     for name, value in properties_dict.items():
         if name not in property_type_names:
-            raise EntityNotFoundError(entity="PropertyType", entity_name=name)
+            raise EntityNotFoundError(entity=Entity.PropertyType, entity_name=name)
         assert property_type_names[name][
             "isInstanceProperty"
         ], f"property {name} is not instance property"
@@ -147,7 +147,7 @@ def get_graphql_property_inputs(
 
     for name, value in properties_dict.items():
         if name not in property_type_names:
-            raise EntityNotFoundError(entity="PropertyType", entity_name=name)
+            raise EntityNotFoundError(entity=Entity.PropertyType, entity_name=name)
         assert property_type_names[name][
             "isInstanceProperty"
         ], f"property {name} is not instance property"
@@ -205,6 +205,10 @@ def _make_property_types(
         }
         for i, arg in enumerate(properties)
     ]
+    # pyre-fixme[7]: Expected `List[Dict[str, Union[Tuple[float, float], bool,
+    #  datetime.date, float, int, str]]]` but got `List[Union[Dict[str,
+    #  Optional[Union[bool, int, str]]], Dict[str, Union[Tuple[float, float], bool,
+    #  datetime.date, float, int, str]]]]`.
     return property_types
 
 
@@ -241,6 +245,10 @@ def format_property_definitions(
         }
         for i, prop in enumerate(properties)
     ]
+    # pyre-fixme[7]: Expected `List[Dict[str, Union[Tuple[float, float],
+    #  PropertyKind, bool, datetime.date, float, int, str]]]` but got
+    #  `List[Union[Dict[str, Optional[Union[PropertyKind, bool, int, str]]], Dict[str,
+    #  Union[Tuple[float, float], bool, datetime.date, float, int, str]]]]`.
     return property_types
 
 
