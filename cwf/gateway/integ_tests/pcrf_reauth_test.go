@@ -19,13 +19,12 @@ import (
 
 	"github.com/fiorix/go-diameter/v4/diam"
 	"github.com/go-openapi/swag"
-	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/stretchr/testify/assert"
 )
 
 func pcrfReAuthTestSetup(t *testing.T) (*TestRunner, *RuleManager, *cwfprotos.UEConfig) {
-	tr := NewTestRunner()
+	tr := NewTestRunner(t)
 	ruleManager, err := NewRuleManager()
 	assert.NoError(t, err)
 
@@ -40,7 +39,7 @@ func pcrfReAuthTestSetup(t *testing.T) (*TestRunner, *RuleManager, *cwfprotos.UE
 	assert.NoError(t, err)
 	err = ruleManager.AddStaticPassAllToDB("static-pass-all-raa2", "raakey2", 0, models.PolicyRuleTrackingTypeONLYPCRF, 150)
 	assert.NoError(t, err)
-	err = ruleManager.AddStaticPassAllToDB("static-pass-all-raa3", "raakey3", 0, models.PolicyRuleTrackingTypeONLYPCRF, 200)
+	err = ruleManager.AddStaticPassAllToDB("static-pass-all-raa3", "raakey2", 0, models.PolicyRuleTrackingTypeONLYPCRF, 200)
 	assert.NoError(t, err)
 	err = ruleManager.AddBaseNameMappingToDB("base-raa1", []string{"static-pass-all-raa3"})
 	assert.NoError(t, err)
@@ -49,8 +48,7 @@ func pcrfReAuthTestSetup(t *testing.T) (*TestRunner, *RuleManager, *cwfprotos.UE
 	err = ruleManager.AddRulesToPCRF(ue.GetImsi(), []string{"static-pass-all-raa1", "static-pass-all-raa2"}, []string{"base-raa1"})
 	assert.NoError(t, err)
 
-	// Wait for rules propagation
-	time.Sleep(2 * time.Second)
+	tr.WaitForPoliciesToSync()
 	return tr, ruleManager, ue
 }
 
@@ -65,9 +63,15 @@ func TestMidSessionRuleRemovalWithPolocyReAuth(t *testing.T) {
 	fmt.Println("\nRunning TestMidSessionRuleRemovalWithPolicyReAuth...")
 
 	tr, ruleManager, ue := pcrfReAuthTestSetup(t)
+	defer func() {
+		// Clear hss, ocs, and pcrf
+		assert.NoError(t, ruleManager.RemoveInstalledRules())
+		assert.NoError(t, tr.CleanUp())
+	}()
+
 	imsi := ue.GetImsi()
 
-	tr.AuthenticateAndAssertSuccess(t, imsi)
+	tr.AuthenticateAndAssertSuccess(imsi)
 
 	// Generate over 80% of the quota to trigger a CCR Update
 	req := &cwfprotos.GenTrafficRequest{
@@ -76,9 +80,7 @@ func TestMidSessionRuleRemovalWithPolocyReAuth(t *testing.T) {
 	}
 	_, err := tr.GenULTraffic(req)
 	assert.NoError(t, err)
-
-	// Wait for traffic to go through
-	time.Sleep(3 * time.Second)
+	tr.WaitForEnforcementStatsToSync()
 
 	// Check that UE mac flow is installed and traffic is less than the quota
 	recordsBySubID, err := tr.GetPolicyUsage()
@@ -98,9 +100,7 @@ func TestMidSessionRuleRemovalWithPolocyReAuth(t *testing.T) {
 		&fegprotos.PolicyReAuthTarget{Imsi: imsi, RulesToRemove: rulesRemoval},
 	)
 	assert.NoError(t, err)
-
-	// Wait for RAR to be processed
-	time.Sleep(3 * time.Second)
+	tr.WaitForReAuthToProcess()
 
 	// Check ReAuth success
 	assert.Contains(t, raa.SessionId, "IMSI"+imsi)
@@ -120,11 +120,6 @@ func TestMidSessionRuleRemovalWithPolocyReAuth(t *testing.T) {
 	// Trigger disconnection
 	_, err = tr.Disconnect(imsi)
 	assert.NoError(t, err)
-	time.Sleep(3 * time.Second)
-
-	// Clear hss, ocs, and pcrf
-	assert.NoError(t, ruleManager.RemoveInstalledRules())
-	assert.NoError(t, tr.CleanUp())
 	fmt.Println("wait for flows to get deactivated")
 	time.Sleep(3 * time.Second)
 }
@@ -141,9 +136,15 @@ func TestMidSessionAllRulesRemovalWithPolicyReAuth(t *testing.T) {
 	fmt.Println("\nRunning TestMidSessionAllRulesRemovalWithPolicyReAuth...")
 
 	tr, ruleManager, ue := pcrfReAuthTestSetup(t)
+	defer func() {
+		// Clear hss, ocs, and pcrf
+		assert.NoError(t, ruleManager.RemoveInstalledRules())
+		assert.NoError(t, tr.CleanUp())
+	}()
+
 	imsi := ue.GetImsi()
 
-	tr.AuthenticateAndAssertSuccess(t, imsi)
+	tr.AuthenticateAndAssertSuccess(imsi)
 
 	// Generate over 80% of the quota to trigger a CCR Update
 	req := &cwfprotos.GenTrafficRequest{
@@ -152,9 +153,7 @@ func TestMidSessionAllRulesRemovalWithPolicyReAuth(t *testing.T) {
 	}
 	_, err := tr.GenULTraffic(req)
 	assert.NoError(t, err)
-
-	// Wait for traffic to go through
-	time.Sleep(3 * time.Second)
+	tr.WaitForEnforcementStatsToSync()
 
 	// Check that UE mac flow is installed and traffic is less than the quota
 	recordsBySubID, err := tr.GetPolicyUsage()
@@ -174,9 +173,7 @@ func TestMidSessionAllRulesRemovalWithPolicyReAuth(t *testing.T) {
 		&fegprotos.PolicyReAuthTarget{Imsi: imsi, RulesToRemove: rulesRemoval},
 	)
 	assert.NoError(t, err)
-
-	// Wait for RAR to be processed
-	time.Sleep(3 * time.Second)
+	tr.WaitForReAuthToProcess()
 
 	// Check ReAuth success
 	assert.Contains(t, raa.SessionId, "IMSI"+imsi)
@@ -196,11 +193,6 @@ func TestMidSessionAllRulesRemovalWithPolicyReAuth(t *testing.T) {
 	// trigger disconnection
 	_, err = tr.Disconnect(imsi)
 	assert.NoError(t, err)
-	time.Sleep(3 * time.Second)
-
-	// Clear hss, ocs, and pcrf
-	assert.NoError(t, ruleManager.RemoveInstalledRules())
-	assert.NoError(t, tr.CleanUp())
 	fmt.Println("wait for flows to get deactivated")
 	time.Sleep(3 * time.Second)
 }
@@ -217,9 +209,14 @@ func TestMidSessionRuleInstallWithPolicyReAuth(t *testing.T) {
 	fmt.Println("\nRunning TestMidSessionRuleInstallWithPolicyReAuth...")
 
 	tr, ruleManager, ue := pcrfReAuthTestSetup(t)
+	defer func() {
+		// Clear hss, ocs, and pcrf
+		assert.NoError(t, ruleManager.RemoveInstalledRules())
+		assert.NoError(t, tr.CleanUp())
+	}()
 	imsi := ue.GetImsi()
 
-	tr.AuthenticateAndAssertSuccess(t, imsi)
+	tr.AuthenticateAndAssertSuccess(imsi)
 
 	// Generate over 80% of the quota to trigger a CCR Update
 	req := &cwfprotos.GenTrafficRequest{
@@ -228,9 +225,7 @@ func TestMidSessionRuleInstallWithPolicyReAuth(t *testing.T) {
 	}
 	_, err := tr.GenULTraffic(req)
 	assert.NoError(t, err)
-
-	// Wait for traffic to go through
-	time.Sleep(3 * time.Second)
+	tr.WaitForEnforcementStatsToSync()
 
 	// Check that UE mac flow is installed and traffic is less than the quota
 	recordsBySubID, err := tr.GetPolicyUsage()
@@ -240,11 +235,15 @@ func TestMidSessionRuleInstallWithPolicyReAuth(t *testing.T) {
 	assert.True(t, record1.BytesTx > uint64(0), fmt.Sprintf("%s did not pass any data", record1.RuleId))
 	assert.True(t, record1.BytesTx <= uint64(500*KiloBytes+Buffer), fmt.Sprintf("policy usage: %v", record1))
 
+	// Add a monitoring key
+	err = ruleManager.AddUsageMonitor(ue.GetImsi(), "raakey3", 500*KiloBytes, 250*KiloBytes)
+	assert.NoError(t, err)
+
 	// Install a Pass-All Rule with higher priority using PolicyReAuth
 	usageMonitoring := []*fegprotos.UsageMonitoringInformation{
 		{
 			MonitoringLevel: fegprotos.MonitoringLevel_RuleLevel,
-			MonitoringKey:   []byte("raakey4"),
+			MonitoringKey:   []byte("raakey3"),
 			Octets:          &fegprotos.Octets{TotalOctets: 250 * KiloBytes},
 		},
 	}
@@ -252,12 +251,11 @@ func TestMidSessionRuleInstallWithPolicyReAuth(t *testing.T) {
 		{
 			RuleName:         "pcrf-reauth-raa1",
 			Precedence:       50,
-			MonitoringKey:    "raakey4",
+			MonitoringKey:    "raakey3",
 			FlowDescriptions: []string{"permit out ip from any to any", "permit in ip from any to any"},
 		},
 	}
 	ruleInstall := &fegprotos.RuleInstalls{
-		RuleNames:       []string{"pcrf-reauth-raa1"},
 		RuleDefinitions: ruleDefinition,
 	}
 	raa, err := sendPolicyReAuthRequest(
@@ -268,9 +266,7 @@ func TestMidSessionRuleInstallWithPolicyReAuth(t *testing.T) {
 		},
 	)
 	assert.NoError(t, err)
-
-	// Wait for RAR to be processed
-	time.Sleep(3 * time.Second)
+	tr.WaitForReAuthToProcess()
 
 	// Check ReAuth success
 	assert.Contains(t, raa.SessionId, "IMSI"+imsi)
@@ -279,13 +275,12 @@ func TestMidSessionRuleInstallWithPolicyReAuth(t *testing.T) {
 	// Generate more traffic
 	_, err = tr.GenULTraffic(req)
 	assert.NoError(t, err)
-	time.Sleep(3 * time.Second)
+	tr.WaitForEnforcementStatsToSync()
 
 	// Check that UE mac flow is installed and traffic is less than the quota
 	recordsBySubID, err = tr.GetPolicyUsage()
 	assert.NoError(t, err)
 
-	glog.Error(recordsBySubID)
 	record2 := recordsBySubID["IMSI"+imsi]["pcrf-reauth-raa1"]
 	assert.NotNil(t, record2, fmt.Sprintf("Policy usage record for imsi: %v was removed", imsi))
 	if record2 != nil {
@@ -296,11 +291,110 @@ func TestMidSessionRuleInstallWithPolicyReAuth(t *testing.T) {
 	// trigger disconnection
 	_, err = tr.Disconnect(imsi)
 	assert.NoError(t, err)
+	fmt.Println("wait for flows to get deactivated")
 	time.Sleep(3 * time.Second)
+}
 
-	// Clear hss, ocs, and pcrf
-	assert.NoError(t, ruleManager.RemoveInstalledRules())
-	assert.NoError(t, tr.CleanUp())
+// - Install two static rules "static-pass-all-raa1" and "static-pass-all-raa2"
+//   and a rule base "base-raa1"
+// - Generate traffic and assert that there's > 0 data usage for the rule with the
+//   highest priority.
+// - Send a PCRF ReAuth request to install a new pass all rule with second higher priority
+//   and remove the rule with the highest priority
+// - Assert that the response is successful
+// - Generate traffic and assert that there's > 0 data usage for the newly installed
+//   rule.
+func TestMidSessionRuleRemovalAndInstallWithPolicyReAuth(t *testing.T) {
+	fmt.Println("\nRunning TestMidSessionRuleRemovalAndInstallWithPolicyReAuth...")
+
+	tr, ruleManager, ue := pcrfReAuthTestSetup(t)
+	defer func() {
+		// Clear hss, ocs, and pcrf
+		assert.NoError(t, ruleManager.RemoveInstalledRules())
+		assert.NoError(t, tr.CleanUp())
+	}()
+	imsi := ue.GetImsi()
+
+	tr.AuthenticateAndAssertSuccess(imsi)
+
+	// Generate over 80% of the quota to trigger a CCR Update
+	req := &cwfprotos.GenTrafficRequest{
+		Imsi:   imsi,
+		Volume: &wrappers.StringValue{Value: *swag.String("450K")},
+	}
+	_, err := tr.GenULTraffic(req)
+	assert.NoError(t, err)
+	tr.WaitForEnforcementStatsToSync()
+
+	// Check that UE mac flow is installed and traffic is less than the quota
+	recordsBySubID, err := tr.GetPolicyUsage()
+	assert.NoError(t, err)
+	record1 := recordsBySubID["IMSI"+imsi]["static-pass-all-raa1"]
+	assert.NotNil(t, record1, fmt.Sprintf("Policy usage record for imsi: %v was removed", imsi))
+	assert.True(t, record1.BytesTx > uint64(0), fmt.Sprintf("%s did not pass any data", record1.RuleId))
+	assert.True(t, record1.BytesTx <= uint64(500*KiloBytes+Buffer), fmt.Sprintf("policy usage: %v", record1))
+
+	// Remove the rule with the highest priority
+	rulesRemoval := &fegprotos.RuleRemovals{
+		RuleNames:     []string{"static-pass-all-raa1"},
+		RuleBaseNames: []string{""},
+	}
+
+	// Add a monitoring key
+	err = ruleManager.AddUsageMonitor(ue.GetImsi(), "raakey4", 500*KiloBytes, 250*KiloBytes)
+	assert.NoError(t, err)
+
+	// Install a Pass-All Rule with higher priority using PolicyReAuth
+	usageMonitoring := []*fegprotos.UsageMonitoringInformation{
+		{
+			MonitoringLevel: fegprotos.MonitoringLevel_RuleLevel,
+			MonitoringKey:   []byte("raakey5"),
+			Octets:          &fegprotos.Octets{TotalOctets: 250 * KiloBytes},
+		},
+	}
+	ruleDefinition := []*fegprotos.RuleDefinition{
+		{
+			RuleName:         "pcrf-reauth-raa2",
+			Precedence:       125,
+			MonitoringKey:    "raakey4",
+			FlowDescriptions: []string{"permit out ip from any to any", "permit in ip from any to any"},
+		},
+	}
+	ruleInstall := &fegprotos.RuleInstalls{
+		RuleDefinitions: ruleDefinition,
+	}
+	raa, err := sendPolicyReAuthRequest(
+		&fegprotos.PolicyReAuthTarget{
+			Imsi:                 imsi,
+			RulesToInstall:       ruleInstall,
+			RulesToRemove:        rulesRemoval,
+			UsageMonitoringInfos: usageMonitoring,
+		},
+	)
+	assert.NoError(t, err)
+	tr.WaitForReAuthToProcess()
+
+	// Check ReAuth success
+	assert.Contains(t, raa.SessionId, "IMSI"+imsi)
+	assert.Equal(t, uint32(diam.Success), raa.ResultCode)
+
+	// Generate more traffic
+	_, err = tr.GenULTraffic(req)
+	assert.NoError(t, err)
+	tr.WaitForEnforcementStatsToSync()
+
+	// Check that UE mac flow is installed and traffic is less than the quota
+	recordsBySubID, err = tr.GetPolicyUsage()
+	assert.NoError(t, err)
+
+	record2 := recordsBySubID["IMSI"+imsi]["pcrf-reauth-raa2"]
+	assert.NotNil(t, record2, fmt.Sprintf("Policy usage record for imsi: %v was removed", imsi))
+	assert.True(t, record2.BytesTx > uint64(0), fmt.Sprintf("%s did not pass any data", record2.RuleId))
+	assert.True(t, record2.BytesTx <= uint64(500*KiloBytes+Buffer), fmt.Sprintf("policy usage: %v", record2))
+
+	// trigger disconnection
+	_, err = tr.Disconnect(imsi)
+	assert.NoError(t, err)
 	fmt.Println("wait for flows to get deactivated")
 	time.Sleep(3 * time.Second)
 }

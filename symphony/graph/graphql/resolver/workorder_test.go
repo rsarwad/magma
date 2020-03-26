@@ -19,6 +19,7 @@ import (
 	"github.com/facebookincubator/symphony/graph/graphql/models"
 	"github.com/facebookincubator/symphony/graph/viewer/viewertest"
 
+	"github.com/99designs/gqlgen/client"
 	"github.com/AlekSi/pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -78,25 +79,25 @@ func createWorkOrder(ctx context.Context, t *testing.T, r TestResolver, name str
 }
 
 func executeWorkOrder(ctx context.Context, t *testing.T, mr generated.MutationResolver, workOrder ent.WorkOrder) (*models.WorkOrderExecutionResult, error) {
-	var ownerName *string
+	var ownerID *int
 	owner, _ := workOrder.QueryOwner().Only(ctx)
 	if owner != nil {
-		ownerName = &owner.Email
+		ownerID = &owner.ID
 	}
-	var assigneeName *string
+	var assigneeID *int
 	assignee, _ := workOrder.QueryAssignee().Only(ctx)
 	if assignee != nil {
-		assigneeName = &assignee.Email
+		assigneeID = &assignee.ID
 	}
 	_, err := mr.EditWorkOrder(ctx, models.EditWorkOrderInput{
 		ID:          workOrder.ID,
 		Name:        workOrder.Name,
 		Description: &workOrder.Description,
-		OwnerName:   ownerName,
+		OwnerID:     ownerID,
 		InstallDate: &workOrder.InstallDate,
 		Status:      models.WorkOrderStatusDone,
 		Priority:    models.WorkOrderPriorityNone,
-		Assignee:    assigneeName,
+		AssigneeID:  assigneeID,
 	})
 	require.NoError(t, err)
 	return mr.ExecuteWorkOrder(ctx, workOrder.ID)
@@ -174,8 +175,8 @@ func TestAddWorkOrderWithAssignee(t *testing.T) {
 	name := longWorkOrderName
 	description := longWorkOrderDesc
 	location := createLocation(ctx, t, *r)
-	assignee := longWorkOrderAssignee
-	viewertest.CreateUserEnt(ctx, r.client, assignee)
+	assigneeName := longWorkOrderAssignee
+	assignee := viewertest.CreateUserEnt(ctx, r.client, assigneeName)
 	woType, err := mr.AddWorkOrderType(ctx, models.AddWorkOrderTypeInput{Name: "example_type"})
 	require.NoError(t, err)
 	workOrder, err := mr.AddWorkOrder(ctx, models.AddWorkOrderInput{
@@ -187,20 +188,20 @@ func TestAddWorkOrderWithAssignee(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, workOrder.QueryAssignee().ExistX(ctx))
 
-	var ownerName *string
+	var ownerID *int
 	owner, _ := workOrder.QueryOwner().Only(ctx)
 	if owner != nil {
-		ownerName = &owner.Email
+		ownerID = &owner.ID
 	}
 
 	workOrder, err = mr.EditWorkOrder(ctx, models.EditWorkOrderInput{
 		ID:          workOrder.ID,
 		Name:        workOrder.Name,
 		Description: &workOrder.Description,
-		OwnerName:   ownerName,
+		OwnerID:     ownerID,
 		Status:      models.WorkOrderStatusPending,
 		Priority:    models.WorkOrderPriorityNone,
-		Assignee:    &assignee,
+		AssigneeID:  &assignee.ID,
 	})
 	require.NoError(t, err)
 
@@ -208,7 +209,7 @@ func TestAddWorkOrderWithAssignee(t *testing.T) {
 	require.NoError(t, err)
 	fetchedWorkOrder, ok := node.(*ent.WorkOrder)
 	require.True(t, ok)
-	require.Equal(t, &workOrder.QueryAssignee().OnlyX(ctx).Email, &assignee)
+	require.Equal(t, workOrder.QueryAssignee().OnlyXID(ctx), assignee.ID)
 
 	fetchedWorkOrderType, err := wr.WorkOrderType(ctx, fetchedWorkOrder)
 	require.NoError(t, err)
@@ -289,17 +290,17 @@ func TestAddWorkOrderWithPriority(t *testing.T) {
 	require.False(t, workOrder.QueryAssignee().ExistX(ctx))
 	require.EqualValues(t, pri, workOrder.Priority)
 
-	var ownerName *string
+	var ownerID *int
 	owner, _ := workOrder.QueryOwner().Only(ctx)
 	if owner != nil {
-		ownerName = &owner.Email
+		ownerID = &owner.ID
 	}
 
 	input := models.EditWorkOrderInput{
 		ID:          workOrder.ID,
 		Name:        workOrder.Name,
 		Description: &workOrder.Description,
-		OwnerName:   ownerName,
+		OwnerID:     ownerID,
 		Status:      models.WorkOrderStatusPending,
 		Priority:    models.WorkOrderPriorityHigh,
 		Index:       pointer.ToInt(42),
@@ -357,16 +358,16 @@ func TestAddWorkOrderWithProject(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, woNum)
 
-	var ownerName *string
+	var ownerID *int
 	owner, _ := workOrder.QueryOwner().Only(ctx)
 	if owner != nil {
-		ownerName = &owner.Email
+		ownerID = &owner.ID
 	}
 
 	workOrder, err = mr.EditWorkOrder(ctx, models.EditWorkOrderInput{
-		ID:        workOrder.ID,
-		Name:      workOrder.Name,
-		OwnerName: ownerName,
+		ID:      workOrder.ID,
+		Name:    workOrder.Name,
+		OwnerID: ownerID,
 	})
 	require.NoError(t, err)
 	fetchProject, err := workOrder.QueryProject().Only(ctx)
@@ -1781,4 +1782,72 @@ func TestTechnicianCheckinToWorkOrder(t *testing.T) {
 	comments, err := w.QueryComments().All(ctx)
 	require.NoError(t, err)
 	assert.Len(t, comments, 1)
+}
+
+func TestTechnicianUploadDataToWorkOrder(t *testing.T) {
+	r := newTestResolver(t)
+	defer r.drv.Close()
+	ctx := viewertest.NewContext(r.client)
+	mr := r.Mutation()
+	c := newGraphClient(t, r)
+
+	wo := createWorkOrder(ctx, t, *r, "Foo")
+	wo, err := mr.EditWorkOrder(ctx, models.EditWorkOrderInput{
+		ID:       wo.ID,
+		Name:     longWorkOrderName,
+		Assignee: pointer.ToString("tester@example.com"),
+		CheckListCategories: []*models.CheckListCategoryInput{{
+			Title: "Bar",
+			CheckList: []*models.CheckListItemInput{{
+				Title:   "Foo",
+				Type:    "simple",
+				Index:   pointer.ToInt(0),
+				Checked: pointer.ToBool(false),
+			}},
+		}},
+	})
+	require.NoError(t, err)
+
+	fooID, err := wo.QueryCheckListCategories().QueryCheckListItems().OnlyID(ctx)
+	require.NoError(t, err)
+	techInput := models.TechnicianWorkOrderUploadInput{
+		WorkOrderID: wo.ID,
+		Checklist: []*models.TechnicianCheckListItemInput{
+			{
+				ID:      fooID,
+				Checked: pointer.ToBool(true),
+			},
+		},
+	}
+
+	var rsp struct {
+		TechnicianWorkOrderUploadData struct {
+			ID                  string
+			CheckListCategories []struct {
+				CheckList []struct {
+					ID      string
+					Checked *bool
+				}
+			}
+		}
+	}
+	c.MustPost(
+		`mutation($input: TechnicianWorkOrderUploadInput!) {
+			technicianWorkOrderUploadData(input: $input) {
+				id
+				checkListCategories {
+					checkList {
+						id
+						checked
+					}
+				}
+			}
+		}`,
+		&rsp,
+		client.Var("input", techInput),
+	)
+
+	require.Len(t, rsp.TechnicianWorkOrderUploadData.CheckListCategories, 1)
+	require.Len(t, rsp.TechnicianWorkOrderUploadData.CheckListCategories[0].CheckList, 1)
+	require.True(t, *rsp.TechnicianWorkOrderUploadData.CheckListCategories[0].CheckList[0].Checked)
 }
