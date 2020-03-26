@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-from dataclasses import asdict
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Mapping, Optional, Tuple
 
 from gql.gql.client import OperationException
 from gql.gql.reporter import FailedOperationException
@@ -27,6 +26,7 @@ from ..graphql.equipment_type_and_properties_query import (
     EquipmentTypeAndPropertiesQuery,
 )
 from ..graphql.location_equipments_query import LocationEquipmentsQuery
+from ..graphql.property_kind_enum import PropertyKind
 from ..graphql.remove_equipment_mutation import RemoveEquipmentMutation
 
 
@@ -95,6 +95,32 @@ def get_equipment(client: SymphonyClient, name: str, location: Location) -> Equi
     return equipment
 
 
+def get_equipment_properties(
+    client: SymphonyClient, equipment: Equipment
+) -> Dict[str, PropertyValue]:
+    """Get specific equipment properties.
+
+        Args:
+            equipment (pyinventory.consts.Equipment object): equipment object
+
+        Returns:
+            Dict[str, PropertyValue]: dict of property name to property value
+            - str - property name
+            - PropertyValue - new value of the same type for this property
+
+        Example:
+            ```
+            location = client.get_location({("Country", "LS_IND_Prod_Copy")})
+            equipment = client.get_equipment("indProdCpy1_AIO", location) 
+            properties = client.get_equipment_properties(equipment=equipment)
+            ```
+    """
+    equipment_type, properties_dict = _get_equipment_type_and_properties_dict(
+        client, equipment
+    )
+    return properties_dict
+
+
 def _get_equipment_in_position_if_exists(
     client: SymphonyClient, parent_equipment: Equipment, position_name: str
 ) -> Optional[Equipment]:
@@ -113,6 +139,8 @@ def get_equipment_in_position(
             - `pyinventory.api.equipment.get_equipment_in_position`
             - `pyinventory.api.equipment.add_equipment`
             - `pyinventory.api.equipment.add_equipment_to_position`
+
+            position_name (str): position name
 
         Returns:
             pyinventory.consts.Equipment object: 
@@ -150,7 +178,7 @@ def add_equipment(
     name: str,
     equipment_type: str,
     location: Location,
-    properties_dict: Dict[str, PropertyValue],
+    properties_dict: Mapping[str, PropertyValue],
 ) -> Equipment:
     """Create a new equipment in a given location. 
         The equipment will be of the given equipment type, 
@@ -165,7 +193,7 @@ def add_equipment(
             - `pyinventory.api.location.get_location`
             - `pyinventory.api.location.add_location`
             
-            properties_dict (Dict[str, PropertyValue]): dict of property name to property value
+            properties_dict (Mapping[str, PropertyValue]): dict of property name to property value
             - str - property name
             - PropertyValue - new value of the same type for this property
 
@@ -197,7 +225,7 @@ def add_equipment(
             ```
     """
 
-    property_types = client.equipmentTypes[equipment_type].propertyTypes
+    property_types = client.equipmentTypes[equipment_type].property_types
     properties = get_graphql_property_inputs(property_types, properties_dict)
 
     add_equipment_input = AddEquipmentInput(
@@ -239,6 +267,7 @@ def edit_equipment(
     """Edit existing equipment.
 
         Args:
+            equipment (pyinventory.consts.Equipment object): equipment object
             new_name (Optional[str]): equipment new name
             new_properties (Optional[Dict[str, pyinventory.consts.PropertyValue]]): Dict, where
                 str - property name
@@ -258,7 +287,7 @@ def edit_equipment(
             ```
     """
     properties = []
-    property_types = client.equipmentTypes[equipment.equipment_type_name].propertyTypes
+    property_types = client.equipmentTypes[equipment.equipment_type_name].property_types
     if new_properties:
         properties = get_graphql_property_inputs(property_types, new_properties)
     edit_equipment_input = EditEquipmentInput(
@@ -336,7 +365,7 @@ def add_equipment_to_position(
     equipment_type: str,
     existing_equipment: Equipment,
     position_name: str,
-    properties_dict: Dict[str, PropertyValue],
+    properties_dict: Mapping[str, PropertyValue],
 ) -> Equipment:
     """Create a new equipment inside a given positionName of the given existingEquipment.
         The equipment will be of the given equipment type, with the given name and with the given properties.
@@ -352,7 +381,7 @@ def add_equipment_to_position(
             - `pyinventory.api.equipment.add_equipment_to_position`
             
             position_name (str): position name in the equipment type.            
-            properties_dict (Dict[str, PropertyValue]): dict of property name to property value
+            properties_dict (Mapping[str, PropertyValue]): dict of property name to property value
             - str - property name
             - PropertyValue - new value of the same type for this property
 
@@ -389,7 +418,7 @@ def add_equipment_to_position(
     position_definition_id, _ = _find_position_definition_id(
         client, existing_equipment, position_name
     )
-    property_types = client.equipmentTypes[equipment_type].propertyTypes
+    property_types = client.equipmentTypes[equipment_type].property_types
     properties = get_graphql_property_inputs(property_types, properties_dict)
 
     add_equipment_input = AddEquipmentInput(
@@ -504,13 +533,13 @@ def _get_equipment_type_and_properties_dict(
     equipment_type = result.equipmentType.name
 
     properties_dict = {}
-    property_types = client.equipmentTypes[equipment_type].propertyTypes
+    property_types = client.equipmentTypes[equipment_type].property_types
     for property in result.properties:
         property_type_id = property.propertyType.id
         property_types_with_id = [
             property_type
             for property_type in property_types
-            if property_type["id"] == property_type_id
+            if property_type.id == property_type_id
         ]
         assert (
             len(property_types_with_id) == 1
@@ -518,14 +547,11 @@ def _get_equipment_type_and_properties_dict(
             equipment_type, property_type_id
         )
         property_type = property_types_with_id[0]
-        property_value = _get_property_value(property_type["type"], asdict(property))
-        if property_type["type"] == "gps_location":
-            properties_dict[property_type["name"]] = (
-                property_value[0],
-                property_value[1],
-            )
+        property_value = _get_property_value(property_type.type.value, property)
+        if property_type.type == PropertyKind.gps_location:
+            properties_dict[property_type.name] = (property_value[0], property_value[1])
         else:
-            properties_dict[property_type["name"]] = property_value[0]
+            properties_dict[property_type.name] = property_value[0]
     return equipment_type, properties_dict
 
 
@@ -600,7 +626,7 @@ def get_equipment_type_of_equipment(
     """This function returns equipment type object of equipment.
 
         Args:
-            equipment (pyinventory.consts.Equipment object): equipment object to be copied
+            equipment (pyinventory.consts.Equipment object): equipment object
 
         Returns:
             pyinventory.consts.EquipmentType object
@@ -621,7 +647,7 @@ def get_or_create_equipment(
     name: str,
     equipment_type: str,
     location: Location,
-    properties_dict: Dict[str, PropertyValue],
+    properties_dict: Mapping[str, PropertyValue],
 ) -> Equipment:
     """This function checks if equipment existence in specific location by name, 
         in case it is not found by name, creates one.
@@ -632,7 +658,7 @@ def get_or_create_equipment(
             location (pyinventory.consts.Location object): location object could be retrieved from 
             - `pyinventory.api.location.get_location`
             - `pyinventory.api.location.add_location`            
-            properties_dict (Dict[str, PropertyValue]): dict of property name to property value
+            properties_dict (Mapping[str, PropertyValue]): dict of property name to property value
             - str - property name
             - PropertyValue - new value of the same type for this property
 
@@ -673,7 +699,7 @@ def get_or_create_equipment_in_position(
     equipment_type: str,
     existing_equipment: Equipment,
     position_name: str,
-    properties_dict: Dict[str, PropertyValue],
+    properties_dict: Mapping[str, PropertyValue],
 ) -> Equipment:
     """This function checks equipment existence in specific location by name, 
         in case it is not found by name, creates one.
@@ -683,7 +709,7 @@ def get_or_create_equipment_in_position(
             equipment_type (str): equipment type name
             existing_equipment (pyinventory.consts.Equipment object): existing equipment
             position_name (str): position name
-            properties_dict (Dict[str, PropertyValue]): dict of property name to property value
+            properties_dict (Mapping[str, PropertyValue]): dict of property name to property value
             - str - property name
             - PropertyValue - new value of the same type for this property
 

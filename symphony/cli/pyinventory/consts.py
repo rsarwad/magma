@@ -3,18 +3,38 @@
 from datetime import date, datetime
 from enum import Enum
 from numbers import Number
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
+from .graphql.equipment_port_definition_fragment import EquipmentPortDefinitionFragment
+from .graphql.equipment_position_definition_fragment import (
+    EquipmentPositionDefinitionFragment,
+)
 from .graphql.image_entity_enum import ImageEntity
+from .graphql.property_fragment import PropertyFragment
 from .graphql.property_kind_enum import PropertyKind
+from .graphql.property_type_fragment import PropertyTypeFragment
+from .graphql.user_role_enum import UserRole
+from .graphql.user_status_enum import UserStatus
 
 
-__version__ = "2.4.0"
+__version__ = "2.5.0"
 
 INVENTORY_ENDPOINT = "https://{}.thesymphony.cloud"
 LOCALHOST_INVENTORY_ENDPOINT = "https://{}.localtest.me"
 INVENTORY_GRAPHQL_ENDPOINT = "/graph/query"
 INVENTORY_STORE_PUT_ENDPOINT = "/store/put"
+INVENTORY_LOGIN_ENDPOINT = "/user/login"
 INVENTORY_STORE_DELETE_ENDPOINT = "/store/delete?key={}"
 
 
@@ -62,7 +82,7 @@ TYPE_AND_FIELD_NAME = {
 class LocationType(NamedTuple):
     name: str
     id: str
-    propertyTypes: List[Dict[str, PropertyValue]]
+    property_types: Sequence[PropertyTypeFragment]
 
 
 class Location(NamedTuple):
@@ -78,9 +98,9 @@ class EquipmentType(NamedTuple):
     name: str
     category: Optional[str]
     id: str
-    propertyTypes: List[Dict[str, PropertyValue]]
-    positionDefinitions: List[Dict[str, Any]]
-    portDefinitions: List[Dict[str, Any]]
+    property_types: Sequence[PropertyTypeFragment]
+    position_definitions: Sequence[EquipmentPositionDefinitionFragment]
+    port_definitions: Sequence[EquipmentPortDefinitionFragment]
 
 
 class EquipmentPortType(NamedTuple):
@@ -88,14 +108,14 @@ class EquipmentPortType(NamedTuple):
     Attributes:
         id (str): equipment port type ID
         name (str): equipment port type name
-        properties (List[Dict[str, PropertyValue]]): list of equipment port type propertyTypes to their default values
-        link_properties (List[Dict[str, PropertyValue]]): list of equipment port type linkPropertyTypes to their default values
+        property_types (List[Dict[str, PropertyValue]]): list of equipment port type propertyTypes to their default values
+        link_property_types (List[Dict[str, PropertyValue]]): list of equipment port type linkPropertyTypes to their default values
     """
 
     id: str
     name: str
-    properties: List[Dict[str, PropertyValue]]
-    link_properties: List[Dict[str, PropertyValue]]
+    property_types: Sequence[PropertyTypeFragment]
+    link_property_types: Sequence[PropertyTypeFragment]
 
 
 class Equipment(NamedTuple):
@@ -119,6 +139,7 @@ class Link(NamedTuple):
     """
 
     id: str
+    properties: Sequence[PropertyFragment]
     service_ids: List[str]
 
 
@@ -140,12 +161,12 @@ class EquipmentPort(NamedTuple):
     Attributes:
         id (str): equipment port ID
         properties (List[Dict[str, PropertyValue]]): list of equipment port properties
-        definition (pyinventory.Consts.EquipmentPortDefinition): port definition
+        definition (pyinventory.consts.EquipmentPortDefinition): port definition
         link (Optional[pyinventory.consts.Link]): link
     """
 
     id: str
-    properties: List[Dict[str, PropertyValue]]
+    properties: Sequence[PropertyFragment]
     definition: EquipmentPortDefinition
     link: Optional[Link]
 
@@ -164,7 +185,7 @@ class ServiceType(NamedTuple):
     name: str
     id: str
     hasCustomer: bool
-    propertyTypes: List[Dict[str, PropertyValue]]
+    property_types: Sequence[PropertyTypeFragment]
 
 
 class Customer(NamedTuple):
@@ -196,6 +217,14 @@ class Document(NamedTuple):
     category: Optional[str]
 
 
+class User(NamedTuple):
+    id: str
+    auth_id: str
+    email: str
+    status: UserStatus
+    role: UserRole
+
+
 class Entity(Enum):
     Location = "Location"
     LocationType = "LocationType"
@@ -212,3 +241,4 @@ class Entity(Enum):
     Document = "Document"
     PropertyType = "PropertyType"
     Property = "Property"
+    User = "User"

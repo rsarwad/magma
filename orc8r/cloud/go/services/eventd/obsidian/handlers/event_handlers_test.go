@@ -13,6 +13,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"magma/orc8r/cloud/go/services/eventd/obsidian/models"
+
 	"github.com/labstack/echo"
 	"github.com/olivere/elastic/v7"
 	"github.com/stretchr/testify/assert"
@@ -33,11 +35,11 @@ type queryParamTestCase struct {
 	expectedParams eventQueryParams
 }
 
-type eventMapTestCase struct {
-	name         string
-	jsonSource   string
-	expectedMaps []map[string]interface{}
-	expectsError bool
+type eventResultTestCase struct {
+	name            string
+	jsonSource      string
+	expectedResults []models.Event
+	expectsError    bool
 }
 
 var (
@@ -48,10 +50,12 @@ var (
 				StreamName: "streamOne",
 				EventType:  "an_event",
 				HardwareID: "hardware-2",
+				NetworkID:  "test_network",
 				Tag:        "critical",
 			},
 			expected: elastic.NewBoolQuery().
 				Filter(elastic.NewTermQuery("stream_name.keyword", "streamOne")).
+				Filter(elastic.NewTermQuery("network_id.keyword", "test_network")).
 				Filter(elastic.NewTermQuery("event_type.keyword", "an_event")).
 				Filter(elastic.NewTermQuery("hw_id.keyword", "hardware-2")).
 				Filter(elastic.NewTermQuery("event_tag.keyword", "critical")),
@@ -60,19 +64,23 @@ var (
 			name: "partial query params",
 			params: eventQueryParams{
 				StreamName: "streamTwo",
+				NetworkID:  "test_network_two",
 				EventType:  "an_event",
 			},
 			expected: elastic.NewBoolQuery().
 				Filter(elastic.NewTermQuery("stream_name.keyword", "streamTwo")).
+				Filter(elastic.NewTermQuery("network_id.keyword", "test_network_two")).
 				Filter(elastic.NewTermQuery("event_type.keyword", "an_event")),
 		},
 		{
-			name: "only StreamName",
+			name: "only required Path params",
 			params: eventQueryParams{
 				StreamName: "streamThree",
+				NetworkID:  "test_network_three",
 			},
 			expected: elastic.NewBoolQuery().
-				Filter(elastic.NewTermQuery("stream_name.keyword", "streamThree")),
+				Filter(elastic.NewTermQuery("stream_name.keyword", "streamThree")).
+				Filter(elastic.NewTermQuery("network_id.keyword", "test_network_three")),
 		},
 	}
 
@@ -84,39 +92,39 @@ var (
 			expectedParams: eventQueryParams{},
 		},
 		{
-			name:        "only stream_name",
-			urlString:   "",
-			paramNames:  []string{"stream_name"},
-			paramValues: []string{"streamOne"},
-			expectedParams: eventQueryParams{
-				StreamName: "streamOne",
-			},
+			name:         "only stream_name",
+			urlString:    "",
+			paramNames:   []string{"stream_name"},
+			paramValues:  []string{"streamOne"},
+			expectsError: true,
 		},
 		{
 			name:         "excess path params",
 			urlString:    "",
-			paramNames:   []string{"stream_name", "bad_param"},
-			paramValues:  []string{"streamOne", "bad_value"},
+			paramNames:   []string{"stream_name", "network_id", "bad_param"},
+			paramValues:  []string{"streamOne", "nw1", "bad_value"},
 			expectsError: false,
 			expectedParams: eventQueryParams{
 				StreamName: "streamOne",
+				NetworkID:  "nw1",
 			},
 		},
 		{
 			name:        "all query params",
 			urlString:   "?event_type=mock_subscriber_event&hardware_id=123&tag=critical",
-			paramNames:  []string{"stream_name"},
-			paramValues: []string{"streamOne"},
+			paramNames:  []string{"stream_name", "network_id"},
+			paramValues: []string{"streamOne", "nw1"},
 			expectedParams: eventQueryParams{
 				StreamName: "streamOne",
 				EventType:  "mock_subscriber_event",
 				HardwareID: "123",
+				NetworkID:  "nw1",
 				Tag:        "critical",
 			},
 		},
 	}
 
-	eventMapTestCases = []eventMapTestCase{
+	eventResultTestCases = []eventResultTestCase{
 		{
 			name: "all fields",
 			jsonSource: `{
@@ -126,14 +134,13 @@ var (
 				"event_tag": "d",
 				"value":"{ \"some_property\": true }"
 			}`,
-			expectedMaps: []map[string]interface{}{
+			expectedResults: []models.Event{
 				{
-					"stream_name":   "a",
-					"event_type":    "b",
-					"hardware_id":   "c",
-					"tag":           "d",
-					"some_property": true,
-					"timestamp":     "",
+					StreamName: "a",
+					EventType:  "b",
+					HardwareID: "c",
+					Tag:        "d",
+					Value:      map[string]interface{}{"some_property": true},
 				},
 			},
 		},
@@ -144,13 +151,11 @@ var (
 				"event_type": "b",
 				"value":"{}"
 			}`,
-			expectedMaps: []map[string]interface{}{
+			expectedResults: []models.Event{
 				{
-					"stream_name": "a",
-					"event_type":  "b",
-					"hardware_id": "",
-					"tag":         "",
-					"timestamp":   "",
+					StreamName: "a",
+					EventType:  "b",
+					Value:      map[string]interface{}{},
 				},
 			},
 		},
@@ -160,11 +165,16 @@ var (
 				"stream_name": "a",
 				"event_type": "b"
 			}`,
-			expectedMaps: []map[string]interface{}{},
 			expectsError: true,
 		},
 	}
 )
+
+func TestEventsPath(t *testing.T) {
+	assert.Equal(t,
+		"/magma/v1/events/:network_id/:stream_name",
+		EventsPath)
+}
 
 func TestElasticBoolQuery(t *testing.T) {
 	for _, test := range elasticCases {
@@ -199,27 +209,27 @@ func runQueryParamTestCase(t *testing.T, tc queryParamTestCase) {
 		assert.Error(t, err)
 	} else {
 		assert.NoError(t, err)
+		assert.Equal(t, tc.expectedParams, params)
 	}
-	assert.Equal(t, tc.expectedParams, params)
 }
 
-func TestGetEventMap(t *testing.T) {
-	for _, test := range eventMapTestCases {
+func TestGetEventResults(t *testing.T) {
+	for _, test := range eventResultTestCases {
 		t.Run(test.name, func(t *testing.T) {
-			runEventMapTestCase(t, test)
+			runEventResultTestCase(t, test)
 		})
 	}
 }
 
-func runEventMapTestCase(t *testing.T, tc eventMapTestCase) {
+func runEventResultTestCase(t *testing.T, tc eventResultTestCase) {
 	hit := elastic.SearchHit{
 		Source: []byte(tc.jsonSource),
 	}
-	maps, err := getEventMaps([]*elastic.SearchHit{&hit})
+	results, err := getEventResults([]*elastic.SearchHit{&hit})
 	if tc.expectsError {
 		assert.Error(t, err)
 	} else {
 		assert.NoError(t, err)
-		assert.Equal(t, tc.expectedMaps, maps)
+		assert.Equal(t, tc.expectedResults, results)
 	}
 }

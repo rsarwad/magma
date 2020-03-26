@@ -298,6 +298,10 @@ class SubscriberUtil(object):
         self._subscriber_client.wait_for_changes()
         return subscribers
 
+    def config_apn_data(self, imsi, apn_list):
+        """ Add APN details """
+        self._subscriber_client.config_apn_details(imsi, apn_list)
+
     def cleanup(self):
         """ Cleanup added subscriber from subscriberdb """
         self._subscriber_client.clean_up()
@@ -395,7 +399,7 @@ class SpgwUtil(object):
         """
         self._stub = SpgwServiceStub(get_rpc_channel("spgw_service"))
 
-    def create_bearer(self, imsi, lbi):
+    def create_bearer(self, imsi, lbi, qci_val=1):
         """
         Sends a CreateBearer Request to SPGW service
         """
@@ -406,7 +410,7 @@ class SpgwUtil(object):
             policy_rules=[
                 PolicyRule(
                     qos=FlowQos(
-                        qci=1,
+                        qci=qci_val,
                         gbr_ul=10000000,
                         gbr_dl=10000000,
                         max_req_bw_ul=10000000,

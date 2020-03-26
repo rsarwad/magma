@@ -19,10 +19,13 @@ type EntityDocumentsTable_files$ref = any;
 type EntityDocumentsTable_hyperlinks$ref = any;
 type LocationBreadcrumbsTitle_locationDetails$ref = any;
 type WorkOrderDetailsPane_workOrder$ref = any;
-export type CheckListItemType = "enum" | "simple" | "string" | "%future added value";
+export type CheckListItemEnumSelectionMode = "multiple" | "single" | "%future added value";
+export type CheckListItemType = "enum" | "files" | "simple" | "string" | "yes_no" | "%future added value";
+export type FileType = "FILE" | "IMAGE" | "%future added value";
 export type PropertyKind = "bool" | "date" | "datetime_local" | "email" | "enum" | "equipment" | "float" | "gps_location" | "int" | "location" | "range" | "service" | "string" | "%future added value";
 export type WorkOrderPriority = "HIGH" | "LOW" | "MEDIUM" | "NONE" | "URGENT" | "%future added value";
 export type WorkOrderStatus = "DONE" | "PENDING" | "PLANNED" | "%future added value";
+export type YesNoResponse = "NO" | "YES" | "%future added value";
 import type { FragmentReference } from "relay-runtime";
 declare export opaque type WorkOrderDetails_workOrder$ref: FragmentReference;
 declare export opaque type WorkOrderDetails_workOrder$fragmentType: WorkOrderDetails_workOrder$ref;
@@ -116,6 +119,19 @@ export type WorkOrderDetails_workOrder = {|
       +checked: ?boolean,
       +enumValues: ?string,
       +stringValue: ?string,
+      +enumSelectionMode: ?CheckListItemEnumSelectionMode,
+      +selectedEnumValues: ?string,
+      +yesNoResponse: ?YesNoResponse,
+      +files: $ReadOnlyArray<{|
+        +id: string,
+        +fileName: string,
+        +sizeInBytes: ?number,
+        +modified: ?any,
+        +uploaded: ?any,
+        +fileType: ?FileType,
+        +storeKey: ?string,
+        +category: ?string,
+      |}>,
     |}>,
   |}>,
   +$fragmentRefs: WorkOrderDetailsPane_workOrder$ref,
@@ -561,7 +577,89 @@ return {
               "args": null,
               "storageKey": null
             },
-            (v4/*: any*/)
+            (v4/*: any*/),
+            {
+              "kind": "ScalarField",
+              "alias": null,
+              "name": "enumSelectionMode",
+              "args": null,
+              "storageKey": null
+            },
+            {
+              "kind": "ScalarField",
+              "alias": null,
+              "name": "selectedEnumValues",
+              "args": null,
+              "storageKey": null
+            },
+            {
+              "kind": "ScalarField",
+              "alias": null,
+              "name": "yesNoResponse",
+              "args": null,
+              "storageKey": null
+            },
+            {
+              "kind": "LinkedField",
+              "alias": null,
+              "name": "files",
+              "storageKey": null,
+              "args": null,
+              "concreteType": "File",
+              "plural": true,
+              "selections": [
+                (v0/*: any*/),
+                {
+                  "kind": "ScalarField",
+                  "alias": null,
+                  "name": "fileName",
+                  "args": null,
+                  "storageKey": null
+                },
+                {
+                  "kind": "ScalarField",
+                  "alias": null,
+                  "name": "sizeInBytes",
+                  "args": null,
+                  "storageKey": null
+                },
+                {
+                  "kind": "ScalarField",
+                  "alias": null,
+                  "name": "modified",
+                  "args": null,
+                  "storageKey": null
+                },
+                {
+                  "kind": "ScalarField",
+                  "alias": null,
+                  "name": "uploaded",
+                  "args": null,
+                  "storageKey": null
+                },
+                {
+                  "kind": "ScalarField",
+                  "alias": null,
+                  "name": "fileType",
+                  "args": null,
+                  "storageKey": null
+                },
+                {
+                  "kind": "ScalarField",
+                  "alias": null,
+                  "name": "storeKey",
+                  "args": null,
+                  "storageKey": null
+                },
+                {
+                  "kind": "ScalarField",
+                  "alias": null,
+                  "name": "category",
+                  "args": null,
+                  "storageKey": null
+                }
+              ]
+            }
           ]
         }
       ]
@@ -575,5 +673,5 @@ return {
 };
 })();
 // prettier-ignore
-(node/*: any*/).hash = 'bc8c74843937fd2b05bcbf653f7c2a95';
+(node/*: any*/).hash = '1a3c8e5ce6150a007887c55714c726e8';
 module.exports = node;

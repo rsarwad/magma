@@ -15,6 +15,7 @@ import (
 	"net/http"
 
 	"magma/orc8r/cloud/go/obsidian"
+	"magma/orc8r/cloud/go/services/eventd/obsidian/models"
 
 	"github.com/golang/glog"
 	"github.com/labstack/echo"
@@ -23,32 +24,36 @@ import (
 
 const (
 	Events     = "events"
-	EventsPath = obsidian.V1Root + Events + obsidian.UrlSep + ":" + pathParamStreamName
+	EventsPath = obsidian.V1Root +
+		Events + obsidian.UrlSep +
+		":" + pathParamNetworkID + obsidian.UrlSep +
+		":" + pathParamStreamName
 
 	pathParamStreamName  = "stream_name"
+	pathParamNetworkID   = "network_id"
 	queryParamEventType  = "event_type"
 	queryParamHardwareID = "hardware_id"
 	queryParamTag        = "tag"
 
 	defaultQuerySize = 50
-	timestamp        = "timestamp"
 
 	// We use the ES "keyword" type for exact match
 	dotKeyword              = ".keyword"
 	elasticFilterStreamName = pathParamStreamName + dotKeyword
+	elasticFilterNetworkID  = pathParamNetworkID + dotKeyword
 	elasticFilterEventType  = queryParamEventType + dotKeyword
 	elasticFilterHardwareID = "hw_id" + dotKeyword
 	elasticFilterEventTag   = "event_tag" + dotKeyword // We use event_tag as fluentd uses the "tag" field
 )
 
-// Returns a Hander that uses the provided elastic client
+// GetEventsHandler returns a Hander that uses the provided elastic client
 func GetEventsHandler(client *elastic.Client) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		return EventsHandler(c, client)
 	}
 }
 
-// Handles event querying
+// EventsHandler handles event querying using ES
 func EventsHandler(c echo.Context, client *elastic.Client) error {
 	queryParams, err := getQueryParameters(c)
 	if err != nil {
@@ -73,16 +78,16 @@ func EventsHandler(c echo.Context, client *elastic.Client) error {
 			result.Error.Reason))
 	}
 
-	maps, err := getEventMaps(result.Hits.Hits)
+	eventResults, err := getEventResults(result.Hits.Hits)
 	if err != nil {
 		glog.Error(err)
 		return obsidian.HttpError(err, http.StatusInternalServerError)
 	}
 
-	return c.JSON(http.StatusOK, maps)
+	return c.JSON(http.StatusOK, eventResults)
 }
 
-type eventResult struct {
+type eventElasticHit struct {
 	StreamName string `json:"stream_name"`
 	EventType  string `json:"event_type"`
 	// FluentBit logs sent from AGW are tagged with hw_id
@@ -95,51 +100,50 @@ type eventResult struct {
 
 // Retrieve Event properties from the _source of
 // ES Hits, including event metadata
-func getEventMaps(hits []*elastic.SearchHit) ([]map[string]interface{}, error) {
-	results := []map[string]interface{}{}
+func getEventResults(hits []*elastic.SearchHit) ([]models.Event, error) {
+	results := []models.Event{}
 	for _, hit := range hits {
-		var result eventResult
+		var eventHit eventElasticHit
 		// Get Value from the _source
-		if err := json.Unmarshal(hit.Source, &result); err != nil {
+		if err := json.Unmarshal(hit.Source, &eventHit); err != nil {
 			return nil, fmt.Errorf("Unable to Unmarshal JSON from elastic.Hit. "+
 				"elastic.Hit.Source: %s, Error: %s", hit.Source, err)
 		}
 		// Skip hits without an event value
-		if result.Value == "" {
-			return nil, fmt.Errorf("eventResult %s does not contain a value", result)
+		if eventHit.Value == "" {
+			return nil, fmt.Errorf("eventResult %s does not contain a value", eventHit)
 		}
-		// Get event metadata
-		mapToAdd := map[string]interface{}{
-			pathParamStreamName:  result.StreamName,
-			queryParamEventType:  result.EventType,
-			queryParamHardwareID: result.HardwareID,
-			queryParamTag:        result.Tag,
-			timestamp:            result.Timestamp,
-		}
-		// Get event value fields
-		var eventValueMap map[string]interface{}
-		if err := json.Unmarshal([]byte(result.Value), &eventValueMap); err != nil {
+		var eventValue map[string]interface{}
+		if err := json.Unmarshal([]byte(eventHit.Value), &eventValue); err != nil {
 			return nil, fmt.Errorf("Unable to Unmarshal JSON from eventResult.Value. "+
-				"eventResult.Value: %s, Error: %s", hit.Source, err)
+				"eventHit.Value: %s, Error: %s", hit.Source, err)
 		}
-		for k, v := range eventValueMap {
-			mapToAdd[k] = v
-		}
-		results = append(results, mapToAdd)
+		results = append(results, models.Event{
+			StreamName: eventHit.StreamName,
+			EventType:  eventHit.EventType,
+			HardwareID: eventHit.HardwareID,
+			Tag:        eventHit.Tag,
+			Timestamp:  eventHit.Timestamp,
+			Value:      eventValue,
+		})
 	}
 	return results, nil
 }
 
 func getQueryParameters(c echo.Context) (eventQueryParams, error) {
-	pathParams, pathParamError := obsidian.GetParamValues(c, pathParamStreamName)
-	if pathParamError != nil {
-		return eventQueryParams{}, pathParamError
+	streamName := c.Param(pathParamStreamName)
+	if streamName == "" {
+		return eventQueryParams{}, StreamNameHTTPErr()
 	}
-	streamName := pathParams[0]
+	networkID, nerr := obsidian.GetNetworkId(c)
+	if nerr != nil {
+		return eventQueryParams{}, nerr
+	}
 	params := eventQueryParams{
 		StreamName: streamName,
 		EventType:  c.QueryParam(queryParamEventType),
 		HardwareID: c.QueryParam(queryParamHardwareID),
+		NetworkID:  networkID,
 		Tag:        c.QueryParam(queryParamTag),
 	}
 	return params, nil
@@ -149,12 +153,14 @@ type eventQueryParams struct {
 	StreamName string
 	EventType  string
 	HardwareID string
+	NetworkID  string
 	Tag        string
 }
 
 func (b *eventQueryParams) ToElasticBoolQuery() *elastic.BoolQuery {
 	query := elastic.NewBoolQuery()
 	query.Filter(elastic.NewTermQuery(elasticFilterStreamName, b.StreamName))
+	query.Filter(elastic.NewTermQuery(elasticFilterNetworkID, b.NetworkID))
 	if len(b.EventType) > 0 {
 		query.Filter(elastic.NewTermQuery(elasticFilterEventType, b.EventType))
 	}
@@ -165,4 +171,9 @@ func (b *eventQueryParams) ToElasticBoolQuery() *elastic.BoolQuery {
 		query.Filter(elastic.NewTermQuery(elasticFilterEventTag, b.Tag))
 	}
 	return query
+}
+
+// StreamNameHTTPErr indicates that stream_name is missing
+func StreamNameHTTPErr() *echo.HTTPError {
+	return obsidian.HttpError(fmt.Errorf("Missing stream name"), http.StatusBadRequest)
 }

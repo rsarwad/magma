@@ -6,7 +6,7 @@
 
  /**
  * @flow
- * @relayHash 7c90caee5746f98b2ad1b65ea1ca2203
+ * @relayHash c6a41dbc98ab4ebe8bce48e02ff70b08
  */
 
 /* eslint-disable */
@@ -15,9 +15,12 @@
 
 /*::
 import type { ConcreteRequest } from 'relay-runtime';
-export type CheckListItemType = "enum" | "simple" | "string" | "%future added value";
+export type CheckListItemEnumSelectionMode = "multiple" | "single" | "%future added value";
+export type CheckListItemType = "enum" | "files" | "simple" | "string" | "yes_no" | "%future added value";
+export type FileType = "FILE" | "IMAGE" | "%future added value";
 export type WorkOrderPriority = "HIGH" | "LOW" | "MEDIUM" | "NONE" | "URGENT" | "%future added value";
 export type WorkOrderStatus = "DONE" | "PENDING" | "PLANNED" | "%future added value";
+export type YesNoResponse = "NO" | "YES" | "%future added value";
 export type AddWorkOrderInput = {|
   name: string,
   description?: ?string,
@@ -27,8 +30,10 @@ export type AddWorkOrderInput = {|
   properties?: ?$ReadOnlyArray<PropertyInput>,
   checkList?: ?$ReadOnlyArray<CheckListItemInput>,
   ownerName?: ?string,
+  ownerId?: ?string,
   checkListCategories?: ?$ReadOnlyArray<CheckListCategoryInput>,
   assignee?: ?string,
+  assigneeId?: ?string,
   index?: ?number,
   status?: ?WorkOrderStatus,
   priority?: ?WorkOrderPriority,
@@ -57,8 +62,22 @@ export type CheckListItemInput = {|
   index?: ?number,
   helpText?: ?string,
   enumValues?: ?string,
+  enumSelectionMode?: ?CheckListItemEnumSelectionMode,
+  selectedEnumValues?: ?string,
   stringValue?: ?string,
   checked?: ?boolean,
+  files?: ?$ReadOnlyArray<FileInput>,
+  yesNoResponse?: ?YesNoResponse,
+|};
+export type FileInput = {|
+  id?: ?string,
+  fileName: string,
+  sizeInBytes?: ?number,
+  modificationTime?: ?number,
+  uploadTime?: ?number,
+  fileType?: ?FileType,
+  mimeType?: ?string,
+  storeKey: string,
 |};
 export type CheckListCategoryInput = {|
   id?: ?string,
@@ -91,6 +110,7 @@ export type AddWorkOrderMutationResponse = {|
       +id: string,
       +name: string,
     |},
+    +closeDate: ?any,
   |}
 |};
 export type AddWorkOrderMutation = {|
@@ -125,6 +145,7 @@ mutation AddWorkOrderMutation(
       id
       name
     }
+    closeDate
   }
 }
 */
@@ -245,6 +266,13 @@ v4 = [
         "concreteType": "Project",
         "plural": false,
         "selections": (v3/*: any*/)
+      },
+      {
+        "kind": "ScalarField",
+        "alias": null,
+        "name": "closeDate",
+        "args": null,
+        "storageKey": null
       }
     ]
   }
@@ -269,7 +297,7 @@ return {
     "operationKind": "mutation",
     "name": "AddWorkOrderMutation",
     "id": null,
-    "text": "mutation AddWorkOrderMutation(\n  $input: AddWorkOrderInput!\n) {\n  addWorkOrder(input: $input) {\n    id\n    name\n    description\n    ownerName\n    creationDate\n    installDate\n    status\n    assignee\n    location {\n      id\n      name\n    }\n    workOrderType {\n      id\n      name\n    }\n    project {\n      id\n      name\n    }\n  }\n}\n",
+    "text": "mutation AddWorkOrderMutation(\n  $input: AddWorkOrderInput!\n) {\n  addWorkOrder(input: $input) {\n    id\n    name\n    description\n    ownerName\n    creationDate\n    installDate\n    status\n    assignee\n    location {\n      id\n      name\n    }\n    workOrderType {\n      id\n      name\n    }\n    project {\n      id\n      name\n    }\n    closeDate\n  }\n}\n",
     "metadata": {}
   }
 };

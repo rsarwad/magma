@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import requests
 from gql.gql import gql
 from gql.gql.client import Client
+from requests.auth import AuthBase
 
 from .reporter import DUMMY_REPORTER, Reporter
 from .transport.session import RequestsHTTPSessionTransport
@@ -15,6 +16,8 @@ class GraphqlClient:
         self,
         graphql_endpoint_address: str,
         session: requests.Session,
+        client_name: str,
+        auth: Optional[AuthBase] = None,
         reporter: Reporter = DUMMY_REPORTER,
     ) -> None:
 
@@ -23,9 +26,7 @@ class GraphqlClient:
             Args:
                 graphql_endpoint_address (str): The graphql server address
                 auth (Optional[requests.auth.AuthBase], optional): Auth used
-                    to authenticate to graphql server
-                verify_ssl (bool): Used for testing environment where ssl
-                    certificate is invalid
+                    to authenticate to graphql server      
                 reporter (object, optional): Use reporter.InventoryReporter to
                             store reports on all successful and failed mutations
                             in inventory. The default is DummyReporter that
@@ -41,7 +42,9 @@ class GraphqlClient:
                 headers={
                     "Accept": "application/json",
                     "Content-Type": "application/json",
+                    "User-Agent": client_name,
                 },
+                auth=auth,
             ),
             fetch_schema_from_transport=True,
         )

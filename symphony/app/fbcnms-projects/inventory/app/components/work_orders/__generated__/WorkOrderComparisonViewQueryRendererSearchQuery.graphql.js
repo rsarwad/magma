@@ -6,7 +6,7 @@
 
  /**
  * @flow
- * @relayHash 0750167311f92733be723ecb6df537cd
+ * @relayHash a8dbfe3cdc6cb98b66075c37db27811b
  */
 
 /* eslint-disable */
@@ -19,7 +19,7 @@ type WorkOrdersMap_workOrders$ref = any;
 type WorkOrdersView_workOrder$ref = any;
 export type FilterOperator = "CONTAINS" | "DATE_GREATER_THAN" | "DATE_LESS_THAN" | "IS" | "IS_NOT_ONE_OF" | "IS_ONE_OF" | "%future added value";
 export type PropertyKind = "bool" | "date" | "datetime_local" | "email" | "enum" | "equipment" | "float" | "gps_location" | "int" | "location" | "range" | "service" | "string" | "%future added value";
-export type WorkOrderFilterType = "LOCATION_INST" | "WORK_ORDER_ASSIGNEE" | "WORK_ORDER_CREATION_DATE" | "WORK_ORDER_INSTALL_DATE" | "WORK_ORDER_LOCATION_INST" | "WORK_ORDER_NAME" | "WORK_ORDER_OWNER" | "WORK_ORDER_PRIORITY" | "WORK_ORDER_STATUS" | "WORK_ORDER_TYPE" | "%future added value";
+export type WorkOrderFilterType = "LOCATION_INST" | "WORK_ORDER_ASSIGNED_TO" | "WORK_ORDER_ASSIGNEE" | "WORK_ORDER_CREATION_DATE" | "WORK_ORDER_INSTALL_DATE" | "WORK_ORDER_LOCATION_INST" | "WORK_ORDER_NAME" | "WORK_ORDER_OWNED_BY" | "WORK_ORDER_OWNER" | "WORK_ORDER_PRIORITY" | "WORK_ORDER_STATUS" | "WORK_ORDER_TYPE" | "%future added value";
 export type WorkOrderFilterInput = {|
   filterType: WorkOrderFilterType,
   operator: FilterOperator,
@@ -120,6 +120,7 @@ fragment WorkOrdersView_workOrder on WorkOrder {
     id
     name
   }
+  closeDate
 }
 */
 
@@ -337,6 +338,13 @@ return {
               {
                 "kind": "ScalarField",
                 "alias": null,
+                "name": "closeDate",
+                "args": null,
+                "storageKey": null
+              },
+              {
+                "kind": "ScalarField",
+                "alias": null,
                 "name": "priority",
                 "args": null,
                 "storageKey": null
@@ -351,7 +359,7 @@ return {
     "operationKind": "query",
     "name": "WorkOrderComparisonViewQueryRendererSearchQuery",
     "id": null,
-    "text": "query WorkOrderComparisonViewQueryRendererSearchQuery(\n  $limit: Int\n  $filters: [WorkOrderFilterInput!]!\n) {\n  workOrderSearch(limit: $limit, filters: $filters) {\n    count\n    workOrders {\n      ...WorkOrdersView_workOrder\n      ...WorkOrdersMap_workOrders\n      id\n    }\n  }\n}\n\nfragment WorkOrdersMap_workOrders on WorkOrder {\n  id\n  name\n  description\n  ownerName\n  status\n  priority\n  assignee\n  installDate\n  location {\n    id\n    name\n    latitude\n    longitude\n  }\n}\n\nfragment WorkOrdersView_workOrder on WorkOrder {\n  id\n  name\n  description\n  ownerName\n  creationDate\n  installDate\n  status\n  assignee\n  location {\n    id\n    name\n  }\n  workOrderType {\n    id\n    name\n  }\n  project {\n    id\n    name\n  }\n}\n",
+    "text": "query WorkOrderComparisonViewQueryRendererSearchQuery(\n  $limit: Int\n  $filters: [WorkOrderFilterInput!]!\n) {\n  workOrderSearch(limit: $limit, filters: $filters) {\n    count\n    workOrders {\n      ...WorkOrdersView_workOrder\n      ...WorkOrdersMap_workOrders\n      id\n    }\n  }\n}\n\nfragment WorkOrdersMap_workOrders on WorkOrder {\n  id\n  name\n  description\n  ownerName\n  status\n  priority\n  assignee\n  installDate\n  location {\n    id\n    name\n    latitude\n    longitude\n  }\n}\n\nfragment WorkOrdersView_workOrder on WorkOrder {\n  id\n  name\n  description\n  ownerName\n  creationDate\n  installDate\n  status\n  assignee\n  location {\n    id\n    name\n  }\n  workOrderType {\n    id\n    name\n  }\n  project {\n    id\n    name\n  }\n  closeDate\n}\n",
     "metadata": {}
   }
 };

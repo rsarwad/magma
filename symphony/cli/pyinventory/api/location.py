@@ -7,7 +7,7 @@ from gql.gql.reporter import FailedOperationException
 
 from .._utils import deprecated, get_graphql_property_inputs
 from ..client import SymphonyClient
-from ..consts import Document, Entity, ImageEntity, Location
+from ..consts import Document, Entity, ImageEntity, Location, PropertyValue
 from ..exceptions import (
     EntityNotFoundError,
     LocationCannotBeDeletedWithDependency,
@@ -18,12 +18,12 @@ from ..graphql.add_location_input import AddLocationInput
 from ..graphql.add_location_mutation import AddLocationMutation
 from ..graphql.edit_location_input import EditLocationInput
 from ..graphql.edit_location_mutation import EditLocationMutation
+from ..graphql.get_locations_query import GetLocationsQuery
 from ..graphql.location_children_query import LocationChildrenQuery
 from ..graphql.location_deps_query import LocationDepsQuery
 from ..graphql.location_details_query import LocationDetailsQuery
 from ..graphql.location_documents_query import LocationDocumentsQuery
 from ..graphql.move_location_mutation import MoveLocationMutation
-from ..graphql.property_input import PropertyInput
 from ..graphql.remove_location_mutation import RemoveLocationMutation
 from ..graphql.search_query import SearchQuery
 
@@ -36,7 +36,7 @@ MOVE_LOCATION_MUTATION_NAME = "moveLocation"
 def add_location(
     client: SymphonyClient,
     location_hirerchy: List[Tuple[str, str]],
-    properties_dict: Dict[str, Any],
+    properties_dict: Dict[str, PropertyValue],
     lat: Optional[float] = None,
     long: Optional[float] = None,
     externalID: Optional[str] = None,
@@ -99,39 +99,38 @@ def add_location(
         lat_val = None
         long_val = None
         if i == len(location_hirerchy) - 1:
-            property_types = client.locationTypes[location_type].propertyTypes
+            property_types = client.locationTypes[location_type].property_types
             properties = get_graphql_property_inputs(property_types, properties_dict)
             lat_val = lat
             long_val = long
 
         if last_location is None:
-            locations = SearchQuery.execute(
+            search_results = SearchQuery.execute(
                 client, name=location_name
-            ).searchForEntity.edges
+            ).searchForNode.edges
 
-            locations = [
-                location.node
-                for location in locations
-                # pyre-fixme[16]: `Optional` has no attribute `entityType`.
-                if location.node.entityType == "location"
-                # pyre-fixme[16]: `Optional` has no attribute `type`.
-                and location.node.type == location_type
-                # pyre-fixme[16]: `Optional` has no attribute `name`.
-                and location.node.name == location_name
-            ]
+            locations = []
+            for search_result in search_results:
+                node = search_result.node
+                if (
+                    node is not None
+                    and node.typename == "Location"
+                    and node.locationType.name == location_type
+                    and node.name == location_name
+                ):
+                    locations.append(node)
+
             if len(locations) > 1:
                 raise LocationIsNotUniqueException(
                     location_name=location_name, location_type=location_type
                 )
             if len(locations) == 1:
                 location_details = LocationDetailsQuery.execute(
-                    client,
-                    # pyre-fixme[16]: `Optional` has no attribute `entityId`.
-                    id=locations[0].entityId,
+                    client, id=locations[0].id
                 ).location
                 if location_details is None:
                     raise EntityNotFoundError(
-                        entity=Entity.Location, entity_id=locations[0].entityId
+                        entity=Entity.Location, entity_id=locations[0].id
                     )
                 last_location = Location(
                     name=location_details.name,
@@ -286,15 +285,15 @@ def get_location(
         if last_location is None:
             entities = SearchQuery.execute(
                 client, name=location_name
-            ).searchForEntity.edges
+            ).searchForNode.edges
             nodes = [entity.node for entity in entities]
 
             locations = [
                 node
                 for node in nodes
                 if node is not None
-                and node.entityType == "location"
-                and node.type == location_type
+                and node.typename == "Location"
+                and node.locationType.name == location_type
                 and node.name == location_name
             ]
             if len(locations) == 0:
@@ -306,11 +305,11 @@ def get_location(
                     location_name=location_name, location_type=location_type
                 )
             location_details = LocationDetailsQuery.execute(
-                client, id=locations[0].entityId
+                client, id=locations[0].id
             ).location
             if location_details is None:
                 raise EntityNotFoundError(
-                    entity=Entity.Location, entity_id=locations[0].entityId
+                    entity=Entity.Location, entity_id=locations[0].id
                 )
             last_location = Location(
                 name=location_details.name,
@@ -352,6 +351,40 @@ def get_location(
     if last_location is None:
         raise LocationNotFoundException()
     return last_location
+
+
+def get_locations(client: SymphonyClient) -> List[Location]:
+    """This function returns all existing locations
+
+        Returns:
+            List[ pyinventory.consts.Location ]
+
+        Example:
+            ```
+            all_locations = client.get_locations()
+            ```
+    """
+    locations = GetLocationsQuery.execute(client).locations
+    if not locations:
+        return []
+    result = []
+    edges = locations.edges
+
+    for edge in edges:
+        node = edge.node
+        if node is not None:
+            result.append(
+                Location(
+                    name=node.name,
+                    id=node.id,
+                    latitude=node.latitude,
+                    longitude=node.longitude,
+                    externalId=node.externalId,
+                    locationTypeName=node.locationType.name,
+                )
+            )
+
+    return result
 
 
 def get_location_children(client: SymphonyClient, location_id: str) -> List[Location]:
@@ -400,7 +433,7 @@ def edit_location(
     new_lat: Optional[float] = None,
     new_long: Optional[float] = None,
     new_external_id: Optional[str] = None,
-    new_properties: Optional[Dict[str, Any]] = None,
+    new_properties: Optional[Dict[str, PropertyValue]] = None,
 ) -> Location:
     """This function returns edited location.
 
@@ -410,9 +443,9 @@ def edit_location(
             new_lat (Optional[float]): location new latitude
             new_long (Optional[float]): location new longitude
             new_external_id (Optional[float]): location new external ID
-            new_properties (Optional[Dict[str, Any]]): dict of property name to property value
+            new_properties (Optional[Dict[str, PropertyValue]]): dict of property name to property value
             - str - property name
-            - Any - new value of the same type for this property
+            - PropertyValue - new value of the same type for this property
 
         Returns:
             pyinventory.consts.Location object
@@ -436,7 +469,7 @@ def edit_location(
     """
     properties = []
     location_type = location.locationTypeName
-    property_types = client.locationTypes[location_type].propertyTypes
+    property_types = client.locationTypes[location_type].property_types
     if new_properties:
         properties = get_graphql_property_inputs(property_types, new_properties)
     if new_external_id is None:
@@ -483,6 +516,8 @@ def delete_location(client: SymphonyClient, location: Location) -> None:
         raise EntityNotFoundError(entity=Entity.Location, entity_id=location.id)
     if len(location_with_deps.files) > 0:
         raise LocationCannotBeDeletedWithDependency(location.name, "files")
+    if len(location_with_deps.images) > 0:
+        raise LocationCannotBeDeletedWithDependency(location.name, "images")
     if len(location_with_deps.children) > 0:
         raise LocationCannotBeDeletedWithDependency(location.name, "children")
     if len(location_with_deps.surveys) > 0:
@@ -566,21 +601,17 @@ def get_location_by_external_id(client: SymphonyClient, external_id: str) -> Loc
             location = client.get_location_by_external_id(external_id="12345")
             ```
     """
-    locations = SearchQuery.execute(client, name=external_id).searchForEntity.edges
+    locations = SearchQuery.execute(client, name=external_id).searchForNode.edges
     if not locations:
         raise LocationNotFoundException()
 
     location_details = None
     for location in locations:
         node = location.node
-        if node is not None and node.entityType == "location":
-            location_details = LocationDetailsQuery.execute(
-                client, id=node.entityId
-            ).location
+        if node is not None and node.typename == "Location":
+            location_details = LocationDetailsQuery.execute(client, id=node.id).location
             if location_details is None:
-                raise EntityNotFoundError(
-                    entity=Entity.Location, entity_id=node.entityId
-                )
+                raise EntityNotFoundError(entity=Entity.Location, entity_id=node.id)
             if location_details.externalId == external_id:
                 break
             else:
@@ -626,7 +657,7 @@ def get_location_documents(
     ).location
     if not location_with_documents:
         raise EntityNotFoundError(entity=Entity.Location, entity_id=location.id)
-    return [
+    files = [
         Document(
             name=file.fileName,
             id=file.id,
@@ -636,3 +667,15 @@ def get_location_documents(
         )
         for file in location_with_documents.files
     ]
+    images = [
+        Document(
+            name=file.fileName,
+            id=file.id,
+            parentId=location.id,
+            parentEntity=ImageEntity.LOCATION,
+            category=file.category,
+        )
+        for file in location_with_documents.images
+    ]
+
+    return files + images

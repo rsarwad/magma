@@ -98,7 +98,8 @@ void mme_app_convert_imsi_to_imsi_mme(
   mme_app_imsi_t* imsi_dst,
   const imsi_t* imsi_src);
 
-mme_ue_s1ap_id_t mme_app_ctx_get_new_ue_id(void);
+mme_ue_s1ap_id_t mme_app_ctx_get_new_ue_id(mme_ue_s1ap_id_t*
+                                           mme_app_ue_s1ap_id_generator_p);
 
 /*
  * Timer identifier returned when in inactive state (timer is stopped or has
@@ -108,14 +109,6 @@ mme_ue_s1ap_id_t mme_app_ctx_get_new_ue_id(void);
 
 #define MME_APP_DELTA_T3412_REACHABILITY_TIMER 4           // in minutes
 #define MME_APP_DELTA_REACHABILITY_IMPLICIT_DETACH_TIMER 0 // in minutes
-
-#define BEARER_STATE_NULL 0
-#define BEARER_STATE_SGW_CREATED (1 << 0)
-#define BEARER_STATE_MME_CREATED (1 << 1)
-#define BEARER_STATE_ENB_CREATED (1 << 2)
-#define BEARER_STATE_ACTIVE (1 << 3)
-#define BEARER_STATE_S1_RELEASED (1 << 4)
-typedef uint8_t mme_app_bearer_state_t;
 
 #define MME_APP_INITIAL_CONTEXT_SETUP_RSP_TIMER_VALUE 2 // In seconds
 #define MME_APP_UE_CONTEXT_MODIFICATION_TIMER_VALUE 2   // In seconds
@@ -158,7 +151,6 @@ typedef struct bearer_context_s {
   fteid_t p_gw_fteid_s5_s8_up;
 
   pdn_cid_t pdn_cx_id;
-  mme_app_bearer_state_t bearer_state;
   esm_ebr_context_t esm_ebr_context;
   fteid_t enb_fteid_s1u;
 
@@ -471,27 +463,19 @@ typedef struct ue_mm_context_s {
 } ue_mm_context_t;
 
 typedef struct mme_ue_context_s {
-  uint32_t nb_ue_managed;
-  uint32_t nb_ue_idle;
-
-  uint32_t nb_bearers_managed;
-
-  uint32_t nb_ue_since_last_stat;
-  uint32_t nb_bearers_since_last_stat;
-
-  hash_table_uint64_ts_t *imsi_ue_context_htbl;  // data is mme_ue_s1ap_id_t
-  hash_table_uint64_ts_t *tun11_ue_context_htbl; // data is mme_ue_s1ap_id_t
-  hash_table_ts_t *mme_ue_s1ap_id_ue_context_htbl;
-  hash_table_uint64_ts_t *enb_ue_s1ap_id_ue_context_htbl;
-  obj_hash_table_uint64_t *guti_ue_context_htbl; // data is mme_ue_s1ap_id_t
+  hash_table_uint64_ts_t* imsi_mme_ue_id_htbl;   // data is mme_ue_s1ap_id_t
+  hash_table_uint64_ts_t* tun11_ue_context_htbl; // data is mme_ue_s1ap_id_t
+  hash_table_uint64_ts_t*
+    enb_ue_s1ap_id_ue_context_htbl;              // data is mme_ue_s1ap_id_t
+  obj_hash_table_uint64_t* guti_ue_context_htbl; // data is mme_ue_s1ap_id_t
 } mme_ue_context_t;
 
 /** \brief Retrieve an UE context by selecting the provided IMSI
  * \param imsi Imsi to find in UE map
  * @returns an UE context matching the IMSI or NULL if the context doesn't exists
  **/
-ue_mm_context_t *mme_ue_context_exists_imsi(
-  mme_ue_context_t *const mme_ue_context,
+ue_mm_context_t* mme_ue_context_exists_imsi(
+  mme_ue_context_t* const mme_ue_context,
   const imsi64_t imsi);
 
 /** \brief Retrieve an UE context by selecting the provided S11 teid
@@ -506,8 +490,7 @@ ue_mm_context_t* mme_ue_context_exists_s11_teid(
  * \param mme_ue_s1ap_id The UE id identifier used in S1AP MME (and NAS)
  * @returns an UE context matching the mme_ue_s1ap_id or NULL if the context doesn't exists
  **/
-ue_mm_context_t *mme_ue_context_exists_mme_ue_s1ap_id(
-  mme_ue_context_t *const mme_ue_context,
+ue_mm_context_t* mme_ue_context_exists_mme_ue_s1ap_id(
   const mme_ue_s1ap_id_t mme_ue_s1ap_id);
 
 /** \brief Retrieve an UE context by selecting the provided enb_ue_s1ap_id
@@ -609,7 +592,7 @@ void mme_app_state_free_ue_context(void** ue_context_node);
 
 /** \brief Dump the UE contexts present in the tree
  **/
-void mme_app_dump_ue_contexts(const mme_ue_context_t *const mme_ue_context);
+void mme_app_dump_ue_contexts(void);
 
 void mme_app_handle_s1ap_ue_context_release_req(
   const itti_s1ap_ue_context_release_req_t* s1ap_ue_context_release_req);
@@ -621,11 +604,6 @@ bearer_context_t* mme_app_get_bearer_context(
 void mme_app_handle_enb_deregister_ind(
   const itti_s1ap_eNB_deregistered_ind_t* eNB_deregistered_ind);
 
-bearer_context_t* mme_app_get_bearer_context_by_state(
-  ue_mm_context_t* const ue_context,
-  const pdn_cid_t cid,
-  const mme_app_bearer_state_t state);
-
 ebi_t mme_app_get_free_bearer_id(ue_mm_context_t* const ue_context);
 
 void mme_app_free_bearer_context(bearer_context_t** bc);
@@ -636,11 +614,9 @@ void mme_app_send_delete_session_request(
   const pdn_cid_t cid);
 
 void mme_app_handle_s1ap_ue_context_modification_resp(
-    mme_ue_context_t *mme_ue_contexts_p,
-    const itti_s1ap_ue_context_mod_resp_t *s1ap_ue_context_mod_resp);
+  const itti_s1ap_ue_context_mod_resp_t* s1ap_ue_context_mod_resp);
 void mme_app_handle_s1ap_ue_context_modification_fail(
-    mme_ue_context_t *mme_ue_contexts_p,
-    const itti_s1ap_ue_context_mod_resp_fail_t *s1ap_ue_context_mod_fail);
+  const itti_s1ap_ue_context_mod_resp_fail_t* s1ap_ue_context_mod_fail);
 
 void mme_app_ue_sgs_context_free_content(
   sgs_context_t* const sgs_context_p,
