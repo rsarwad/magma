@@ -16,10 +16,10 @@ from lte.protos.mobilityd_pb2_grpc import MobilityServiceStub
 from magma.common.job import Job
 from magma.common.rpc_utils import grpc_async_wrapper
 from magma.common.service_registry import ServiceRegistry
-from magma.configuration.service_configs import load_service_config
 from magma.magmad.check.network_check import ping
 from magma.magmad.check.network_check.ping import PingCommandResult
 from magma.monitord.icmp_state import ICMPMonitoringResponse
+from magma.monitord.metrics import SUBSCRIBER_ICMP_LATENCY_MS
 from orc8r.protos.common_pb2 import Void
 
 NUM_PACKETS = 4
@@ -39,10 +39,10 @@ class ICMPMonitoring(Job):
     Class that handles main loop to send ICMP ping to valid subscribers.
     """
 
-    def __init__(self, polling_interval: int, service_loop):
+    def __init__(self, polling_interval: int, service_loop,
+                 mtr_interface: str):
         super().__init__(interval=CHECKIN_INTERVAL, loop=service_loop)
-        self._config = load_service_config("monitord")
-        self._MTR_PORT = self._config["mtr_interface"]
+        self._MTR_PORT = mtr_interface
         # Matching response time output to get latency
         self._polling_interval = max(polling_interval,
                                      DEFAULT_POLLING_INTERVAL)
@@ -70,7 +70,8 @@ class ICMPMonitoring(Job):
                 "GetSubscribers Error for %s! %s", err.code(), err.details())
             return []
 
-    async def _ping_subscribers(self, hosts: List[str], subscribers: List[IPAddress]):
+    async def _ping_subscribers(self, hosts: List[str],
+                                subscribers: List[IPAddress]):
         """
         Sends a count of ICMP pings to target IP address, returns response.
         Args:
@@ -81,7 +82,7 @@ class ICMPMonitoring(Job):
         ping_params = [
             ping.PingInterfaceCommandParams(host, NUM_PACKETS, self._MTR_PORT,
                                             TIMEOUT_SECS) for host in hosts]
-        ping_results = await ping.ping_async(ping_params, self._loop)
+        ping_results = await ping.ping_interface_async(ping_params, self._loop)
         ping_results_list = list(ping_results)
         for sub, result in zip(subscribers, ping_results_list):
             sid = "IMSI%s" % sub.sid.id
@@ -102,6 +103,7 @@ class ICMPMonitoring(Job):
         self._subscriber_state[sid] = ICMPMonitoringResponse(
             last_reported_time=int(reported_time),
             latency_ms=ping_resp.stats.rtt_avg)
+        SUBSCRIBER_ICMP_LATENCY_MS.labels(sid).observe(ping_resp.stats.rtt_avg)
         logging.info(
             '{} => {}ms'.format(sid, self._subscriber_state[sid].latency_ms))
 
@@ -109,7 +111,7 @@ class ICMPMonitoring(Job):
         return self._subscriber_state
 
     async def _run(self) -> None:
-        logging.info("Running on interface %s ..." % self._MTR_PORT)
+        logging.info("Running on interface %s..." % self._MTR_PORT)
         while True:
             try:
                 subscribers = await self._get_subscribers()
