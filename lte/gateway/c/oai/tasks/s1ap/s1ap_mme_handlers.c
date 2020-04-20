@@ -2519,8 +2519,7 @@ int s1ap_mme_handle_enb_reset(
               "%d "
               "\n",
               mme_ue_s1ap_id);
-            // TBD - Here MME should send Error Indication as it is abnormal scenario.
-            OAILOG_FUNC_RETURN(LOG_S1AP, RETURNerror);
+            reset_req->ue_to_reset_list[i].mme_ue_s1ap_id = mme_ue_s1ap_id;
           }
         } else {
           if (s1_sig_conn_id_p->eNB_UE_S1AP_ID != NULL) {
@@ -2539,8 +2538,8 @@ int s1ap_mme_handle_enb_reset(
                 imsi64,
                 "Partial Reset Request without any valid S1 signaling "
                 "connection.Ignoring it \n");
-              // TBD - Here MME should send Error Indication as it is abnormal scenario.
-              OAILOG_FUNC_RETURN(LOG_S1AP, RETURNerror);
+              reset_req->ue_to_reset_list[i].enb_ue_s1ap_id = enb_ue_s1ap_id;
+              reset_req->ue_to_reset_list[i].mme_ue_s1ap_id = -1;
             }
           } else {
             OAILOG_ERROR_UE(
@@ -2548,7 +2547,8 @@ int s1ap_mme_handle_enb_reset(
               imsi64,
               "Partial Reset Request without any valid S1 signaling "
               "connection.Ignoring it \n");
-            // TBD - Here MME should send Error Indication as it is abnormal scenario.
+            // TBD - Here MME should send Error Indication as it is abnormal
+            // scenario.
             OAILOG_FUNC_RETURN(LOG_S1AP, RETURNerror);
           }
         }
