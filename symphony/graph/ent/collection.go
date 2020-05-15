@@ -37,6 +37,18 @@ func (clc *CheckListCategoryQuery) collectField(ctx *graphql.OperationContext, f
 }
 
 // CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (clcd *CheckListCategoryDefinitionQuery) CollectFields(ctx context.Context, satisfies ...string) *CheckListCategoryDefinitionQuery {
+	if fc := graphql.GetFieldContext(ctx); fc != nil {
+		clcd = clcd.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
+	}
+	return clcd
+}
+
+func (clcd *CheckListCategoryDefinitionQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *CheckListCategoryDefinitionQuery {
+	return clcd
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
 func (cli *CheckListItemQuery) CollectFields(ctx context.Context, satisfies ...string) *CheckListItemQuery {
 	if fc := graphql.GetFieldContext(ctx); fc != nil {
 		cli = cli.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
@@ -686,18 +698,6 @@ func (swfs *SurveyWiFiScanQuery) CollectFields(ctx context.Context, satisfies ..
 
 func (swfs *SurveyWiFiScanQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *SurveyWiFiScanQuery {
 	return swfs
-}
-
-// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
-func (t *TechnicianQuery) CollectFields(ctx context.Context, satisfies ...string) *TechnicianQuery {
-	if fc := graphql.GetFieldContext(ctx); fc != nil {
-		t = t.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
-	}
-	return t
-}
-
-func (t *TechnicianQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *TechnicianQuery {
-	return t
 }
 
 // CollectFields tells the query-builder to eagerly load connected nodes by resolver context.

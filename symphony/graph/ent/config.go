@@ -30,6 +30,7 @@ type config struct {
 type hooks struct {
 	ActionsRule                 []ent.Hook
 	CheckListCategory           []ent.Hook
+	CheckListCategoryDefinition []ent.Hook
 	CheckListItem               []ent.Hook
 	CheckListItemDefinition     []ent.Hook
 	Comment                     []ent.Hook
@@ -66,7 +67,6 @@ type hooks struct {
 	SurveyTemplateCategory      []ent.Hook
 	SurveyTemplateQuestion      []ent.Hook
 	SurveyWiFiScan              []ent.Hook
-	Technician                  []ent.Hook
 	User                        []ent.Hook
 	UsersGroup                  []ent.Hook
 	WorkOrder                   []ent.Hook

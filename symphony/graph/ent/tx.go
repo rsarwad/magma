@@ -20,6 +20,8 @@ type Tx struct {
 	ActionsRule *ActionsRuleClient
 	// CheckListCategory is the client for interacting with the CheckListCategory builders.
 	CheckListCategory *CheckListCategoryClient
+	// CheckListCategoryDefinition is the client for interacting with the CheckListCategoryDefinition builders.
+	CheckListCategoryDefinition *CheckListCategoryDefinitionClient
 	// CheckListItem is the client for interacting with the CheckListItem builders.
 	CheckListItem *CheckListItemClient
 	// CheckListItemDefinition is the client for interacting with the CheckListItemDefinition builders.
@@ -92,8 +94,6 @@ type Tx struct {
 	SurveyTemplateQuestion *SurveyTemplateQuestionClient
 	// SurveyWiFiScan is the client for interacting with the SurveyWiFiScan builders.
 	SurveyWiFiScan *SurveyWiFiScanClient
-	// Technician is the client for interacting with the Technician builders.
-	Technician *TechnicianClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 	// UsersGroup is the client for interacting with the UsersGroup builders.
@@ -163,6 +163,7 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.ActionsRule = NewActionsRuleClient(tx.config)
 	tx.CheckListCategory = NewCheckListCategoryClient(tx.config)
+	tx.CheckListCategoryDefinition = NewCheckListCategoryDefinitionClient(tx.config)
 	tx.CheckListItem = NewCheckListItemClient(tx.config)
 	tx.CheckListItemDefinition = NewCheckListItemDefinitionClient(tx.config)
 	tx.Comment = NewCommentClient(tx.config)
@@ -199,7 +200,6 @@ func (tx *Tx) init() {
 	tx.SurveyTemplateCategory = NewSurveyTemplateCategoryClient(tx.config)
 	tx.SurveyTemplateQuestion = NewSurveyTemplateQuestionClient(tx.config)
 	tx.SurveyWiFiScan = NewSurveyWiFiScanClient(tx.config)
-	tx.Technician = NewTechnicianClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 	tx.UsersGroup = NewUsersGroupClient(tx.config)
 	tx.WorkOrder = NewWorkOrderClient(tx.config)

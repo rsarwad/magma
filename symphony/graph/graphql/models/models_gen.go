@@ -14,6 +14,7 @@ import (
 
 	"github.com/facebookincubator/symphony/graph/authz/models"
 	"github.com/facebookincubator/symphony/graph/ent"
+	"github.com/facebookincubator/symphony/graph/ent/checklistitem"
 	"github.com/facebookincubator/symphony/graph/ent/user"
 	"github.com/facebookincubator/symphony/graph/ent/usersgroup"
 	"github.com/facebookincubator/symphony/pkg/actions/core"
@@ -177,6 +178,7 @@ type AddPermissionsPolicyInput struct {
 	IsGlobal       *bool                        `json:"isGlobal"`
 	InventoryInput *models.InventoryPolicyInput `json:"inventoryInput"`
 	WorkforceInput *models.WorkforcePolicyInput `json:"workforceInput"`
+	Groups         []int                        `json:"groups"`
 }
 
 type AddProjectInput struct {
@@ -206,6 +208,8 @@ type AddServiceEndpointInput struct {
 type AddUsersGroupInput struct {
 	Name        string  `json:"name"`
 	Description *string `json:"description"`
+	Members     []int   `json:"members"`
+	Policies    []int   `json:"policies"`
 }
 
 type AddWorkOrderInput struct {
@@ -227,11 +231,10 @@ type AddWorkOrderInput struct {
 }
 
 type AddWorkOrderTypeInput struct {
-	Name                string                      `json:"name"`
-	Description         *string                     `json:"description"`
-	Properties          []*PropertyTypeInput        `json:"properties"`
-	CheckList           []*CheckListDefinitionInput `json:"checkList"`
-	CheckListCategories []*CheckListCategoryInput   `json:"checkListCategories"`
+	Name                string                              `json:"name"`
+	Description         *string                             `json:"description"`
+	Properties          []*PropertyTypeInput                `json:"properties"`
+	CheckListCategories []*CheckListCategoryDefinitionInput `json:"checkListCategories"`
 }
 
 type AdministrativePolicy struct {
@@ -248,6 +251,13 @@ type Cud struct {
 	Delete *BasicPermissionRule `json:"delete"`
 }
 
+type CheckListCategoryDefinitionInput struct {
+	ID          *int                        `json:"id"`
+	Title       string                      `json:"title"`
+	Description *string                     `json:"description"`
+	CheckList   []*CheckListDefinitionInput `json:"checkList"`
+}
+
 type CheckListCategoryInput struct {
 	ID          *int                  `json:"id"`
 	Title       string                `json:"title"`
@@ -256,27 +266,28 @@ type CheckListCategoryInput struct {
 }
 
 type CheckListDefinitionInput struct {
-	ID         *int              `json:"id"`
-	Title      string            `json:"title"`
-	Type       CheckListItemType `json:"type"`
-	Index      *int              `json:"index"`
-	EnumValues *string           `json:"enumValues"`
-	HelpText   *string           `json:"helpText"`
+	ID                *int                                  `json:"id"`
+	Title             string                                `json:"title"`
+	Type              CheckListItemType                     `json:"type"`
+	Index             *int                                  `json:"index"`
+	EnumValues        *string                               `json:"enumValues"`
+	EnumSelectionMode *checklistitem.EnumSelectionModeValue `json:"enumSelectionMode"`
+	HelpText          *string                               `json:"helpText"`
 }
 
 type CheckListItemInput struct {
-	ID                 *int                            `json:"id"`
-	Title              string                          `json:"title"`
-	Type               CheckListItemType               `json:"type"`
-	Index              *int                            `json:"index"`
-	HelpText           *string                         `json:"helpText"`
-	EnumValues         *string                         `json:"enumValues"`
-	EnumSelectionMode  *CheckListItemEnumSelectionMode `json:"enumSelectionMode"`
-	SelectedEnumValues *string                         `json:"selectedEnumValues"`
-	StringValue        *string                         `json:"stringValue"`
-	Checked            *bool                           `json:"checked"`
-	Files              []*FileInput                    `json:"files"`
-	YesNoResponse      *YesNoResponse                  `json:"yesNoResponse"`
+	ID                 *int                                  `json:"id"`
+	Title              string                                `json:"title"`
+	Type               CheckListItemType                     `json:"type"`
+	Index              *int                                  `json:"index"`
+	HelpText           *string                               `json:"helpText"`
+	EnumValues         *string                               `json:"enumValues"`
+	EnumSelectionMode  *checklistitem.EnumSelectionModeValue `json:"enumSelectionMode"`
+	SelectedEnumValues *string                               `json:"selectedEnumValues"`
+	StringValue        *string                               `json:"stringValue"`
+	Checked            *bool                                 `json:"checked"`
+	Files              []*FileInput                          `json:"files"`
+	YesNoResponse      *YesNoResponse                        `json:"yesNoResponse"`
 }
 
 type CommentInput struct {
@@ -351,6 +362,7 @@ type EditPermissionsPolicyInput struct {
 	IsGlobal       *bool                        `json:"isGlobal"`
 	InventoryInput *models.InventoryPolicyInput `json:"inventoryInput"`
 	WorkforceInput *models.WorkforcePolicyInput `json:"workforceInput"`
+	Groups         []int                        `json:"groups"`
 }
 
 type EditProjectInput struct {
@@ -390,6 +402,8 @@ type EditUsersGroupInput struct {
 	Name        *string            `json:"name"`
 	Description *string            `json:"description"`
 	Status      *usersgroup.Status `json:"status"`
+	Members     []int              `json:"members"`
+	Policies    []int              `json:"policies"`
 }
 
 type EditWorkOrderInput struct {
@@ -412,12 +426,11 @@ type EditWorkOrderInput struct {
 }
 
 type EditWorkOrderTypeInput struct {
-	ID                  int                         `json:"id"`
-	Name                string                      `json:"name"`
-	Description         *string                     `json:"description"`
-	Properties          []*PropertyTypeInput        `json:"properties"`
-	CheckList           []*CheckListDefinitionInput `json:"checkList"`
-	CheckListCategories []*CheckListCategoryInput   `json:"checkListCategories"`
+	ID                  int                                 `json:"id"`
+	Name                string                              `json:"name"`
+	Description         *string                             `json:"description"`
+	Properties          []*PropertyTypeInput                `json:"properties"`
+	CheckListCategories []*CheckListCategoryDefinitionInput `json:"checkListCategories"`
 }
 
 type EquipmentFilterInput struct {
@@ -846,11 +859,6 @@ type TechnicianCheckListItemInput struct {
 	FilesData          []*FileInput          `json:"filesData"`
 }
 
-type TechnicianInput struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
-}
-
 type TechnicianWorkOrderUploadInput struct {
 	WorkOrderID int                             `json:"workOrderId"`
 	Checklist   []*TechnicianCheckListItemInput `json:"checklist"`
@@ -862,28 +870,10 @@ type TopologyLink struct {
 	Target ent.Noder        `json:"target"`
 }
 
-type UpdateGroupsInPermissionsPolicyInput struct {
-	ID             int   `json:"id"`
-	AddGroupIds    []int `json:"addGroupIds"`
-	RemoveGroupIds []int `json:"removeGroupIds"`
-}
-
-type UpdatePermissionsPoliciesInUsersGroupInput struct {
-	ID                         int   `json:"id"`
-	AddPermissionsPolicyIds    []int `json:"addPermissionsPolicyIds"`
-	RemovePermissionsPolicyIds []int `json:"removePermissionsPolicyIds"`
-}
-
 type UpdateUserGroupsInput struct {
 	ID             int   `json:"id"`
 	AddGroupIds    []int `json:"addGroupIds"`
 	RemoveGroupIds []int `json:"removeGroupIds"`
-}
-
-type UpdateUsersGroupMembersInput struct {
-	ID            int   `json:"id"`
-	AddUserIds    []int `json:"addUserIds"`
-	RemoveUserIds []int `json:"removeUserIds"`
 }
 
 type UserFilterInput struct {
@@ -959,9 +949,9 @@ type WorkforcePermissionRule struct {
 }
 
 type WorkforcePolicy struct {
-	Read      *BasicPermissionRule `json:"read"`
-	Data      *WorkforceCud        `json:"data"`
-	Templates *Cud                 `json:"templates"`
+	Read      *WorkforcePermissionRule `json:"read"`
+	Data      *WorkforceCud            `json:"data"`
+	Templates *Cud                     `json:"templates"`
 }
 
 func (WorkforcePolicy) IsSystemPolicy() {}
@@ -1008,47 +998,6 @@ func (e *CellularNetworkType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e CellularNetworkType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-type CheckListItemEnumSelectionMode string
-
-const (
-	CheckListItemEnumSelectionModeSingle   CheckListItemEnumSelectionMode = "single"
-	CheckListItemEnumSelectionModeMultiple CheckListItemEnumSelectionMode = "multiple"
-)
-
-var AllCheckListItemEnumSelectionMode = []CheckListItemEnumSelectionMode{
-	CheckListItemEnumSelectionModeSingle,
-	CheckListItemEnumSelectionModeMultiple,
-}
-
-func (e CheckListItemEnumSelectionMode) IsValid() bool {
-	switch e {
-	case CheckListItemEnumSelectionModeSingle, CheckListItemEnumSelectionModeMultiple:
-		return true
-	}
-	return false
-}
-
-func (e CheckListItemEnumSelectionMode) String() string {
-	return string(e)
-}
-
-func (e *CheckListItemEnumSelectionMode) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = CheckListItemEnumSelectionMode(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid CheckListItemEnumSelectionMode", str)
-	}
-	return nil
-}
-
-func (e CheckListItemEnumSelectionMode) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
@@ -1147,16 +1096,18 @@ func (e CommentEntity) MarshalGQL(w io.Writer) {
 type DiscoveryMethod string
 
 const (
+	DiscoveryMethodManual    DiscoveryMethod = "MANUAL"
 	DiscoveryMethodInventory DiscoveryMethod = "INVENTORY"
 )
 
 var AllDiscoveryMethod = []DiscoveryMethod{
+	DiscoveryMethodManual,
 	DiscoveryMethodInventory,
 }
 
 func (e DiscoveryMethod) IsValid() bool {
 	switch e {
-	case DiscoveryMethodInventory:
+	case DiscoveryMethodManual, DiscoveryMethodInventory:
 		return true
 	}
 	return false
@@ -1807,6 +1758,7 @@ type ServiceFilterType string
 const (
 	ServiceFilterTypeServiceInstName         ServiceFilterType = "SERVICE_INST_NAME"
 	ServiceFilterTypeServiceStatus           ServiceFilterType = "SERVICE_STATUS"
+	ServiceFilterTypeServiceDiscoveryMethod  ServiceFilterType = "SERVICE_DISCOVERY_METHOD"
 	ServiceFilterTypeServiceType             ServiceFilterType = "SERVICE_TYPE"
 	ServiceFilterTypeServiceInstExternalID   ServiceFilterType = "SERVICE_INST_EXTERNAL_ID"
 	ServiceFilterTypeServiceInstCustomerName ServiceFilterType = "SERVICE_INST_CUSTOMER_NAME"
@@ -1818,6 +1770,7 @@ const (
 var AllServiceFilterType = []ServiceFilterType{
 	ServiceFilterTypeServiceInstName,
 	ServiceFilterTypeServiceStatus,
+	ServiceFilterTypeServiceDiscoveryMethod,
 	ServiceFilterTypeServiceType,
 	ServiceFilterTypeServiceInstExternalID,
 	ServiceFilterTypeServiceInstCustomerName,
@@ -1828,7 +1781,7 @@ var AllServiceFilterType = []ServiceFilterType{
 
 func (e ServiceFilterType) IsValid() bool {
 	switch e {
-	case ServiceFilterTypeServiceInstName, ServiceFilterTypeServiceStatus, ServiceFilterTypeServiceType, ServiceFilterTypeServiceInstExternalID, ServiceFilterTypeServiceInstCustomerName, ServiceFilterTypeProperty, ServiceFilterTypeLocationInst, ServiceFilterTypeEquipmentInService:
+	case ServiceFilterTypeServiceInstName, ServiceFilterTypeServiceStatus, ServiceFilterTypeServiceDiscoveryMethod, ServiceFilterTypeServiceType, ServiceFilterTypeServiceInstExternalID, ServiceFilterTypeServiceInstCustomerName, ServiceFilterTypeProperty, ServiceFilterTypeLocationInst, ServiceFilterTypeEquipmentInService:
 		return true
 	}
 	return false

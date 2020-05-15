@@ -14,9 +14,11 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/facebookincubator/symphony/graph/authz"
 	"github.com/facebookincubator/symphony/graph/ent/location"
 	"github.com/facebookincubator/symphony/graph/viewer"
 	"github.com/facebookincubator/symphony/graph/viewer/viewertest"
+	"github.com/facebookincubator/symphony/pkg/log/logtest"
 
 	"github.com/stretchr/testify/require"
 )
@@ -28,7 +30,8 @@ func TestEmptyWOExport(t *testing.T) {
 	log := r.exporter.log
 
 	e := &exporter{log, equipmentRower{log}}
-	th := viewer.TenancyHandler(e, viewer.NewFixedTenancy(r.client))
+	auth := authz.Handler(e, logtest.NewTestLogger(t))
+	th := viewer.TenancyHandler(auth, viewer.NewFixedTenancy(r.client), logtest.NewTestLogger(t))
 	server := httptest.NewServer(th)
 	defer server.Close()
 
@@ -67,7 +70,8 @@ func TestExport(t *testing.T) {
 	log := r.exporter.log
 
 	e := &exporter{log, equipmentRower{log}}
-	th := viewer.TenancyHandler(e, viewer.NewFixedTenancy(r.client))
+	auth := authz.Handler(e, logtest.NewTestLogger(t))
+	th := viewer.TenancyHandler(auth, viewer.NewFixedTenancy(r.client), logtest.NewTestLogger(t))
 	server := httptest.NewServer(th)
 	defer server.Close()
 
@@ -156,7 +160,8 @@ func TestExportWithFilters(t *testing.T) {
 	log := r.exporter.log
 	ctx := viewertest.NewContext(context.Background(), r.client)
 	e := &exporter{log, equipmentRower{log}}
-	th := viewer.TenancyHandler(e, viewer.NewFixedTenancy(r.client))
+	auth := authz.Handler(e, logtest.NewTestLogger(t))
+	th := viewer.TenancyHandler(auth, viewer.NewFixedTenancy(r.client), logtest.NewTestLogger(t))
 	server := httptest.NewServer(th)
 	defer server.Close()
 

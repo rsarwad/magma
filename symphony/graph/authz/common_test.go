@@ -7,15 +7,20 @@ package authz_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
-	models2 "github.com/facebookincubator/symphony/graph/authz/models"
+	"github.com/facebookincubator/symphony/graph/ent/user"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/facebookincubator/symphony/graph/authz"
 	"github.com/facebookincubator/symphony/graph/ent/privacy"
+
+	models2 "github.com/facebookincubator/symphony/graph/authz/models"
+
 	"github.com/facebookincubator/symphony/graph/graphql/models"
 	"github.com/facebookincubator/symphony/graph/viewer/viewertest"
-	"github.com/stretchr/testify/require"
 )
 
 type policyTest struct {
@@ -25,33 +30,71 @@ type policyTest struct {
 	operation          func(ctx context.Context) error
 }
 
+type contextBasedPolicyTest struct {
+	operationName          string
+	noPermissionsContext   context.Context
+	withPermissionsContext context.Context
+	operation              func(ctx context.Context) error
+}
+
 type cudPolicyTest struct {
 	getCud             func(p *models.PermissionSettings) *models.Cud
 	initialPermissions func(p *models.PermissionSettings)
+	appendPermissions  func(p *models.PermissionSettings)
 	create             func(ctx context.Context) error
 	update             func(ctx context.Context) error
 	delete             func(ctx context.Context) error
 }
 
 func runPolicyTest(t *testing.T, tests []policyTest) {
+	var contextBasedTests []contextBasedPolicyTest
+	for _, test := range tests {
+		c := viewertest.NewTestClient(t)
+		noPermissions := authz.EmptyPermissions()
+		if test.initialPermissions != nil {
+			test.initialPermissions(noPermissions)
+		}
+		noPermissionsContext := viewertest.NewContext(
+			context.Background(),
+			c,
+			viewertest.WithUser("user"),
+			viewertest.WithRole(user.RoleUSER),
+			viewertest.WithPermissions(noPermissions))
+		withPermissions := authz.EmptyPermissions()
+		if test.initialPermissions != nil {
+			test.initialPermissions(withPermissions)
+		}
+		test.appendPermissions(withPermissions)
+		withPermissionsContext := viewertest.NewContext(
+			context.Background(),
+			c,
+			viewertest.WithUser("user"),
+			viewertest.WithRole(user.RoleUSER),
+			viewertest.WithPermissions(withPermissions))
+
+		contextBasedTests = append(contextBasedTests, contextBasedPolicyTest{
+			operationName:          test.operationName,
+			noPermissionsContext:   noPermissionsContext,
+			withPermissionsContext: withPermissionsContext,
+			operation:              test.operation,
+		})
+	}
+	runContextBasedPolicyTest(t, contextBasedTests)
+}
+
+func runContextBasedPolicyTest(t *testing.T, tests []contextBasedPolicyTest) {
 	for _, test := range tests {
 		t.Run(test.operationName, func(t *testing.T) {
-			for name, allowed := range map[string]bool{"Denied": true, "Allowed": false} {
+			modes := map[string]bool{"Denied": false, "Allowed": true}
+			for _, name := range []string{"Denied", "Allowed"} {
 				t.Run(name, func(t *testing.T) {
-					c := viewertest.NewTestClient(t)
-					permissions := authz.EmptyPermissions()
-					if test.initialPermissions != nil {
-						test.initialPermissions(permissions)
-					}
+					allowed := modes[name]
 					if allowed {
-						test.appendPermissions(permissions)
-					}
-					ctx := viewertest.NewContext(context.Background(), c, viewertest.WithPermissions(permissions))
-					err := test.operation(ctx)
-					if allowed {
+						err := test.operation(test.withPermissionsContext)
 						require.NoError(t, err)
 					} else {
-						require.True(t, errors.Is(err, privacy.Deny))
+						err := test.operation(test.noPermissionsContext)
+						require.True(t, errors.Is(err, privacy.Deny), fmt.Sprintf("Error is %v", err))
 					}
 				})
 			}
@@ -65,7 +108,11 @@ func runCudPolicyTest(t *testing.T, test cudPolicyTest) {
 			operationName:      "Create",
 			initialPermissions: test.initialPermissions,
 			appendPermissions: func(p *models.PermissionSettings) {
-				test.getCud(p).Create.IsAllowed = models2.PermissionValueYes
+				if test.appendPermissions != nil {
+					test.appendPermissions(p)
+				} else {
+					test.getCud(p).Create.IsAllowed = models2.PermissionValueYes
+				}
 			},
 			operation: test.create,
 		},
@@ -73,7 +120,11 @@ func runCudPolicyTest(t *testing.T, test cudPolicyTest) {
 			operationName:      "Update",
 			initialPermissions: test.initialPermissions,
 			appendPermissions: func(p *models.PermissionSettings) {
-				test.getCud(p).Update.IsAllowed = models2.PermissionValueYes
+				if test.appendPermissions != nil {
+					test.appendPermissions(p)
+				} else {
+					test.getCud(p).Update.IsAllowed = models2.PermissionValueYes
+				}
 			},
 			operation: test.update,
 		},
@@ -81,7 +132,11 @@ func runCudPolicyTest(t *testing.T, test cudPolicyTest) {
 			operationName:      "Delete",
 			initialPermissions: test.initialPermissions,
 			appendPermissions: func(p *models.PermissionSettings) {
-				test.getCud(p).Delete.IsAllowed = models2.PermissionValueYes
+				if test.appendPermissions != nil {
+					test.appendPermissions(p)
+				} else {
+					test.getCud(p).Delete.IsAllowed = models2.PermissionValueYes
+				}
 			},
 			operation: test.delete,
 		},

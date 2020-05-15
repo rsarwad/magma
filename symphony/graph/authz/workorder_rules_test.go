@@ -18,17 +18,20 @@ import (
 	"github.com/facebookincubator/symphony/graph/graphql/models"
 	"github.com/facebookincubator/symphony/graph/viewer"
 	"github.com/facebookincubator/symphony/graph/viewer/viewertest"
+	"github.com/google/uuid"
 
 	"github.com/stretchr/testify/require"
 )
 
 func prepareWorkOrderData(ctx context.Context, c *ent.Client) (*ent.WorkOrderType, *ent.WorkOrder) {
 	u := viewer.MustGetOrCreateUser(ctx, "AuthID", user.RoleOWNER)
+	workOrderTypeName := uuid.New().String()
+	workOrderName := uuid.New().String()
 	workOrderType := c.WorkOrderType.Create().
-		SetName("WorkOrderType").
+		SetName(workOrderTypeName).
 		SaveX(ctx)
 	workOrder := c.WorkOrder.Create().
-		SetName("WorkOrder").
+		SetName(workOrderName).
 		SetType(workOrderType).
 		SetOwner(u).
 		SetCreationDate(time.Now()).
@@ -59,7 +62,10 @@ func TestAssignCanEditWOWithOwnerAndDelete(t *testing.T) {
 		SetAssignee(u).
 		ExecX(ctx)
 
-	ctx = viewertest.NewContext(ctx, c, viewertest.WithUser("MyAssignee"), viewertest.WithPermissions(authz.EmptyPermissions()))
+	ctx = viewertest.NewContext(ctx, c,
+		viewertest.WithUser("MyAssignee"),
+		viewertest.WithRole(user.RoleUSER),
+		viewertest.WithPermissions(authz.EmptyPermissions()))
 	err := c.WorkOrder.UpdateOne(workOrder).
 		SetName("NewName").
 		Exec(ctx)
@@ -83,7 +89,10 @@ func TestOwnerCanEditWO(t *testing.T) {
 		SetOwner(u).
 		ExecX(ctx)
 
-	ctx = viewertest.NewContext(ctx, c, viewertest.WithUser("MyOwner"), viewertest.WithPermissions(authz.EmptyPermissions()))
+	ctx = viewertest.NewContext(ctx, c,
+		viewertest.WithUser("MyOwner"),
+		viewertest.WithRole(user.RoleUSER),
+		viewertest.WithPermissions(authz.EmptyPermissions()))
 	err := c.WorkOrder.UpdateOne(workOrder).
 		SetName("NewName").
 		Exec(ctx)
@@ -92,7 +101,10 @@ func TestOwnerCanEditWO(t *testing.T) {
 		SetOwner(u2).
 		Exec(ctx)
 	require.NoError(t, err)
-	ctx = viewertest.NewContext(ctx, c, viewertest.WithUser("NewOwner"), viewertest.WithPermissions(authz.EmptyPermissions()))
+	ctx = viewertest.NewContext(ctx, c,
+		viewertest.WithUser("NewOwner"),
+		viewertest.WithRole(user.RoleUSER),
+		viewertest.WithPermissions(authz.EmptyPermissions()))
 	err = c.WorkOrder.DeleteOne(workOrder).
 		Exec(ctx)
 	require.NoError(t, err)
@@ -102,6 +114,7 @@ func TestWorkOrderWritePolicyRule(t *testing.T) {
 	c := viewertest.NewTestClient(t)
 	ctx := viewertest.NewContext(context.Background(), c)
 	workOrderType, workOrder := prepareWorkOrderData(ctx, c)
+	workOrderType2, workOrder2 := prepareWorkOrderData(ctx, c)
 	createWorkOrder := func(ctx context.Context) error {
 		u := viewer.FromContext(ctx).(*viewer.UserViewer).User()
 		_, err := c.WorkOrder.Create().
@@ -112,13 +125,32 @@ func TestWorkOrderWritePolicyRule(t *testing.T) {
 			Save(ctx)
 		return err
 	}
+	createWorkOrder2 := func(ctx context.Context) error {
+		u := viewer.FromContext(ctx).(*viewer.UserViewer).User()
+		_, err := c.WorkOrder.Create().
+			SetName("NewWorkOrder2").
+			SetType(workOrderType2).
+			SetOwner(u).
+			SetCreationDate(time.Now()).
+			Save(ctx)
+		return err
+	}
 	updateWorkOrder := func(ctx context.Context) error {
 		return c.WorkOrder.UpdateOne(workOrder).
 			SetName("NewName").
 			Exec(ctx)
 	}
+	updateWorkOrder2 := func(ctx context.Context) error {
+		return c.WorkOrder.UpdateOne(workOrder2).
+			SetName("NewName2").
+			Exec(ctx)
+	}
 	deleteWorkOrder := func(ctx context.Context) error {
 		return c.WorkOrder.DeleteOne(workOrder).
+			Exec(ctx)
+	}
+	deleteWorkOrder2 := func(ctx context.Context) error {
+		return c.WorkOrder.DeleteOne(workOrder2).
 			Exec(ctx)
 	}
 	initialPermissions := func(p *models.PermissionSettings) {
@@ -134,12 +166,36 @@ func TestWorkOrderWritePolicyRule(t *testing.T) {
 			operation: createWorkOrder,
 		},
 		{
+			operationName: "CreateWithType",
+			initialPermissions: func(p *models.PermissionSettings) {
+				initialPermissions(p)
+				p.WorkforcePolicy.Data.Create.IsAllowed = models2.PermissionValueByCondition
+				p.WorkforcePolicy.Data.Create.WorkOrderTypeIds = []int{workOrderType.ID}
+			},
+			appendPermissions: func(p *models.PermissionSettings) {
+				p.WorkforcePolicy.Data.Create.WorkOrderTypeIds = []int{workOrderType.ID, workOrderType2.ID}
+			},
+			operation: createWorkOrder2,
+		},
+		{
 			operationName:      "Update",
 			initialPermissions: initialPermissions,
 			appendPermissions: func(p *models.PermissionSettings) {
 				p.WorkforcePolicy.Data.Update.IsAllowed = models2.PermissionValueYes
 			},
 			operation: updateWorkOrder,
+		},
+		{
+			operationName: "UpdateWithType",
+			initialPermissions: func(p *models.PermissionSettings) {
+				initialPermissions(p)
+				p.WorkforcePolicy.Data.Update.IsAllowed = models2.PermissionValueByCondition
+				p.WorkforcePolicy.Data.Update.WorkOrderTypeIds = []int{workOrderType.ID}
+			},
+			appendPermissions: func(p *models.PermissionSettings) {
+				p.WorkforcePolicy.Data.Update.WorkOrderTypeIds = []int{workOrderType.ID, workOrderType2.ID}
+			},
+			operation: updateWorkOrder2,
 		},
 		{
 			operationName:      "Delete",
@@ -149,8 +205,66 @@ func TestWorkOrderWritePolicyRule(t *testing.T) {
 			},
 			operation: deleteWorkOrder,
 		},
+		{
+			operationName: "DeleteWithType",
+			initialPermissions: func(p *models.PermissionSettings) {
+				initialPermissions(p)
+				p.WorkforcePolicy.Data.Delete.IsAllowed = models2.PermissionValueByCondition
+				p.WorkforcePolicy.Data.Delete.WorkOrderTypeIds = []int{workOrderType.ID}
+			},
+			appendPermissions: func(p *models.PermissionSettings) {
+				p.WorkforcePolicy.Data.Delete.WorkOrderTypeIds = []int{workOrderType.ID, workOrderType2.ID}
+			},
+			operation: deleteWorkOrder2,
+		},
 	}
 	runPolicyTest(t, tests)
+}
+
+func TestWorkOrderReadPolicyRule(t *testing.T) {
+	c := viewertest.NewTestClient(t)
+	ctx := viewertest.NewContext(context.Background(), c)
+	workOrderType, _ := prepareWorkOrderData(ctx, c)
+	_, _ = prepareWorkOrderData(ctx, c)
+	t.Run("EmptyPermissions", func(t *testing.T) {
+		permissions := authz.EmptyPermissions()
+		permissionsContext := viewertest.NewContext(
+			context.Background(),
+			c,
+			viewertest.WithUser("user"),
+			viewertest.WithRole(user.RoleUSER),
+			viewertest.WithPermissions(permissions))
+		count, err := c.WorkOrder.Query().Count(permissionsContext)
+		require.NoError(t, err)
+		require.Zero(t, count)
+	})
+	t.Run("PartialPermissions", func(t *testing.T) {
+		permissions := authz.EmptyPermissions()
+		permissions.WorkforcePolicy.Read.IsAllowed = models2.PermissionValueByCondition
+		permissions.WorkforcePolicy.Read.WorkOrderTypeIds = []int{workOrderType.ID}
+		permissionsContext := viewertest.NewContext(
+			context.Background(),
+			c,
+			viewertest.WithUser("user"),
+			viewertest.WithRole(user.RoleUSER),
+			viewertest.WithPermissions(permissions))
+		count, err := c.WorkOrder.Query().Count(permissionsContext)
+		require.NoError(t, err)
+		require.Equal(t, 1, count)
+	})
+	t.Run("FullPermissions", func(t *testing.T) {
+		permissions := authz.EmptyPermissions()
+		permissions.WorkforcePolicy.Read.IsAllowed = models2.PermissionValueYes
+		permissionsContext := viewertest.NewContext(
+			context.Background(),
+			c,
+			viewertest.WithUser("user"),
+			viewertest.WithRole(user.RoleUSER),
+			viewertest.WithPermissions(permissions))
+		count, err := c.WorkOrder.Query().Count(permissionsContext)
+		require.NoError(t, err)
+		require.Equal(t, 2, count)
+	})
 }
 
 func TestWorkOrderTransferOwnershipWritePolicyRule(t *testing.T) {
@@ -205,6 +319,7 @@ func TestWorkOrderAssignWritePolicyRule(t *testing.T) {
 	c := viewertest.NewTestClient(t)
 	ctx := viewertest.NewContext(context.Background(), c)
 	workOrderType, workOrder := prepareWorkOrderData(ctx, c)
+	u2 := viewer.MustGetOrCreateUser(ctx, "SomeUser", user.RoleUSER)
 	getCud := func(p *models.PermissionSettings) *models.WorkforceCud {
 		return p.WorkforcePolicy.Data
 	}
@@ -223,9 +338,8 @@ func TestWorkOrderAssignWritePolicyRule(t *testing.T) {
 		return err
 	}
 	updateWorkOrderAssignee := func(ctx context.Context) error {
-		u := viewer.FromContext(ctx).(*viewer.UserViewer).User()
 		_, err := c.WorkOrder.UpdateOne(workOrder).
-			SetAssignee(u).
+			SetAssignee(u2).
 			Save(ctx)
 		return err
 	}

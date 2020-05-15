@@ -20,29 +20,20 @@ import moment from 'moment';
 import transform from 'lodash/fp/transform';
 import {anythingTo} from './proxy/utils';
 
-type TaskType = {
-  name: string,
-  taskType?: string,
-  version: string,
-  subWorkflowId: string,
-  referenceTaskName: string,
-  inputData?: {
-    subWorkflowId: string,
-    subWorkflowName: string,
-    subWorkflowVersion: string,
-  },
-};
+import type {TaskType} from './types';
 
 const logger = logging.getLogger(module);
 const http = HttpClient;
 
 //TODO merge with proxy
 const router = Router();
-// use baseURL = 'http://conductor-server:8080/api/'; to bypass proxy
-const baseURL = 'http://localhost/proxy/api/';
-const baseURLWorkflow = baseURL + 'workflow/';
-const baseURLMeta = baseURL + 'metadata/';
-const baseURLTask = baseURL + 'tasks/';
+const baseURL = 'http://localhost/proxy/';
+const baseApiURL = baseURL + 'api/';
+const baseURLWorkflow = baseApiURL + 'workflow/';
+const baseURLMeta = baseApiURL + 'metadata/';
+const baseURLTask = baseApiURL + 'tasks/';
+const eventURL = baseApiURL + 'event';
+const baseURLSchedule = baseURL + 'schedule/';
 
 router.use(bodyParser.urlencoded({extended: false}));
 router.use('/', bodyParser.json());
@@ -144,12 +135,12 @@ router.put('/metadata', async (req, res, next) => {
 // trying PUT if POST fails.
 router.post('/event', async (req, res, next) => {
   try {
-    const result = await http.post(baseURL + 'event', req.body, req);
+    const result = await http.post(eventURL, req.body, req);
     res.status(200).send(result);
   } catch (err) {
     logger.info(`Got exception ${JSON.stringify(err)} while POSTing event`);
     try {
-      const result = await http.put(baseURL + 'event', req.body, req);
+      const result = await http.put(eventURL, req.body, req);
       res.status(200).send(result);
     } catch (e) {
       logger.info(`Got exception ${JSON.stringify(e)} while PUTting event`);
@@ -283,7 +274,7 @@ router.delete('/workflow/:workflowId', async (req, res, next) => {
   try {
     const result = await http.delete(
       baseURLWorkflow +
-        req.params.workflqowId +
+        req.params.workflowId +
         '/remove?archiveWorkflow=' +
         archiveWorkflow,
       req.body,
@@ -332,21 +323,6 @@ router.get('/id/:workflowId', async (req, res, next) => {
         })(result.tasks || []),
       ),
     );
-
-    (result.tasks || []).forEach(task => {
-      if (task.taskType === 'SUB_WORKFLOW') {
-        const subWorkflowId = task.inputData && task.inputData.subWorkflowId;
-
-        if (subWorkflowId != null) {
-          subs.push({
-            name: task.inputData.subWorkflowName,
-            version: task.inputData.subWorkflowVersion,
-            referenceTaskName: task.referenceTaskName,
-            subWorkflowId: subWorkflowId,
-          });
-        }
-      }
-    });
 
     // TODO not implemented on proxy
     const logs = map(task =>
@@ -515,6 +491,45 @@ router.get('/queue/data', async (req, res, next) => {
       pd.qsize = sizes[qname];
     });
     res.status(200).send({polldata});
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/schedule', async (req, res, next) => {
+  try {
+    const result = await http.get(baseURLSchedule, req);
+    res.status(200).send(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/schedule/:name', async (req, res, next) => {
+  const urlWithName = baseURLSchedule + req.params.name;
+  try {
+    // create using POST
+    const result = await http.post(baseURLSchedule, req.body, req);
+    res.status(result.statusCode).send(result.text);
+  } catch (e) {
+    try {
+      // update using PUT
+      const result = await http.put(urlWithName, req.body, req);
+      res.status(result.statusCode).send(result.text);
+    } catch (err) {
+      next(err);
+    }
+  }
+});
+
+router.delete('/schedule/:name', async (req: ExpressRequest, res, next) => {
+  try {
+    const result = await http.delete(
+      baseURLSchedule + req.params.name,
+      null,
+      req,
+    );
+    res.status(result.statusCode).send(result.text);
   } catch (err) {
     next(err);
   }

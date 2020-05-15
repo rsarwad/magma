@@ -2081,8 +2081,13 @@ func (r mutationResolver) RemoveServiceType(ctx context.Context, id int) (int, e
 	case err != nil:
 		return id, fmt.Errorf("querying services for type %d: %w", id, err)
 	case exist:
-		return id, fmt.Errorf("cannot delete service type %d with existing services", id)
+		err = client.ServiceType.UpdateOneID(id).SetIsDeleted(true).Exec(ctx)
+		if err != nil {
+			return id, fmt.Errorf("setting service type %d as 'isDeleted': %w", id, err)
+		}
+		return id, nil
 	}
+
 	if _, err := client.Property.Delete().
 		Where(property.HasServiceWith(service.HasTypeWith(servicetype.ID(st.ID)))).
 		Exec(ctx); err != nil {
@@ -2871,21 +2876,6 @@ func (r mutationResolver) MoveLocation(ctx context.Context, locationID int, pare
 	}
 	return l, nil
 }
-
-func (r mutationResolver) AddTechnician(
-	ctx context.Context, input models.TechnicianInput,
-) (*ent.Technician, error) {
-	t, err := r.ClientFrom(ctx).
-		Technician.Create().
-		SetName(input.Name).
-		SetEmail(input.Email).
-		Save(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "creating technician")
-	}
-	return t, nil
-}
-
 func (r mutationResolver) AddCustomer(ctx context.Context, input models.AddCustomerInput) (*ent.Customer, error) {
 	exist, _ := r.ClientFrom(ctx).Customer.Query().Where(customer.Name(input.Name)).Exist(ctx)
 	if exist {

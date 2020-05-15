@@ -24,7 +24,6 @@ import type {
   UserPermissionsGroup,
 } from './utils/UserManagementUtils';
 import type {SelectorStoreUpdater} from 'relay-runtime';
-import type {UpdateUsersGroupMembersMutationResponse} from '../../../mutations/__generated__/UpdateUsersGroupMembersMutation.graphql';
 import type {
   UserManagementContextQuery,
   UserRole,
@@ -39,15 +38,13 @@ import DeleteUsersGroupMutation from '../../../mutations/DeleteUsersGroupMutatio
 import EditPermissionsPolicyMutation from '../../../mutations/EditPermissionsPolicyMutation';
 import EditUserMutation from '../../../mutations/EditUserMutation';
 import EditUsersGroupMutation from '../../../mutations/EditUsersGroupMutation';
-import LoadingIndicator from '../../../common/LoadingIndicator';
+import InventorySuspense from '../../../common/InventorySuspense';
 import RelayEnvironment from '../../../common/RelayEnvironment';
-import UpdateUsersGroupMembersMutation from '../../../mutations/UpdateUsersGroupMembersMutation';
 import axios from 'axios';
 import nullthrows from 'nullthrows';
 import {ConnectionHandler, fetchQuery, graphql} from 'relay-runtime';
 import {LogEvents, ServerLogger} from '../../../common/LoggingUtils';
 import {RelayEnvironmentProvider} from 'react-relay/hooks';
-import {Suspense} from 'react';
 import {
   USER_ROLES,
   groupResponse2Group,
@@ -250,41 +247,10 @@ const editGroup = (usersMap: UsersMap) => (
           name: newGroupValue.name,
           description: newGroupValue.description,
           status: newGroupValue.status,
+          members: newGroupValue.members.map(m => m.id),
         },
       },
       callbacks,
-    );
-  });
-};
-
-const updateGroupMembers = (usersMap: UsersMap) => (
-  group: UserPermissionsGroup,
-  addUserIds: Array<string>,
-  removeUserIds: Array<string>,
-) => {
-  return new Promise<UserPermissionsGroup>((resolve, reject) => {
-    const cbs: MutationCallbacks<UpdateUsersGroupMembersMutationResponse> = {
-      onCompleted: (response, errors) => {
-        if (errors && errors[0]) {
-          reject(getGraphError(errors[0]));
-        }
-        resolve(
-          groupResponse2Group(response.updateUsersGroupMembers, usersMap),
-        );
-      },
-      onError: e => {
-        reject(getGraphError(e));
-      },
-    };
-    UpdateUsersGroupMembersMutation(
-      {
-        input: {
-          id: group.id,
-          addUserIds,
-          removeUserIds,
-        },
-      },
-      cbs,
     );
   });
 };
@@ -333,6 +299,7 @@ const addGroup = (usersMap: UsersMap) => (
         input: {
           name: newGroupValue.name,
           description: newGroupValue.description,
+          members: newGroupValue.members.map(m => m.id),
         },
       },
       callbacks,
@@ -451,11 +418,6 @@ type UserManagementContextValue = {
   addGroup: UserPermissionsGroup => Promise<UserPermissionsGroup>,
   editGroup: UserPermissionsGroup => Promise<UserPermissionsGroup>,
   deleteGroup: (id: string) => Promise<void>,
-  updateGroupMembers: (
-    group: UserPermissionsGroup,
-    addUserIds: Array<string>,
-    removeUserIds: Array<string>,
-  ) => Promise<UserPermissionsGroup>,
   addPermissionsPolicy: PermissionsPolicy => Promise<PermissionsPolicy>,
   editPermissionsPolicy: PermissionsPolicy => Promise<PermissionsPolicy>,
   deletePermissionsPolicy: (id: string) => Promise<void>,
@@ -479,7 +441,6 @@ const UserManagementContext = React.createContext<UserManagementContextValue>({
   addGroup: addGroup(emptyUsersMap),
   editGroup: editGroup(emptyUsersMap),
   deleteGroup,
-  updateGroupMembers: updateGroupMembers(emptyUsersMap),
   addPermissionsPolicy,
   editPermissionsPolicy,
   deletePermissionsPolicy,
@@ -531,7 +492,6 @@ function ProviderWrap(props: Props) {
     addGroup: addGroup(usersMap),
     editGroup: editGroup(usersMap),
     deleteGroup,
-    updateGroupMembers: updateGroupMembers(usersMap),
     addPermissionsPolicy,
     editPermissionsPolicy,
     deletePermissionsPolicy,
@@ -558,9 +518,9 @@ function ProviderWrap(props: Props) {
 export function UserManagementContextProvider(props: Props) {
   return (
     <RelayEnvironmentProvider environment={RelayEnvironment}>
-      <Suspense fallback={<LoadingIndicator />}>
+      <InventorySuspense>
         <ProviderWrap {...props} />
-      </Suspense>
+      </InventorySuspense>
     </RelayEnvironmentProvider>
   );
 }

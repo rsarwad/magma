@@ -39,6 +39,19 @@ func (f CheckListCategoryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.
 	return f(ctx, mv)
 }
 
+// The CheckListCategoryDefinitionFunc type is an adapter to allow the use of ordinary
+// function as CheckListCategoryDefinition mutator.
+type CheckListCategoryDefinitionFunc func(context.Context, *ent.CheckListCategoryDefinitionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CheckListCategoryDefinitionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.CheckListCategoryDefinitionMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CheckListCategoryDefinitionMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // The CheckListItemFunc type is an adapter to allow the use of ordinary
 // function as CheckListItem mutator.
 type CheckListItemFunc func(context.Context, *ent.CheckListItemMutation) (ent.Value, error)
@@ -503,19 +516,6 @@ func (f SurveyWiFiScanFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Val
 	mv, ok := m.(*ent.SurveyWiFiScanMutation)
 	if !ok {
 		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SurveyWiFiScanMutation", m)
-	}
-	return f(ctx, mv)
-}
-
-// The TechnicianFunc type is an adapter to allow the use of ordinary
-// function as Technician mutator.
-type TechnicianFunc func(context.Context, *ent.TechnicianMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f TechnicianFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	mv, ok := m.(*ent.TechnicianMutation)
-	if !ok {
-		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TechnicianMutation", m)
 	}
 	return f(ctx, mv)
 }

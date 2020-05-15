@@ -12,6 +12,8 @@ import (
 
 	"github.com/facebookincubator/symphony/graph/ent/actionsrule"
 	"github.com/facebookincubator/symphony/graph/ent/checklistcategory"
+	"github.com/facebookincubator/symphony/graph/ent/checklistcategorydefinition"
+	"github.com/facebookincubator/symphony/graph/ent/checklistitem"
 	"github.com/facebookincubator/symphony/graph/ent/checklistitemdefinition"
 	"github.com/facebookincubator/symphony/graph/ent/comment"
 	"github.com/facebookincubator/symphony/graph/ent/customer"
@@ -48,7 +50,6 @@ import (
 	"github.com/facebookincubator/symphony/graph/ent/surveytemplatecategory"
 	"github.com/facebookincubator/symphony/graph/ent/surveytemplatequestion"
 	"github.com/facebookincubator/symphony/graph/ent/surveywifiscan"
-	"github.com/facebookincubator/symphony/graph/ent/technician"
 	"github.com/facebookincubator/symphony/graph/ent/user"
 	"github.com/facebookincubator/symphony/graph/ent/usersgroup"
 	"github.com/facebookincubator/symphony/graph/ent/workorder"
@@ -108,6 +109,42 @@ func init() {
 	checklistcategory.DefaultUpdateTime = checklistcategoryDescUpdateTime.Default.(func() time.Time)
 	// checklistcategory.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
 	checklistcategory.UpdateDefaultUpdateTime = checklistcategoryDescUpdateTime.UpdateDefault.(func() time.Time)
+	checklistcategorydefinitionMixin := schema.CheckListCategoryDefinition{}.Mixin()
+	checklistcategorydefinition.Policy = schema.CheckListCategoryDefinition{}.Policy()
+	checklistcategorydefinition.Hooks[0] = func(next ent.Mutator) ent.Mutator {
+		return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+			if err := checklistcategorydefinition.Policy.EvalMutation(ctx, m); err != nil {
+				return nil, err
+			}
+			return next.Mutate(ctx, m)
+		})
+	}
+	checklistcategorydefinitionMixinFields0 := checklistcategorydefinitionMixin[0].Fields()
+	checklistcategorydefinitionFields := schema.CheckListCategoryDefinition{}.Fields()
+	_ = checklistcategorydefinitionFields
+	// checklistcategorydefinitionDescCreateTime is the schema descriptor for create_time field.
+	checklistcategorydefinitionDescCreateTime := checklistcategorydefinitionMixinFields0[0].Descriptor()
+	// checklistcategorydefinition.DefaultCreateTime holds the default value on creation for the create_time field.
+	checklistcategorydefinition.DefaultCreateTime = checklistcategorydefinitionDescCreateTime.Default.(func() time.Time)
+	// checklistcategorydefinitionDescUpdateTime is the schema descriptor for update_time field.
+	checklistcategorydefinitionDescUpdateTime := checklistcategorydefinitionMixinFields0[1].Descriptor()
+	// checklistcategorydefinition.DefaultUpdateTime holds the default value on creation for the update_time field.
+	checklistcategorydefinition.DefaultUpdateTime = checklistcategorydefinitionDescUpdateTime.Default.(func() time.Time)
+	// checklistcategorydefinition.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
+	checklistcategorydefinition.UpdateDefaultUpdateTime = checklistcategorydefinitionDescUpdateTime.UpdateDefault.(func() time.Time)
+	// checklistcategorydefinitionDescTitle is the schema descriptor for title field.
+	checklistcategorydefinitionDescTitle := checklistcategorydefinitionFields[0].Descriptor()
+	// checklistcategorydefinition.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	checklistcategorydefinition.TitleValidator = checklistcategorydefinitionDescTitle.Validators[0].(func(string) error)
+	checklistitem.Policy = schema.CheckListItem{}.Policy()
+	checklistitem.Hooks[0] = func(next ent.Mutator) ent.Mutator {
+		return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+			if err := checklistitem.Policy.EvalMutation(ctx, m); err != nil {
+				return nil, err
+			}
+			return next.Mutate(ctx, m)
+		})
+	}
 	checklistitemdefinitionMixin := schema.CheckListItemDefinition{}.Mixin()
 	checklistitemdefinition.Policy = schema.CheckListItemDefinition{}.Policy()
 	checklistitemdefinition.Hooks[0] = func(next ent.Mutator) ent.Mutator {
@@ -1025,37 +1062,6 @@ func init() {
 	surveywifiscan.DefaultUpdateTime = surveywifiscanDescUpdateTime.Default.(func() time.Time)
 	// surveywifiscan.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
 	surveywifiscan.UpdateDefaultUpdateTime = surveywifiscanDescUpdateTime.UpdateDefault.(func() time.Time)
-	technicianMixin := schema.Technician{}.Mixin()
-	technician.Policy = schema.Technician{}.Policy()
-	technician.Hooks[0] = func(next ent.Mutator) ent.Mutator {
-		return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-			if err := technician.Policy.EvalMutation(ctx, m); err != nil {
-				return nil, err
-			}
-			return next.Mutate(ctx, m)
-		})
-	}
-	technicianMixinFields0 := technicianMixin[0].Fields()
-	technicianFields := schema.Technician{}.Fields()
-	_ = technicianFields
-	// technicianDescCreateTime is the schema descriptor for create_time field.
-	technicianDescCreateTime := technicianMixinFields0[0].Descriptor()
-	// technician.DefaultCreateTime holds the default value on creation for the create_time field.
-	technician.DefaultCreateTime = technicianDescCreateTime.Default.(func() time.Time)
-	// technicianDescUpdateTime is the schema descriptor for update_time field.
-	technicianDescUpdateTime := technicianMixinFields0[1].Descriptor()
-	// technician.DefaultUpdateTime holds the default value on creation for the update_time field.
-	technician.DefaultUpdateTime = technicianDescUpdateTime.Default.(func() time.Time)
-	// technician.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
-	technician.UpdateDefaultUpdateTime = technicianDescUpdateTime.UpdateDefault.(func() time.Time)
-	// technicianDescName is the schema descriptor for name field.
-	technicianDescName := technicianFields[0].Descriptor()
-	// technician.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	technician.NameValidator = technicianDescName.Validators[0].(func(string) error)
-	// technicianDescEmail is the schema descriptor for email field.
-	technicianDescEmail := technicianFields[1].Descriptor()
-	// technician.EmailValidator is a validator for the "email" field. It is called by the builders before save.
-	technician.EmailValidator = technicianDescEmail.Validators[0].(func(string) error)
 	userMixin := schema.User{}.Mixin()
 	user.Policy = schema.User{}.Policy()
 	user.Hooks[0] = func(next ent.Mutator) ent.Mutator {

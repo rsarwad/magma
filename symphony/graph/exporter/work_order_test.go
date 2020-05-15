@@ -15,19 +15,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/facebookincubator/symphony/graph/ent/user"
-
-	"github.com/facebookincubator/symphony/graph/ent"
-
-	"github.com/facebookincubator/symphony/graph/ent/propertytype"
+	"github.com/facebookincubator/symphony/graph/authz"
 
 	"github.com/AlekSi/pointer"
-	"github.com/facebookincubator/symphony/graph/graphql/models"
-
+	"github.com/facebookincubator/symphony/graph/ent"
 	"github.com/facebookincubator/symphony/graph/ent/location"
+	"github.com/facebookincubator/symphony/graph/ent/propertytype"
+	"github.com/facebookincubator/symphony/graph/ent/user"
+	"github.com/facebookincubator/symphony/graph/graphql/models"
 	"github.com/facebookincubator/symphony/graph/viewer"
 	"github.com/facebookincubator/symphony/graph/viewer/viewertest"
-
+	"github.com/facebookincubator/symphony/pkg/log/logtest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -154,7 +152,11 @@ func TestEmptyDataExport(t *testing.T) {
 	log := r.exporter.log
 
 	e := &exporter{log, woRower{log}}
-	th := viewer.TenancyHandler(e, viewer.NewFixedTenancy(r.client))
+	auth := authz.Handler(e, logtest.NewTestLogger(t))
+	th := viewer.TenancyHandler(auth,
+		viewer.NewFixedTenancy(r.client),
+		logtest.NewTestLogger(t),
+	)
 	server := httptest.NewServer(th)
 	defer server.Close()
 
@@ -182,7 +184,11 @@ func TestWOExport(t *testing.T) {
 	log := r.exporter.log
 
 	e := &exporter{log, woRower{log}}
-	th := viewer.TenancyHandler(e, viewer.NewFixedTenancy(r.client))
+	auth := authz.Handler(e, logtest.NewTestLogger(t))
+	th := viewer.TenancyHandler(auth,
+		viewer.NewFixedTenancy(r.client),
+		logtest.NewTestLogger(t),
+	)
 	server := httptest.NewServer(th)
 	defer server.Close()
 
@@ -253,7 +259,11 @@ func TestExportWOWithFilters(t *testing.T) {
 	log := r.exporter.log
 	ctx := viewertest.NewContext(context.Background(), r.client)
 	e := &exporter{log, woRower{log}}
-	th := viewer.TenancyHandler(e, viewer.NewFixedTenancy(r.client))
+	auth := authz.Handler(e, logtest.NewTestLogger(t))
+	th := viewer.TenancyHandler(auth,
+		viewer.NewFixedTenancy(r.client),
+		logtest.NewTestLogger(t),
+	)
 	server := httptest.NewServer(th)
 	defer server.Close()
 
@@ -311,5 +321,4 @@ func TestExportWOWithFilters(t *testing.T) {
 		}
 	}
 	require.Equal(t, 2, linesCount)
-
 }
