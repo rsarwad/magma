@@ -28,7 +28,7 @@ import (
 
 type queryResolver struct{ resolver }
 
-func (queryResolver) Me(ctx context.Context) (*viewer.Viewer, error) {
+func (queryResolver) Me(ctx context.Context) (viewer.Viewer, error) {
 	return viewer.FromContext(ctx), nil
 }
 
@@ -114,6 +114,24 @@ func (r queryResolver) EquipmentPortDefinitions(
 	before *ent.Cursor, last *int,
 ) (*ent.EquipmentPortDefinitionConnection, error) {
 	return r.ClientFrom(ctx).EquipmentPortDefinition.Query().
+		Paginate(ctx, after, first, before, last)
+}
+
+func (r queryResolver) EquipmentPorts(
+	ctx context.Context,
+	after *ent.Cursor, first *int,
+	before *ent.Cursor, last *int,
+) (*ent.EquipmentPortConnection, error) {
+	return r.ClientFrom(ctx).EquipmentPort.Query().
+		Paginate(ctx, after, first, before, last)
+}
+
+func (r queryResolver) Equipments(
+	ctx context.Context,
+	after *ent.Cursor, first *int,
+	before *ent.Cursor, last *int,
+) (*ent.EquipmentConnection, error) {
+	return r.ClientFrom(ctx).Equipment.Query().
 		Paginate(ctx, after, first, before, last)
 }
 
@@ -369,10 +387,10 @@ func (r queryResolver) ReportFilters(ctx context.Context, entity models.FilterEn
 	return rfs, nil
 }
 
-func (queryResolver) LatestPythonPackage(context.Context) (*models.LatestPythonPackageResult, error) {
-	var packages []models.PythonPackage
-	if err := json.Unmarshal([]byte(PyinventoryConsts), &packages); err != nil {
-		return nil, fmt.Errorf("decoding python packages: %w", err)
+func (r queryResolver) LatestPythonPackage(ctx context.Context) (*models.LatestPythonPackageResult, error) {
+	packages, err := r.PythonPackages(ctx)
+	if err != nil {
+		return nil, err
 	}
 	if len(packages) == 0 {
 		return nil, nil
@@ -385,9 +403,24 @@ func (queryResolver) LatestPythonPackage(context.Context) (*models.LatestPythonP
 		}
 	}
 	return &models.LatestPythonPackageResult{
-		LastPythonPackage:         &packages[0],
-		LastBreakingPythonPackage: &packages[lastBreakingChange],
+		LastPythonPackage:         packages[0],
+		LastBreakingPythonPackage: packages[lastBreakingChange],
 	}, nil
+}
+
+func (queryResolver) PythonPackages(ctx context.Context) ([]*models.PythonPackage, error) {
+	var (
+		packages []models.PythonPackage
+		res      []*models.PythonPackage
+	)
+	if err := json.Unmarshal([]byte(PyinventoryConsts), &packages); err != nil {
+		return nil, fmt.Errorf("decoding python packages: %w", err)
+	}
+	for _, p := range packages {
+		p := p
+		res = append(res, &p)
+	}
+	return res, nil
 }
 
 func (r queryResolver) Vertex(ctx context.Context, id int) (*ent.Node, error) {

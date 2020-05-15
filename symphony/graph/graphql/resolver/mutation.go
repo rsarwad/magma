@@ -43,13 +43,13 @@ import (
 	"github.com/facebookincubator/symphony/pkg/actions/core"
 
 	"github.com/pkg/errors"
-	"github.com/vektah/gqlparser/gqlerror"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 	"go.uber.org/zap"
 )
 
 type mutationResolver struct{ resolver }
 
-func (mutationResolver) Me(ctx context.Context) *viewer.Viewer {
+func (mutationResolver) Me(ctx context.Context) viewer.Viewer {
 	return viewer.FromContext(ctx)
 }
 
@@ -118,6 +118,10 @@ func (r mutationResolver) setNodePropertyCreate(ctx context.Context, setter *ent
 		setter.SetLocationValueID(value.ID)
 	case ent.TypeService:
 		setter.SetServiceValueID(value.ID)
+	case ent.TypeWorkOrder:
+		setter.SetWorkOrderValueID(value.ID)
+	case ent.TypeUser:
+		setter.SetUserValueID(value.ID)
 	default:
 		return fmt.Errorf("invalid node type: %d %s", value.ID, value.Type)
 	}
@@ -137,6 +141,10 @@ func (r mutationResolver) setNodePropertyUpdate(ctx context.Context, setter *ent
 		setter.SetLocationValueID(value.ID)
 	case ent.TypeService:
 		setter.SetServiceValueID(value.ID)
+	case ent.TypeWorkOrder:
+		setter.SetWorkOrderValueID(value.ID)
+	case ent.TypeUser:
+		setter.SetUserValueID(value.ID)
 	default:
 		return fmt.Errorf("invalid node type: %d %s", value.ID, value.Type)
 	}
@@ -378,14 +386,17 @@ func (r mutationResolver) CreateCellScans(ctx context.Context, inputs []*models.
 }
 
 func (r mutationResolver) CreateSurvey(ctx context.Context, data models.SurveyCreateData) (int, error) {
-
 	client := r.ClientFrom(ctx)
+	v, ok := viewer.FromContext(ctx).(*viewer.UserViewer)
+	if !ok {
+		return badID, gqlerror.Errorf("could not be executed in automation")
+	}
 	query := client.Survey.
 		Create().
 		SetLocationID(data.LocationID).
 		SetCompletionTimestamp(time.Unix(int64(data.CompletionTimestamp), 0)).
 		SetName(data.Name).
-		SetOwnerName(r.Me(ctx).User)
+		SetOwnerName(v.User().Email)
 	if data.CreationTimestamp != nil {
 		query.SetCreationTimestamp(time.Unix(int64(*data.CreationTimestamp), 0))
 	}
@@ -1219,12 +1230,12 @@ func (r mutationResolver) DeleteImage(ctx context.Context, _ models.ImageEntity,
 
 func (r mutationResolver) AddComment(ctx context.Context, input models.CommentInput) (*ent.Comment, error) {
 	client := r.ClientFrom(ctx)
-	u, err := viewer.UserFromContext(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("querying user: %w", err)
+	v, ok := viewer.FromContext(ctx).(*viewer.UserViewer)
+	if !ok {
+		return nil, gqlerror.Errorf("could not be executed in automation")
 	}
 	c, err := client.Comment.Create().
-		SetAuthor(u).
+		SetAuthor(v.User()).
 		SetText(input.Text).
 		Save(ctx)
 	if err != nil {
@@ -1982,10 +1993,18 @@ func (r mutationResolver) AddServiceType(ctx context.Context, data models.Servic
 	if err != nil {
 		return nil, errors.WithMessage(err, "creating service endpoint definition")
 	}
-
+	var dm *servicetype.DiscoveryMethod
+	if data.DiscoveryMethod != nil {
+		err := servicetype.DiscoveryMethodValidator((servicetype.DiscoveryMethod)(*data.DiscoveryMethod))
+		if err != nil {
+			return nil, errors.WithMessage(err, "creating service discovery method")
+		}
+		dm = (*servicetype.DiscoveryMethod)(data.DiscoveryMethod)
+	}
 	st, err := r.ClientFrom(ctx).
 		ServiceType.Create().
 		SetName(data.Name).
+		SetNillableDiscoveryMethod(dm).
 		SetHasCustomer(data.HasCustomer).
 		AddPropertyTypes(types...).
 		AddEndpointDefinitions(epTypes...).
@@ -2062,8 +2081,13 @@ func (r mutationResolver) RemoveServiceType(ctx context.Context, id int) (int, e
 	case err != nil:
 		return id, fmt.Errorf("querying services for type %d: %w", id, err)
 	case exist:
-		return id, fmt.Errorf("cannot delete service type %d with existing services", id)
+		err = client.ServiceType.UpdateOneID(id).SetIsDeleted(true).Exec(ctx)
+		if err != nil {
+			return id, fmt.Errorf("setting service type %d as 'isDeleted': %w", id, err)
+		}
+		return id, nil
 	}
+
 	if _, err := client.Property.Delete().
 		Where(property.HasServiceWith(service.HasTypeWith(servicetype.ID(st.ID)))).
 		Exec(ctx); err != nil {
@@ -2646,6 +2670,8 @@ func (r mutationResolver) updatePropValues(ctx context.Context, input *models.Pr
 		pu = pu.ClearEquipmentValue()
 		pu = pu.ClearLocationValue()
 		pu = pu.ClearServiceValue()
+		pu = pu.ClearWorkOrderValue()
+		pu = pu.ClearUserValue()
 	}
 
 	return pu.Exec(ctx)
@@ -2850,21 +2876,6 @@ func (r mutationResolver) MoveLocation(ctx context.Context, locationID int, pare
 	}
 	return l, nil
 }
-
-func (r mutationResolver) AddTechnician(
-	ctx context.Context, input models.TechnicianInput,
-) (*ent.Technician, error) {
-	t, err := r.ClientFrom(ctx).
-		Technician.Create().
-		SetName(input.Name).
-		SetEmail(input.Email).
-		Save(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "creating technician")
-	}
-	return t, nil
-}
-
 func (r mutationResolver) AddCustomer(ctx context.Context, input models.AddCustomerInput) (*ent.Customer, error) {
 	exist, _ := r.ClientFrom(ctx).Customer.Query().Where(customer.Name(input.Name)).Exist(ctx)
 	if exist {
@@ -3043,6 +3054,10 @@ func (r mutationResolver) TechnicianWorkOrderCheckIn(ctx context.Context, id int
 	if err != nil {
 		return nil, fmt.Errorf("getting work order %q: %w", id, err)
 	}
+	v, ok := viewer.FromContext(ctx).(*viewer.UserViewer)
+	if !ok {
+		return nil, gqlerror.Errorf("could not be executed in automation")
+	}
 	if wo.Status != models.WorkOrderStatusPlanned.String() {
 		return wo, nil
 	}
@@ -3054,7 +3069,7 @@ func (r mutationResolver) TechnicianWorkOrderCheckIn(ctx context.Context, id int
 	if _, err = r.AddComment(ctx, models.CommentInput{
 		EntityType: models.CommentEntityWorkOrder,
 		ID:         id,
-		Text:       r.Me(ctx).User + " checked-in",
+		Text:       v.User().Email + " checked-in",
 	}); err != nil {
 		return nil, fmt.Errorf("adding technician check-in comment: %w", err)
 	}

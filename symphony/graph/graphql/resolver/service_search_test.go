@@ -72,10 +72,12 @@ func prepareServiceData(ctx context.Context, r *TestResolver) serviceSearchDataM
 		},
 	})
 
+	dm := models.DiscoveryMethodInventory
 	st1, _ := mr.AddServiceType(ctx, models.ServiceTypeCreateData{
-		Name:        "Internet Access",
-		HasCustomer: false,
-		Properties:  props,
+		Name:            "Internet Access",
+		HasCustomer:     false,
+		Properties:      props,
+		DiscoveryMethod: &dm,
 		Endpoints: []*models.ServiceEndpointDefinitionInput{
 			{
 				Name:            "endpoint type1",
@@ -120,9 +122,9 @@ func prepareServiceData(ctx context.Context, r *TestResolver) serviceSearchDataM
 
 func TestSearchServicesByName(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
+	defer r.Close()
 	qr, mr := r.Query(), r.Mutation()
-	ctx := viewertest.NewContext(r.client)
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	data := prepareServiceData(ctx, r)
 
@@ -169,9 +171,9 @@ func TestSearchServicesByName(t *testing.T) {
 
 func TestSearchServicesByStatus(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
+	defer r.Close()
 	qr, mr := r.Query(), r.Mutation()
-	ctx := viewertest.NewContext(r.client)
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	data := prepareServiceData(ctx, r)
 
@@ -227,9 +229,9 @@ func TestSearchServicesByStatus(t *testing.T) {
 
 func TestSearchServicesByType(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
+	defer r.Close()
 	qr, mr := r.Query(), r.Mutation()
-	ctx := viewertest.NewContext(r.client)
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	data := prepareServiceData(ctx, r)
 
@@ -280,9 +282,9 @@ func TestSearchServicesByType(t *testing.T) {
 
 func TestSearchServicesByExternalID(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
+	defer r.Close()
 	qr, mr := r.Query(), r.Mutation()
-	ctx := viewertest.NewContext(r.client)
+	ctx := viewertest.NewContext(context.Background(), r.client)
 	data := prepareServiceData(ctx, r)
 
 	externalID1 := "S1111"
@@ -334,9 +336,9 @@ func TestSearchServicesByExternalID(t *testing.T) {
 
 func TestSearchServicesByCustomerName(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
+	defer r.Close()
 	qr, mr := r.Query(), r.Mutation()
-	ctx := viewertest.NewContext(r.client)
+	ctx := viewertest.NewContext(context.Background(), r.client)
 	data := prepareServiceData(ctx, r)
 
 	customerA, err := mr.AddCustomer(ctx, models.AddCustomerInput{Name: "Donald"})
@@ -389,11 +391,68 @@ func TestSearchServicesByCustomerName(t *testing.T) {
 	require.Len(t, res2.Services, 2)
 }
 
+func TestSearchServicesByDiscoveryMethod(t *testing.T) {
+	r := newTestResolver(t)
+	defer r.Close()
+	qr, mr := r.Query(), r.Mutation()
+	ctx := viewertest.NewContext(context.Background(), r.client)
+	data := prepareServiceData(ctx, r)
+
+	s1, err := mr.AddService(ctx, models.ServiceCreateData{
+		Name:          "Room 201",
+		ServiceTypeID: data.st1,
+		Status:        pointerToServiceStatus(models.ServiceStatusPending),
+	})
+	require.NoError(t, err)
+
+	_, err = mr.AddService(ctx, models.ServiceCreateData{
+		Name:          "Room 202",
+		ServiceTypeID: data.st2,
+		Status:        pointerToServiceStatus(models.ServiceStatusPending),
+	})
+	require.NoError(t, err)
+
+	_, err = mr.AddService(ctx, models.ServiceCreateData{
+		Name:          "Lobby",
+		ServiceTypeID: data.st2,
+		Status:        pointerToServiceStatus(models.ServiceStatusPending),
+	})
+	require.NoError(t, err)
+	limit := 100
+
+	all, err := qr.ServiceSearch(ctx, []*models.ServiceFilterInput{}, &limit)
+	require.NoError(t, err)
+	require.Len(t, all.Services, 3)
+
+	f1 := models.ServiceFilterInput{
+		FilterType: models.ServiceFilterTypeServiceDiscoveryMethod,
+		Operator:   models.FilterOperatorIsOneOf,
+		StringSet:  []string{models.DiscoveryMethodInventory.String()},
+	}
+	res1, err := qr.ServiceSearch(ctx, []*models.ServiceFilterInput{&f1}, &limit)
+	require.NoError(t, err)
+	require.Len(t, res1.Services, 1)
+	assert.Equal(t, res1.Services[0].ID, s1.ID)
+
+	f2 := models.ServiceFilterInput{
+		FilterType: models.ServiceFilterTypeServiceDiscoveryMethod,
+		Operator:   models.FilterOperatorIsOneOf,
+		StringSet:  []string{models.DiscoveryMethodManual.String()},
+	}
+	res2, err := qr.ServiceSearch(ctx, []*models.ServiceFilterInput{&f2}, &limit)
+	require.NoError(t, err)
+	require.Len(t, res2.Services, 2)
+
+	res3, err := qr.ServiceSearch(ctx, []*models.ServiceFilterInput{&f1, &f2}, &limit)
+	require.NoError(t, err)
+	require.Len(t, res3.Services, 0)
+}
+
 func TestSearchServicesByProperties(t *testing.T) {
 	r := newTestResolver(t)
 	qr, mr := r.Query(), r.Mutation()
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	data := prepareServiceData(ctx, r)
 
@@ -438,9 +497,9 @@ func TestSearchServicesByProperties(t *testing.T) {
 
 func TestSearchServicesByLocations(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
+	defer r.Close()
 	qr, mr := r.Query(), r.Mutation()
-	ctx := viewertest.NewContext(r.client)
+	ctx := viewertest.NewContext(context.Background(), r.client)
 	data := prepareServiceData(ctx, r)
 
 	loc1, _ := mr.AddLocation(ctx, models.AddLocationInput{
@@ -476,15 +535,12 @@ func TestSearchServicesByLocations(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ep1 := eq1.QueryPorts().Where(equipmentport.HasDefinitionWith(equipmentportdefinition.ID(data.eqpd1))).OnlyX(ctx)
-
 	st := r.client.ServiceType.GetX(ctx, data.st1)
 	ept := st.QueryEndpointDefinitions().OnlyX(ctx)
 
 	_, err = mr.AddServiceEndpoint(ctx, models.AddServiceEndpointInput{
 		ID:          s1.ID,
 		EquipmentID: eq1.ID,
-		PortID:      pointer.ToInt(ep1.ID),
 		Definition:  ept.ID,
 	})
 	require.NoError(t, err)
@@ -516,7 +572,6 @@ func TestSearchServicesByLocations(t *testing.T) {
 	_, err = mr.AddServiceEndpoint(ctx, models.AddServiceEndpointInput{
 		ID:          s3.ID,
 		EquipmentID: eq1.ID,
-		PortID:      pointer.ToInt(ep1.ID),
 		Definition:  ept.ID,
 	})
 	require.NoError(t, err)
@@ -564,9 +619,9 @@ func TestSearchServicesByLocations(t *testing.T) {
 
 func TestSearchServicesByEquipmentInside(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
+	defer r.Close()
 	qr, mr := r.Query(), r.Mutation()
-	ctx := viewertest.NewContext(r.client)
+	ctx := viewertest.NewContext(context.Background(), r.client)
 	data := prepareServiceData(ctx, r)
 
 	loc, _ := mr.AddLocation(ctx, models.AddLocationInput{

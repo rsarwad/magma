@@ -7,17 +7,13 @@
  * @flow strict-local
  * @format
  */
-
-import type {ButtonProps} from '../Button';
-import type {PermissionHandlingProps} from '@fbcnms/ui/components/design-system/Form/FormAction';
 import type {ToggleButtonProps} from '../ToggleButton/ToggleButtonGroup';
 
 import * as React from 'react';
-import Button from '@fbcnms/ui/components/design-system/Button';
-import FormAction from '@fbcnms/ui/components/design-system/Form/FormAction';
 import Text from '@fbcnms/ui/components/design-system/Text';
 import ToggleButton from '../ToggleButton/ToggleButtonGroup';
 import classNames from 'classnames';
+import {ButtonAction, IconAction, OptionsAction} from './ViewHeaderActions';
 import {makeStyles} from '@material-ui/styles';
 
 const useStyles = makeStyles(() => ({
@@ -74,19 +70,7 @@ const useStyles = makeStyles(() => ({
     alignItems: 'center',
     justifyContent: 'flex-end',
   },
-  actionButton: {
-    '&:not(:first-child)': {
-      marginLeft: '12px',
-    },
-  },
 }));
-
-export type ActionButtonProps = {|
-  title: React.Node,
-  action: () => void,
-  ...PermissionHandlingProps,
-  ...ButtonProps,
-|};
 
 export type ViewHeaderProps = $ReadOnly<{|
   title: React.Node,
@@ -97,7 +81,11 @@ export type ViewHeaderProps = $ReadOnly<{|
 |}>;
 
 export type ViewHeaderActionsProps = $ReadOnly<{|
-  actionButtons?: Array<ActionButtonProps>,
+  actionButtons?: $ReadOnlyArray<
+    React.Element<
+      typeof OptionsAction | typeof IconAction | typeof ButtonAction,
+    >,
+  >,
 |}>;
 
 export type ViewHeaderOptionsProps = $ReadOnly<{|
@@ -115,12 +103,12 @@ const ViewHeader = React.forwardRef<FullViewHeaderProps, HTMLElement>(
     const {
       title,
       subtitle,
+      actionButtons,
       viewOptions,
       searchBar,
       showMinimal = false,
       className,
     } = props;
-    const actionButtons: Array<ActionButtonProps> = props.actionButtons || [];
     const classes = useStyles();
 
     return (
@@ -156,30 +144,7 @@ const ViewHeader = React.forwardRef<FullViewHeaderProps, HTMLElement>(
                   [classes.collapsed]: showMinimal,
                 },
               )}>
-              {actionButtons.map((actionButton, index) => {
-                const {
-                  ignorePermissions,
-                  hideOnEditLock,
-                  disableOnFromError,
-                  action,
-                  title,
-                  ...restButtonProps
-                } = actionButton;
-                return (
-                  <FormAction
-                    key={`viewHeaderAction${index}`}
-                    ignorePermissions={ignorePermissions}
-                    hideOnEditLock={hideOnEditLock}
-                    disableOnFromError={disableOnFromError}>
-                    <Button
-                      className={classes.actionButton}
-                      {...restButtonProps}
-                      onClick={action}>
-                      {title}
-                    </Button>
-                  </FormAction>
-                );
-              })}
+              {actionButtons}
             </div>
           )}
         </div>

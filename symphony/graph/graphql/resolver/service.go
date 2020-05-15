@@ -34,6 +34,13 @@ func (serviceTypeResolver) NumberOfServices(ctx context.Context, obj *ent.Servic
 	return obj.QueryServices().Count(ctx)
 }
 
+func (serviceTypeResolver) DiscoveryMethod(ctx context.Context, obj *ent.ServiceType) (models.DiscoveryMethod, error) {
+	if obj.DiscoveryMethod != "" {
+		return models.DiscoveryMethod(obj.DiscoveryMethod), nil
+	}
+	return models.DiscoveryMethodManual, nil
+}
+
 type serviceResolver struct{}
 
 func (serviceResolver) Customer(ctx context.Context, obj *ent.Service) (*ent.Customer, error) {

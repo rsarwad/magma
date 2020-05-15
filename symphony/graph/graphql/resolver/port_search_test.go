@@ -162,8 +162,8 @@ func preparePortData(ctx context.Context, r *TestResolver) portSearchDataModels 
 
 func TestSearchPortEquipmentName(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	data := preparePortData(ctx, r)
 	qr := r.Query()
@@ -187,8 +187,8 @@ func TestSearchPortEquipmentName(t *testing.T) {
 
 func TestSearchPortHasLink(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	preparePortData(ctx, r)
 	qr := r.Query()
@@ -210,8 +210,8 @@ func TestSearchPortHasLink(t *testing.T) {
 
 func TestSearchPortDefinition(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	d := preparePortData(ctx, r)
 
@@ -232,8 +232,8 @@ func TestSearchPortDefinition(t *testing.T) {
 
 func TestSearchPortLocation(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	d := preparePortData(ctx, r)
 	qr := r.Query()
@@ -253,8 +253,8 @@ func TestSearchPortLocation(t *testing.T) {
 
 func TestSearchPortProperties(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	preparePortData(ctx, r)
 
@@ -339,8 +339,8 @@ func TestSearchPortProperties(t *testing.T) {
 
 func TestSearchPortsByService(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	data := preparePortData(ctx, r)
 
@@ -470,8 +470,8 @@ func TestSearchPortsByService(t *testing.T) {
 
 func TestReorderEndpointDefinitions(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	data := preparePortData(ctx, r)
 

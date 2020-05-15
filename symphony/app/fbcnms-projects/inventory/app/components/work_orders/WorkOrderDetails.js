@@ -24,7 +24,6 @@ import AppContext from '@fbcnms/ui/context/AppContext';
 import CheckListCategoryExpandingPanel from '../checklist/checkListCategory/CheckListCategoryExpandingPanel';
 import ChecklistCategoriesMutateDispatchContext from '../checklist/ChecklistCategoriesMutateDispatchContext';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import CloudUploadOutlinedIcon from '@material-ui/icons/CloudUploadOutlined';
 import CommentsBox from '../comments/CommentsBox';
 import EntityDocumentsTable from '../EntityDocumentsTable';
 import ExpandingPanel from '@fbcnms/ui/components/ExpandingPanel';
@@ -32,7 +31,8 @@ import FileUploadButton from '../FileUpload/FileUploadButton';
 import FormContext, {FormContextProvider} from '../../common/FormContext';
 import FormField from '@fbcnms/ui/components/design-system/FormField/FormField';
 import Grid from '@material-ui/core/Grid';
-import InsertLinkIcon from '@material-ui/icons/InsertLink';
+import IconButton from '@fbcnms/ui/components/design-system/IconButton';
+import LinkIcon from '@fbcnms/ui/components/design-system/Icons/Actions/LinkIcon';
 import LocationBreadcrumbsTitle from '../location/LocationBreadcrumbsTitle';
 import LocationMapSnippet from '../location/LocationMapSnippet';
 import LocationTypeahead from '../typeahead/LocationTypeahead';
@@ -44,12 +44,14 @@ import Select from '@fbcnms/ui/components/design-system/Select/Select';
 import Strings from '@fbcnms/strings/Strings';
 import Text from '@fbcnms/ui/components/design-system/Text';
 import TextInput from '@fbcnms/ui/components/design-system/Input/TextInput';
+import UploadIcon from '@fbcnms/ui/components/design-system/Icons/Actions/UploadIcon';
 import UserTypeahead from '../typeahead/UserTypeahead';
 import WorkOrderDetailsPane from './WorkOrderDetailsPane';
 import WorkOrderHeader from './WorkOrderHeader';
 import fbt from 'fbt';
 import symphony from '@fbcnms/ui/theme/symphony';
 import withAlert from '@fbcnms/ui/components/Alert/withAlert';
+import {NAVIGATION_OPTIONS} from '../location/LocationBreadcrumbsTitle';
 import {createFragmentContainer, graphql} from 'react-relay';
 import {doneStatus, priorityValues, statusValues} from '../../common/WorkOrder';
 import {formatDateForTextInput} from '@fbcnms/ui/utils/displayUtils';
@@ -59,6 +61,7 @@ import {
 } from '../checklist/ChecklistCategoriesMutateReducer';
 import {makeStyles} from '@material-ui/styles';
 import {sortPropertiesByIndex, toMutableProperty} from '../../common/Property';
+import {useMainContext} from '../MainContext';
 import {withRouter} from 'react-router-dom';
 
 type Props = {
@@ -112,7 +115,8 @@ const useStyles = makeStyles(() => ({
     fill: symphony.palette.primary,
   },
   minimizedButton: {
-    minWidth: 'unset',
+    marginRight: '4px',
+    marginLeft: '8px',
   },
   dense: {
     paddingTop: '9px',
@@ -159,7 +163,9 @@ const WorkOrderDetails = ({
   );
   const [locationId, setLocationId] = useState(propsWorkOrder.location?.id);
   const [isLoadingDocument, setIsLoadingDocument] = useState(false);
-  const {user, isFeatureEnabled} = useContext(AppContext);
+  const {isFeatureEnabled} = useContext(AppContext);
+
+  const {userHasAdminPermissions, me} = useMainContext();
 
   const [editingCategories, dispatch] = useReducer<
     ChecklistCategoriesStateType,
@@ -182,21 +188,18 @@ const WorkOrderDetails = ({
     };
 
     const updater = store => {
-      // $FlowFixMe (T62907961) Relay flow types
       const newNode = store.getRootField('addImage');
-      const fileType = newNode.getValue('fileType');
-
-      // $FlowFixMe (T62907961) Relay flow types
       const workOrderProxy = store.get(workOrderId);
+      if (newNode == null || workOrderProxy == null) {
+        return;
+      }
+
+      const fileType = newNode.getValue('fileType');
       if (fileType === FileTypeEnum.IMAGE) {
-        // $FlowFixMe (T62907961) Relay flow types
         const imageNodes = workOrderProxy.getLinkedRecords('images') || [];
-        // $FlowFixMe (T62907961) Relay flow types
         workOrderProxy.setLinkedRecords([...imageNodes, newNode], 'images');
       } else {
-        // $FlowFixMe (T62907961) Relay flow types
         const fileNodes = workOrderProxy.getLinkedRecords('files') || [];
-        // $FlowFixMe (T62907961) Relay flow types
         workOrderProxy.setLinkedRecords([...fileNodes, newNode], 'files');
       }
     };
@@ -263,6 +266,10 @@ const WorkOrderDetails = ({
 
   const {location} = workOrder;
   const actionsEnabled = isFeatureEnabled('planned_equipment');
+  const permissionsEnforcementIsOn = isFeatureEnabled(
+    'permissions_ui_enforcement',
+  );
+
   return (
     <div className={classes.root}>
       <FormContextProvider>
@@ -292,28 +299,32 @@ const WorkOrderDetails = ({
                   ? `Work order is on '${doneStatus.label}' state`
                   : '',
             });
-            form.alerts.editLock.check({
-              fieldId: 'OwnerRule',
-              fieldDisplayName: 'Owner rule',
-              value: {user, workOrder: propsWorkOrder},
-              checkCallback: checkData =>
-                checkData?.user.isSuperUser ||
-                checkData?.user.email === checkData?.workOrder.owner.email ||
-                checkData?.user.email === checkData?.workOrder.assignedTo?.email
-                  ? ''
-                  : 'User is not allowed to edit this work order',
-            });
-            const nonOwnerAssignee = form.alerts.editLock.check({
-              fieldId: 'NonOwnerAssigneeRule',
-              fieldDisplayName: 'Non Owner assignee rule',
-              value: {user, workOrder: propsWorkOrder},
-              checkCallback: checkData =>
-                checkData?.user.email !== checkData?.workOrder.owner.email &&
-                checkData?.user.email === checkData?.workOrder.assignedTo?.email
-                  ? 'Assignee is not allowed to change owner'
-                  : '',
-              notAggregated: true,
-            });
+            if (permissionsEnforcementIsOn) {
+              form.alerts.editLock.check({
+                fieldId: 'OwnerRule',
+                fieldDisplayName: 'Owner rule',
+                value: propsWorkOrder,
+                checkCallback: workOrder =>
+                  userHasAdminPermissions ||
+                  me?.user?.email === workOrder?.owner.email ||
+                  me?.user?.email === workOrder?.assignedTo?.email
+                    ? ''
+                    : 'User is not allowed to edit this work order',
+              });
+            }
+            const nonOwnerAssignee =
+              permissionsEnforcementIsOn &&
+              form.alerts.editLock.check({
+                fieldId: 'NonOwnerAssigneeRule',
+                fieldDisplayName: 'Non Owner assignee rule',
+                value: propsWorkOrder,
+                checkCallback: workOrder =>
+                  me?.user?.email !== workOrder?.owner.email &&
+                  me?.user?.email === workOrder?.assignedTo?.email
+                    ? 'Assignee is not allowed to change owner'
+                    : '',
+                notAggregated: true,
+              });
             return (
               <div className={classes.cards}>
                 <Grid container spacing={2}>
@@ -464,6 +475,7 @@ const WorkOrderDetails = ({
                             <LocationBreadcrumbsTitle
                               locationDetails={location}
                               size="small"
+                              navigateOnClick={NAVIGATION_OPTIONS.NEW_TAB}
                             />
                             <Grid container spacing={2}>
                               <Grid item xs={12} md={12}>
@@ -499,23 +511,23 @@ const WorkOrderDetails = ({
                         <div className={classes.uploadButtonContainer}>
                           <AddHyperlinkButton
                             className={classes.minimizedButton}
-                            skin="regular"
+                            variant="text"
                             entityType="WORK_ORDER"
                             allowCategories={false}
                             entityId={workOrder.id}>
-                            <InsertLinkIcon color="primary" />
+                            <IconButton icon={LinkIcon} />
                           </AddHyperlinkButton>
                           {isLoadingDocument ? (
                             <CircularProgress size={24} />
                           ) : (
                             <FileUploadButton
-                              className={classes.minimizedButton}
                               onFileUploaded={onDocumentUploaded}
                               onProgress={() => setIsLoadingDocument(true)}>
                               {openFileUploadDialog => (
-                                <CloudUploadOutlinedIcon
-                                  className={classes.uploadButton}
+                                <IconButton
+                                  className={classes.minimizedButton}
                                   onClick={openFileUploadDialog}
+                                  icon={UploadIcon}
                                 />
                               )}
                             </FileUploadButton>

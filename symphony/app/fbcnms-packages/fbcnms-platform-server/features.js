@@ -181,28 +181,29 @@ const arrayConfigs = [
     rules: [AlwaysEnabledInTestEnvRule],
   },
   {
-    id: 'read_only_users',
-    title: 'Read Only Users',
-    enabledByDefault: false,
-  },
-  {
-    id: 'user_management',
-    title: 'User Management - Users and Permissions admin section',
-    enabledByDefault: false,
-  },
-  {
     id: 'user_management_dev',
     title: 'User Management - Dev mode',
     enabledByDefault: false,
   },
   {
+    id: 'permissions_ui_enforcement',
+    title: 'Permissions - UI enforcement',
+    enabledByDefault: true,
+  },
+  {
     id: 'grafana_metrics',
     title: 'Include tab for Grafana in the Metrics page',
-    enabledByDefault: false,
+    enabledByDefault: true,
   },
   {
     id: 'service_endpoints',
     title: 'Service Endpoints',
+    enabledByDefault: false,
+    rules: [AlwaysEnabledInTestEnvRule],
+  },
+  {
+    id: 'dashboard_v2',
+    title: 'V2 LTE Dashboard',
     enabledByDefault: false,
     rules: [AlwaysEnabledInTestEnvRule],
   },

@@ -64,7 +64,7 @@ protected:
     rule.set_id(rule_id);
     rule.set_rating_group(charging_key);
     rule.set_monitoring_key(m_key);
-    rule.set_tracking_type(PolicyRule::ONLY_OCS);
+    rule.set_tracking_type(PolicyRule::OCS_AND_PCRF);
     rule_store->insert_rule(rule);
   }
 
@@ -117,8 +117,11 @@ TEST_F(SessionManagerHandlerTest, test_create_session_cfg) {
   // Only the active sessions are not recycled, to ensure that
   // this session is not automatically scheduled for termination
   // when RAT Type is WLAN, it needs monitoring keys...
-  create_cwf_session_create_response(imsi, monitoring_key, static_rules,
+  create_session_create_response(imsi, monitoring_key, static_rules,
                                      &response);
+  response.mutable_static_rules()->Add()->mutable_rule_id()->assign("rule1");
+  create_credit_update_response(imsi, 1, 1536,
+                                response.mutable_credits()->Add());
 
   SessionRead req = {"IMSI1"};
   auto session_map = session_store->read_sessions(req);

@@ -206,6 +206,10 @@ func (resolver) CheckListItem() generated.CheckListItemResolver {
 	return checkListItemResolver{}
 }
 
+func (resolver) CheckListCategoryDefinition() generated.CheckListCategoryDefinitionResolver {
+	return checkListCategoryDefinitionResolver{}
+}
+
 func (resolver) CheckListItemDefinition() generated.CheckListItemDefinitionResolver {
 	return checkListItemDefinitionResolver{}
 }
@@ -240,4 +244,8 @@ func (r resolver) Comment() generated.CommentResolver {
 
 func (r resolver) ServiceEndpointDefinition() generated.ServiceEndpointDefinitionResolver {
 	return serviceEndpointTypeResolver{}
+}
+
+func (r resolver) PermissionsPolicy() generated.PermissionsPolicyResolver {
+	return permissionsPolicyResolver{}
 }

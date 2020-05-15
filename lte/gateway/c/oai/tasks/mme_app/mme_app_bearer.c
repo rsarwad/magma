@@ -662,12 +662,18 @@ imsi64_t mme_app_handle_initial_ue_message(mme_app_desc_t *mme_app_desc_p,
         if (
           ue_context_p->paging_response_timer.id !=
           MME_APP_TIMER_INACTIVE_ID) {
-          if (timer_remove(ue_context_p->paging_response_timer.id, NULL)) {
+          nas_itti_timer_arg_t* timer_argP = NULL;
+          if (timer_remove(
+                  ue_context_p->paging_response_timer.id,
+                  (void**) &timer_argP)) {
             OAILOG_ERROR_UE(
               LOG_MME_APP,
               imsi64,
               "Failed to stop paging response timer for UE id %d\n",
               ue_context_p->mme_ue_s1ap_id);
+          }
+          if (timer_argP) {
+            free_wrapper((void**) &timer_argP);
           }
           ue_context_p->paging_response_timer.id = MME_APP_TIMER_INACTIVE_ID;
         }
@@ -760,6 +766,9 @@ imsi64_t mme_app_handle_initial_ue_message(mme_app_desc_t *mme_app_desc_p,
   OAILOG_INFO_UE(LOG_MME_APP, ue_context_p->emm_context._imsi64,
       "Sending NAS Establishment Indication to NAS for ue_id = (%d)\n",
     ue_context_p->mme_ue_s1ap_id );
+
+  imsi64 = ue_context_p->emm_context._imsi64;
+
   nas_proc_establish_ind(
     ue_context_p->mme_ue_s1ap_id,
     is_mm_ctx_new,
@@ -775,7 +784,6 @@ imsi64_t mme_app_handle_initial_ue_message(mme_app_desc_t *mme_app_desc_p,
   //   sizeof (message_p->ittiMsg.nas_initial_ue_message.transparent));
 
   initial_pP->nas = NULL;
-  imsi64 = ue_context_p->emm_context._imsi64;
 
   OAILOG_FUNC_RETURN(LOG_MME_APP, imsi64);
 }
@@ -1294,12 +1302,18 @@ void mme_app_handle_initial_context_setup_rsp(
   if (
     ue_context_p->initial_context_setup_rsp_timer.id !=
     MME_APP_TIMER_INACTIVE_ID) {
-    if (timer_remove(ue_context_p->initial_context_setup_rsp_timer.id, NULL)) {
+    nas_itti_timer_arg_t* timer_argP = NULL;
+    if (timer_remove(
+            ue_context_p->initial_context_setup_rsp_timer.id,
+            (void**) &timer_argP)) {
       OAILOG_ERROR_UE(
         LOG_MME_APP,
         ue_context_p->emm_context._imsi64,
         "Failed to stop Initial Context Setup Rsp timer for UE id  %d \n",
         ue_context_p->mme_ue_s1ap_id);
+    }
+    if (timer_argP) {
+      free_wrapper((void**) &timer_argP);
     }
     ue_context_p->initial_context_setup_rsp_timer.id =
       MME_APP_TIMER_INACTIVE_ID;
@@ -1556,8 +1570,6 @@ void mme_app_handle_s11_create_bearer_req(
         "ue_id " MME_UE_S1AP_ID_FMT "\n",
         ue_context_p->mme_ue_s1ap_id);
     }
-    free_wrapper((void **) &activate_ded_bearer_req.tft);
-    free_wrapper((void **) &activate_ded_bearer_req.pco);
   }
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
@@ -1789,12 +1801,18 @@ void mme_app_handle_initial_context_setup_failure(
   if (
     ue_context_p->initial_context_setup_rsp_timer.id !=
     MME_APP_TIMER_INACTIVE_ID) {
-    if (timer_remove(ue_context_p->initial_context_setup_rsp_timer.id, NULL)) {
+    nas_itti_timer_arg_t* timer_argP = NULL;
+    if (timer_remove(
+            ue_context_p->initial_context_setup_rsp_timer.id,
+            (void**) &timer_argP)) {
       OAILOG_ERROR_UE(
         LOG_MME_APP,
         ue_context_p->emm_context._imsi64,
         "Failed to stop Initial Context Setup Rsp timer for UE id  %d \n",
         ue_context_p->mme_ue_s1ap_id);
+    }
+    if (timer_argP) {
+      free_wrapper((void**) &timer_argP);
     }
     ue_context_p->initial_context_setup_rsp_timer.id =
       MME_APP_TIMER_INACTIVE_ID;
@@ -2785,9 +2803,6 @@ void mme_app_handle_nw_init_ded_bearer_actv_req(
       "ue_id " MME_UE_S1AP_ID_FMT "\n",
       ue_context_p->mme_ue_s1ap_id);
   }
-  free_wrapper((void **) &activate_ded_bearer_req.tft);
-  free_wrapper((void **) &activate_ded_bearer_req.pco);
-
   OAILOG_FUNC_OUT(LOG_MME_APP);
 }
 
@@ -2902,11 +2917,10 @@ void mme_app_handle_nw_init_bearer_deactv_req(
   pdn_context_t* pdn_context = ue_context_p->pdn_contexts[cid];
 
   /* If delete_default_bearer is set and this is the only active PDN,
-  *  Send Detach Request to UE
-  */
-  if (
-    (nw_init_bearer_deactv_req_p->delete_default_bearer) &&
-    (ue_context_p->nb_active_pdn_contexts == 1)) {
+   *  Send Detach Request to UE
+   */
+  if ((nw_init_bearer_deactv_req_p->delete_default_bearer) &&
+      (ue_context_p->emm_context.esm_ctx.n_pdns == 1)) {
     OAILOG_INFO_UE(
       LOG_MME_APP,
       ue_context_p->emm_context._imsi64,

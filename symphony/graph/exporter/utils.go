@@ -40,6 +40,7 @@ const (
 	gpsLocationVal      = "gps_location"
 	rangeVal            = "range"
 	enum                = "enum"
+	datetimeLocalVal    = "datetime_local"
 	nodeVal             = "node"
 )
 
@@ -193,6 +194,45 @@ func locationHierarchy(ctx context.Context, location *ent.Location, orderedLocTy
 		}
 	}
 	return parents, nil
+}
+
+func getLastLocations(ctx context.Context, e *ent.Equipment, level int) (*string, error) {
+	ppos, err := e.QueryParentPosition().Only(ctx)
+	if err != nil && !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("querying parent position: %w", err)
+	}
+
+	var lastPosition *ent.EquipmentPosition
+	for ppos != nil {
+		lastPosition = ppos
+		ppos, err = ppos.QueryParent().QueryParentPosition().Only(ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return nil, fmt.Errorf("querying parent position: %w", err)
+		}
+	}
+	var query *ent.LocationQuery
+	if lastPosition != nil {
+		query = lastPosition.QueryParent().QueryLocation()
+	} else {
+		query = e.QueryLocation()
+	}
+	loc, err := query.Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("querying equipemnt location: %w", err)
+	}
+	locations := loc.Name
+
+	for i := 0; i < level-1; i++ {
+		loc, err = loc.QueryParent().Only(ctx)
+		if ent.MaskNotFound(err) != nil {
+			return nil, fmt.Errorf("querying location for equipment: %w", err)
+		}
+		if ent.IsNotFound(err) || loc == nil {
+			break
+		}
+		locations = loc.Name + "; " + locations
+	}
+	return &locations, nil
 }
 
 // nolint: funlen
@@ -493,7 +533,7 @@ func propertyValue(ctx context.Context, typ string, v interface{}) (string, erro
 	}
 	vo := reflect.ValueOf(v).Elem()
 	switch typ {
-	case emailVal, stringVal, dateVal, enum:
+	case emailVal, stringVal, dateVal, enum, datetimeLocalVal:
 		return vo.FieldByName("StringVal").String(), nil
 	case intVal:
 		i := vo.FieldByName("IntVal").Int()
@@ -521,6 +561,12 @@ func propertyValue(ctx context.Context, typ string, v interface{}) (string, erro
 			id = i
 		}
 		if i, err := p.QueryServiceValue().OnlyID(ctx); err == nil {
+			id = i
+		}
+		if i, err := p.QueryWorkOrderValue().OnlyID(ctx); err == nil {
+			id = i
+		}
+		if i, err := p.QueryUserValue().OnlyID(ctx); err == nil {
 			id = i
 		}
 		return strconv.Itoa(id), nil

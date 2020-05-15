@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/facebookincubator/symphony/graph/authz"
 	"github.com/facebookincubator/symphony/graph/event"
 	"github.com/facebookincubator/symphony/graph/exporter"
 	"github.com/facebookincubator/symphony/graph/graphql"
 	"github.com/facebookincubator/symphony/graph/importer"
+	"github.com/facebookincubator/symphony/graph/jobs"
 	"github.com/facebookincubator/symphony/graph/viewer"
 	"github.com/facebookincubator/symphony/pkg/actions"
 	"github.com/facebookincubator/symphony/pkg/actions/executor"
@@ -38,10 +40,13 @@ func newRouter(cfg routerConfig) (*mux.Router, func(), error) {
 			return viewer.WebSocketUpgradeHandler(h, cfg.viewer.authurl)
 		},
 		func(h http.Handler) http.Handler {
-			return viewer.TenancyHandler(h, cfg.viewer.tenancy)
+			return viewer.TenancyHandler(h, cfg.viewer.tenancy, cfg.logger)
 		},
 		func(h http.Handler) http.Handler {
-			return viewer.UserHandler{Handler: h, Logger: cfg.logger}
+			return viewer.UserHandler(h, cfg.logger)
+		},
+		func(h http.Handler) http.Handler {
+			return authz.Handler(h, cfg.logger)
 		},
 		func(h http.Handler) http.Handler {
 			return actions.Handler(h, cfg.logger, cfg.actions.registry)
@@ -64,6 +69,17 @@ func newRouter(cfg routerConfig) (*mux.Router, func(), error) {
 	router.PathPrefix("/export/").
 		Handler(http.StripPrefix("/export", handler)).
 		Name("export")
+
+	handler, err = jobs.NewHandler(jobs.Config{
+		Logger:     cfg.logger,
+		Subscriber: cfg.events.subscriber,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("creating jobs handler: %w", err)
+	}
+	router.PathPrefix("/jobs/").
+		Handler(http.StripPrefix("/jobs", handler)).
+		Name("jobs")
 
 	handler, cleanup, err := graphql.NewHandler(
 		graphql.HandlerConfig{

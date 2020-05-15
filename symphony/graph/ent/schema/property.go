@@ -9,6 +9,7 @@ import (
 	"github.com/facebookincubator/ent/schema/edge"
 	"github.com/facebookincubator/ent/schema/field"
 	"github.com/facebookincubator/ent/schema/index"
+	"github.com/facebookincubator/symphony/graph/authz"
 )
 
 // PropertyType defines the property type schema.
@@ -118,6 +119,16 @@ func (PropertyType) Indexes() []ent.Index {
 	}
 }
 
+// Policy returns property type policy.
+func (PropertyType) Policy() ent.Policy {
+	return authz.NewPolicy(
+		authz.WithMutationRules(
+			authz.PropertyTypeWritePolicyRule(),
+			authz.PropertyTypeCreatePolicyRule(),
+		),
+	)
+}
+
 // Property defines the property schema.
 type Property struct {
 	schema
@@ -190,5 +201,19 @@ func (Property) Edges() []ent.Edge {
 			Unique(),
 		edge.To("service_value", Service.Type).
 			Unique(),
+		edge.To("work_order_value", WorkOrder.Type).
+			Unique(),
+		edge.To("user_value", User.Type).
+			Unique(),
 	}
+}
+
+// Policy returns property policy.
+func (Property) Policy() ent.Policy {
+	return authz.NewPolicy(
+		authz.WithMutationRules(
+			authz.PropertyWritePolicyRule(),
+			authz.PropertyCreatePolicyRule(),
+		),
+	)
 }

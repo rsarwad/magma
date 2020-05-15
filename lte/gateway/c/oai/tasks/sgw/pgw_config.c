@@ -245,8 +245,10 @@ int pgw_config_parse_file(pgw_config_t *config_pP)
   unsigned char buf_in_addr[sizeof(struct in_addr)];
   struct in_addr addr_start;
   bstring system_cmd = NULL;
-  libconfig_int mtu = 0;
-  int prefix_mask = 0;
+  libconfig_int mtu  = 0;
+  int prefix_mask    = 0;
+  char* pcscf_ipv4   = NULL;
+  char* pcscf_ipv6   = NULL;
 
   config_init(&cfg);
 
@@ -421,6 +423,33 @@ int pgw_config_parse_file(pgw_config_t *config_pP)
         OAILOG_WARNING(LOG_SPGW_APP, "NO DNS CONFIGURATION FOUND\n");
       }
     }
+
+    if (config_setting_lookup_string(
+            setting_pgw, PGW_CONFIG_P_CSCF_IPV4_ADDRESS,
+            (const char**) &pcscf_ipv4)) {
+      IPV4_STR_ADDR_TO_INADDR(
+          pcscf_ipv4, config_pP->pcscf.ipv4_addr,
+          "BAD IPv4 ADDRESS FORMAT FOR P-CSCF IPv4 address !\n");
+      OAILOG_DEBUG(
+          LOG_SPGW_APP, "Parsing configuration file P-CSCF IPv4 address: %s\n",
+          pcscf_ipv4);
+    } else {
+      OAILOG_WARNING(LOG_SPGW_APP, "NO P-CSCF IPv4 CONFIGURATION FOUND\n");
+    }
+
+    if (config_setting_lookup_string(
+            setting_pgw, PGW_CONFIG_P_CSCF_IPV6_ADDRESS,
+            (const char**) &pcscf_ipv6)) {
+      IPV6_STR_ADDR_TO_INADDR(
+          pcscf_ipv6, config_pP->pcscf.ipv6_addr,
+          "BAD IPv6 ADDRESS FORMAT FOR P-CSCF IPv6 address !\n");
+      OAILOG_DEBUG(
+          LOG_SPGW_APP, "Parsing configuration file P-CSCF IPv6 address: %s\n",
+          pcscf_ipv6);
+    } else {
+      OAILOG_WARNING(LOG_SPGW_APP, "NO P-CSCF IPv6 CONFIGURATION FOUND\n");
+    }
+
     if (config_setting_lookup_string(
           setting_pgw,
           PGW_CONFIG_STRING_NAS_FORCE_PUSH_PCO,
@@ -449,26 +478,6 @@ int pgw_config_parse_file(pgw_config_t *config_pP)
         OAILOG_DEBUG(LOG_SPGW_APP, "Enabling relay through PCEF\n");
       } else {
         config_pP->relay_enabled = false;
-      }
-    }
-    if (config_setting_lookup_string(
-          setting_pgw,
-          PGW_CONFIG_STRING_GTPV1U_REALIZATION,
-          (const char **) &astring)) {
-      if (strcasecmp(astring, PGW_CONFIG_STRING_NO_GTP_KERNEL_AVAILABLE) == 0) {
-        config_pP->use_gtp_kernel_module = false;
-        config_pP->enable_loading_gtp_kernel_module = false;
-        OAILOG_DEBUG(
-          LOG_SPGW_APP,
-          "Protocol configuration options: push MTU, push DNS, IP address "
-          "allocation via NAS signalling\n");
-      } else if (
-        strcasecmp(astring, PGW_CONFIG_STRING_GTP_KERNEL_MODULE) == 0) {
-        config_pP->use_gtp_kernel_module = true;
-        config_pP->enable_loading_gtp_kernel_module = true;
-      } else if (strcasecmp(astring, PGW_CONFIG_STRING_GTP_KERNEL) == 0) {
-        config_pP->use_gtp_kernel_module = true;
-        config_pP->enable_loading_gtp_kernel_module = false;
       }
     }
 
@@ -626,17 +635,6 @@ void pgw_config_display(pgw_config_t *config_p)
     LOG_SPGW_APP,
     "    User IP masquerading  : %s\n",
     config_p->masquerade_SGI == 0 ? "false" : "true");
-  if (config_p->use_gtp_kernel_module) {
-    OAILOG_INFO(
-      LOG_SPGW_APP,
-      "- GTPv1U .................: Enabled (Linux kernel module)\n");
-    OAILOG_INFO(
-      LOG_SPGW_APP,
-      "    Load/unload module....: %s\n",
-      (config_p->enable_loading_gtp_kernel_module) ? "enabled" : "disabled");
-  } else {
-    OAILOG_INFO(LOG_SPGW_APP, "- GTPv1U .................: Disabled\n");
-  }
   OAILOG_INFO(
     LOG_SPGW_APP,
     "- PCEF support ...........: %s (in development)\n",

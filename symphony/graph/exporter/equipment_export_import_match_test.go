@@ -16,6 +16,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/facebookincubator/symphony/graph/authz"
 	"github.com/facebookincubator/symphony/graph/ent"
 	"github.com/facebookincubator/symphony/graph/ent/equipment"
 	"github.com/facebookincubator/symphony/graph/ent/location"
@@ -87,7 +88,7 @@ func writeModifiedCSV(t *testing.T, r *csv.Reader, method method, withVerify boo
 
 	for _, l := range lines {
 		stringLine := strings.Join(l, ",")
-		fileWriter.Write([]byte(stringLine + "\n"))
+		_, _ = io.WriteString(fileWriter, stringLine+"\n")
 	}
 	ct := bw.FormDataContentType()
 	require.NoError(t, bw.Close())
@@ -104,14 +105,18 @@ func importEquipmentFile(t *testing.T, client *ent.Client, r io.Reader, method m
 			Subscriber: event.NewNopSubscriber(),
 		},
 	)
-	th := viewer.TenancyHandler(h, viewer.NewFixedTenancy(client))
-	server := httptest.NewServer(th)
+	h = authz.Handler(h, logtest.NewTestLogger(t))
+	h = viewer.TenancyHandler(h,
+		viewer.NewFixedTenancy(client),
+		logtest.NewTestLogger(t),
+	)
+	server := httptest.NewServer(h)
 	defer server.Close()
 
 	req, err := http.NewRequest(http.MethodPost, server.URL+"/export_equipment", buf)
 	require.Nil(t, err)
 
-	req.Header.Set(tenantHeader, "fb-test")
+	viewertest.SetDefaultViewerHeaders(req)
 	req.Header.Set("Content-Type", contentType)
 
 	resp, err := http.DefaultClient.Do(req)
@@ -144,17 +149,17 @@ func deleteEquipmentData(ctx context.Context, t *testing.T, r *TestExporterResol
 
 func prepareEquipmentAndExport(t *testing.T, r *TestExporterResolver) (context.Context, *http.Response) {
 	log := r.exporter.log
-
-	e := &exporter{log, equipmentRower{log}}
-	th := viewer.TenancyHandler(e, viewer.NewFixedTenancy(r.client))
-	server := httptest.NewServer(th)
+	var h http.Handler = &exporter{log, equipmentRower{log}}
+	h = authz.Handler(h, logtest.NewTestLogger(t))
+	h = viewer.TenancyHandler(h, viewer.NewFixedTenancy(r.client), log)
+	server := httptest.NewServer(h)
 	defer server.Close()
 
 	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
 	require.NoError(t, err)
-	req.Header.Set(tenantHeader, "fb-test")
+	viewertest.SetDefaultViewerHeaders(req)
 
-	ctx := viewertest.NewContext(r.client)
+	ctx := viewertest.NewContext(context.Background(), r.client)
 	prepareData(ctx, t, *r)
 	locs := r.client.Location.Query().AllX(ctx)
 	require.Len(t, locs, 3)

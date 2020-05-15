@@ -28,6 +28,10 @@ type ServiceType struct {
 	Name string `json:"name,omitempty"`
 	// HasCustomer holds the value of the "has_customer" field.
 	HasCustomer bool `json:"has_customer,omitempty"`
+	// IsDeleted holds the value of the "is_deleted" field.
+	IsDeleted bool `json:"is_deleted,omitempty"`
+	// DiscoveryMethod holds the value of the "discovery_method" field.
+	DiscoveryMethod servicetype.DiscoveryMethod `json:"discovery_method,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ServiceTypeQuery when eager-loading is set.
 	Edges ServiceTypeEdges `json:"edges"`
@@ -81,6 +85,8 @@ func (*ServiceType) scanValues() []interface{} {
 		&sql.NullTime{},   // update_time
 		&sql.NullString{}, // name
 		&sql.NullBool{},   // has_customer
+		&sql.NullBool{},   // is_deleted
+		&sql.NullString{}, // discovery_method
 	}
 }
 
@@ -115,6 +121,16 @@ func (st *ServiceType) assignValues(values ...interface{}) error {
 		return fmt.Errorf("unexpected type %T for field has_customer", values[3])
 	} else if value.Valid {
 		st.HasCustomer = value.Bool
+	}
+	if value, ok := values[4].(*sql.NullBool); !ok {
+		return fmt.Errorf("unexpected type %T for field is_deleted", values[4])
+	} else if value.Valid {
+		st.IsDeleted = value.Bool
+	}
+	if value, ok := values[5].(*sql.NullString); !ok {
+		return fmt.Errorf("unexpected type %T for field discovery_method", values[5])
+	} else if value.Valid {
+		st.DiscoveryMethod = servicetype.DiscoveryMethod(value.String)
 	}
 	return nil
 }
@@ -165,6 +181,10 @@ func (st *ServiceType) String() string {
 	builder.WriteString(st.Name)
 	builder.WriteString(", has_customer=")
 	builder.WriteString(fmt.Sprintf("%v", st.HasCustomer))
+	builder.WriteString(", is_deleted=")
+	builder.WriteString(fmt.Sprintf("%v", st.IsDeleted))
+	builder.WriteString(", discovery_method=")
+	builder.WriteString(fmt.Sprintf("%v", st.DiscoveryMethod))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -5,6 +5,7 @@
 package resolver
 
 import (
+	"context"
 	"sort"
 	"testing"
 
@@ -21,8 +22,8 @@ import (
 
 func TestAddEquipmentTypesSameName(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr := r.Mutation()
 	equipmentType, err := mr.AddEquipmentType(ctx, models.AddEquipmentTypeInput{
@@ -38,8 +39,8 @@ func TestAddEquipmentTypesSameName(t *testing.T) {
 
 func TestQueryEquipmentTypes(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr, qr := r.Mutation(), r.Query()
 	for _, suffix := range []string{"a", "b"} {
@@ -71,8 +72,8 @@ func TestQueryEquipmentTypes(t *testing.T) {
 
 func TestAddEquipmentTypeWithPositions(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr, qr := r.Mutation(), r.Query()
 	position1 := models.EquipmentPositionInput{
@@ -95,8 +96,8 @@ func TestAddEquipmentTypeWithPositions(t *testing.T) {
 
 func TestAddEquipmentTypeWithProperties(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 	mr, qr, etr := r.Mutation(), r.Query(), r.EquipmentType()
 	extID := "12345"
 	ptype := models.PropertyTypeInput{
@@ -126,8 +127,8 @@ func TestAddEquipmentTypeWithProperties(t *testing.T) {
 
 func TestAddEquipmentTypeWithoutPositionNames(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr := r.Mutation()
 	equipmentType, err := mr.AddEquipmentType(ctx, models.AddEquipmentTypeInput{
@@ -141,8 +142,8 @@ func TestAddEquipmentTypeWithoutPositionNames(t *testing.T) {
 
 func TestAddEquipmentTypeWithPorts(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 	mr, qr := r.Mutation(), r.Query()
 
 	visibleLabel := "Eth1"
@@ -172,8 +173,8 @@ func TestAddEquipmentTypeWithPorts(t *testing.T) {
 
 func TestRemoveEquipmentTypeWithExistingEquipments(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr, qr := r.Mutation(), r.Query()
 	equipmentType, err := mr.AddEquipmentType(ctx, models.AddEquipmentTypeInput{
@@ -209,8 +210,8 @@ func TestRemoveEquipmentTypeWithExistingEquipments(t *testing.T) {
 
 func TestRemoveEquipmentType(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr, qr := r.Mutation(), r.Query()
 	portDef := models.EquipmentPortInput{
@@ -248,8 +249,8 @@ func TestRemoveEquipmentType(t *testing.T) {
 
 func TestEditEquipmentType(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 	mr, qr := r.Mutation(), r.Query()
 
 	eqType, err := mr.AddEquipmentType(ctx, models.AddEquipmentTypeInput{
@@ -293,8 +294,8 @@ func TestEditEquipmentType(t *testing.T) {
 
 func TestEditEquipmentTypeRemoveCategory(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr := r.Mutation()
 	eqType, err := mr.AddEquipmentType(ctx, models.AddEquipmentTypeInput{
@@ -318,8 +319,8 @@ func TestEditEquipmentTypeRemoveCategory(t *testing.T) {
 
 func TestEditEquipmentTypeWithProperties(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr := r.Mutation()
 	strPropType := models.PropertyTypeInput{
@@ -379,8 +380,8 @@ func TestEditEquipmentTypeWithProperties(t *testing.T) {
 
 func TestEditEquipmentTypeWithPortsAndPositions(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr := r.Mutation()
 	bandwidth := "b1"

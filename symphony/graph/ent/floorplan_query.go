@@ -28,7 +28,7 @@ type FloorPlanQuery struct {
 	config
 	limit      *int
 	offset     *int
-	order      []Order
+	order      []OrderFunc
 	unique     []string
 	predicates []predicate.FloorPlan
 	// eager-loading edges.
@@ -61,7 +61,7 @@ func (fpq *FloorPlanQuery) Offset(offset int) *FloorPlanQuery {
 }
 
 // Order adds an order step to the query.
-func (fpq *FloorPlanQuery) Order(o ...Order) *FloorPlanQuery {
+func (fpq *FloorPlanQuery) Order(o ...OrderFunc) *FloorPlanQuery {
 	fpq.order = append(fpq.order, o...)
 	return fpq
 }
@@ -308,7 +308,7 @@ func (fpq *FloorPlanQuery) Clone() *FloorPlanQuery {
 		config:     fpq.config,
 		limit:      fpq.limit,
 		offset:     fpq.offset,
-		order:      append([]Order{}, fpq.order...),
+		order:      append([]OrderFunc{}, fpq.order...),
 		unique:     append([]string{}, fpq.unique...),
 		predicates: append([]predicate.FloorPlan{}, fpq.predicates...),
 		// clone intermediate query.
@@ -419,6 +419,9 @@ func (fpq *FloorPlanQuery) prepareQuery(ctx context.Context) error {
 			return err
 		}
 		fpq.sql = prev
+	}
+	if err := floorplan.Policy.EvalQuery(ctx, fpq); err != nil {
+		return err
 	}
 	return nil
 }
@@ -646,14 +649,14 @@ func (fpq *FloorPlanQuery) sqlQuery() *sql.Selector {
 type FloorPlanGroupBy struct {
 	config
 	fields []string
-	fns    []Aggregate
+	fns    []AggregateFunc
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (fpgb *FloorPlanGroupBy) Aggregate(fns ...Aggregate) *FloorPlanGroupBy {
+func (fpgb *FloorPlanGroupBy) Aggregate(fns ...AggregateFunc) *FloorPlanGroupBy {
 	fpgb.fns = append(fpgb.fns, fns...)
 	return fpgb
 }

@@ -1,3 +1,5 @@
+// +build all gx
+
 /*
  * Copyright (c) Facebook, Inc. and its affiliates.
  * All rights reserved.
@@ -118,8 +120,7 @@ func TestGxReAuthWithMidSessionPolicyRemoval(t *testing.T) {
 	assert.Nil(t, record3, fmt.Sprintf("Policy usage record for imsi: %v was not removed", imsi))
 
 	// Trigger disconnection
-	_, err = tr.Disconnect(imsi)
-	assert.NoError(t, err)
+	tr.DisconnectAndAssertSuccess(imsi)
 	fmt.Println("wait for flows to get deactivated")
 	time.Sleep(3 * time.Second)
 }
@@ -176,6 +177,7 @@ func TestGxReAuthWithMidSessionPoliciesRemoval(t *testing.T) {
 	tr.WaitForReAuthToProcess()
 
 	// Check ReAuth success
+	assert.NotNil(t, raa)
 	assert.Contains(t, raa.SessionId, "IMSI"+imsi)
 	assert.Equal(t, diam.Success, int(raa.ResultCode))
 
@@ -191,8 +193,7 @@ func TestGxReAuthWithMidSessionPoliciesRemoval(t *testing.T) {
 	assert.Nil(t, record3, fmt.Sprintf("Policy usage record for imsi: %v was not removed", imsi))
 
 	// trigger disconnection
-	_, err = tr.Disconnect(imsi)
-	assert.NoError(t, err)
+	tr.DisconnectAndAssertSuccess(imsi)
 	fmt.Println("wait for flows to get deactivated")
 	time.Sleep(3 * time.Second)
 }
@@ -241,11 +242,7 @@ func TestGxReAuthWithMidSessionPolicyInstall(t *testing.T) {
 
 	// Install a Pass-All Rule with higher priority using PolicyReAuth
 	usageMonitoring := []*fegprotos.UsageMonitoringInformation{
-		{
-			MonitoringLevel: fegprotos.MonitoringLevel_RuleLevel,
-			MonitoringKey:   []byte("raakey3"),
-			Octets:          &fegprotos.Octets{TotalOctets: 250 * KiloBytes},
-		},
+		getUsageInformation("raakey3", 250*KiloBytes),
 	}
 	ruleDefinition := []*fegprotos.RuleDefinition{
 		{
@@ -289,8 +286,7 @@ func TestGxReAuthWithMidSessionPolicyInstall(t *testing.T) {
 	}
 
 	// trigger disconnection
-	_, err = tr.Disconnect(imsi)
-	assert.NoError(t, err)
+	tr.DisconnectAndAssertSuccess(imsi)
 	fmt.Println("wait for flows to get deactivated")
 	time.Sleep(3 * time.Second)
 }
@@ -346,11 +342,7 @@ func TestGxReAuthWithMidSessionPolicyInstallAndRemoval(t *testing.T) {
 
 	// Install a Pass-All Rule with higher priority using PolicyReAuth
 	usageMonitoring := []*fegprotos.UsageMonitoringInformation{
-		{
-			MonitoringLevel: fegprotos.MonitoringLevel_RuleLevel,
-			MonitoringKey:   []byte("raakey5"),
-			Octets:          &fegprotos.Octets{TotalOctets: 250 * KiloBytes},
-		},
+		getUsageInformation("raakey5", 250*KiloBytes),
 	}
 	ruleDefinition := []*fegprotos.RuleDefinition{
 		{
@@ -393,8 +385,7 @@ func TestGxReAuthWithMidSessionPolicyInstallAndRemoval(t *testing.T) {
 	assert.True(t, record2.BytesTx <= uint64(500*KiloBytes+Buffer), fmt.Sprintf("policy usage: %v", record2))
 
 	// trigger disconnection
-	_, err = tr.Disconnect(imsi)
-	assert.NoError(t, err)
+	tr.DisconnectAndAssertSuccess(imsi)
 	fmt.Println("wait for flows to get deactivated")
 	time.Sleep(3 * time.Second)
 }
@@ -439,13 +430,7 @@ func TestGxReAuthQuotaRefill(t *testing.T) {
 	assert.True(t, record1.BytesTx <= uint64(500*KiloBytes+Buffer), fmt.Sprintf("policy usage: %v", record1))
 
 	// Install a Pass-All Rule with higher priority using PolicyReAuth
-	usageMonitoring := []*fegprotos.UsageMonitoringInformation{
-		{
-			MonitoringLevel: fegprotos.MonitoringLevel_RuleLevel,
-			MonitoringKey:   []byte("raakey1"),
-			Octets:          &fegprotos.Octets{TotalOctets: 250 * KiloBytes},
-		},
-	}
+	usageMonitoring := []*fegprotos.UsageMonitoringInformation{getUsageInformation("raakey1", 250*KiloBytes)}
 	raa, err := sendPolicyReAuthRequest(
 		&fegprotos.PolicyReAuthTarget{
 			Imsi:                 imsi,
@@ -476,8 +461,7 @@ func TestGxReAuthQuotaRefill(t *testing.T) {
 	assert.True(t, record2.BytesTx <= uint64(1*MegaBytes+Buffer), fmt.Sprintf("policy usage: %v", record2))
 
 	// trigger disconnection
-	_, err = tr.Disconnect(imsi)
-	assert.NoError(t, err)
+	tr.DisconnectAndAssertSuccess(imsi)
 	fmt.Println("wait for flows to get deactivated")
 	time.Sleep(3 * time.Second)
 }

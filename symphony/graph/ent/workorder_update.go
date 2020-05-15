@@ -16,7 +16,6 @@ import (
 	"github.com/facebookincubator/ent/dialect/sql/sqlgraph"
 	"github.com/facebookincubator/ent/schema/field"
 	"github.com/facebookincubator/symphony/graph/ent/checklistcategory"
-	"github.com/facebookincubator/symphony/graph/ent/checklistitem"
 	"github.com/facebookincubator/symphony/graph/ent/comment"
 	"github.com/facebookincubator/symphony/graph/ent/equipment"
 	"github.com/facebookincubator/symphony/graph/ent/file"
@@ -26,7 +25,6 @@ import (
 	"github.com/facebookincubator/symphony/graph/ent/predicate"
 	"github.com/facebookincubator/symphony/graph/ent/project"
 	"github.com/facebookincubator/symphony/graph/ent/property"
-	"github.com/facebookincubator/symphony/graph/ent/technician"
 	"github.com/facebookincubator/symphony/graph/ent/user"
 	"github.com/facebookincubator/symphony/graph/ent/workorder"
 	"github.com/facebookincubator/symphony/graph/ent/workordertype"
@@ -316,40 +314,6 @@ func (wou *WorkOrderUpdate) AddCheckListCategories(c ...*CheckListCategory) *Wor
 	return wou.AddCheckListCategoryIDs(ids...)
 }
 
-// AddCheckListItemIDs adds the check_list_items edge to CheckListItem by ids.
-func (wou *WorkOrderUpdate) AddCheckListItemIDs(ids ...int) *WorkOrderUpdate {
-	wou.mutation.AddCheckListItemIDs(ids...)
-	return wou
-}
-
-// AddCheckListItems adds the check_list_items edges to CheckListItem.
-func (wou *WorkOrderUpdate) AddCheckListItems(c ...*CheckListItem) *WorkOrderUpdate {
-	ids := make([]int, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
-	}
-	return wou.AddCheckListItemIDs(ids...)
-}
-
-// SetTechnicianID sets the technician edge to Technician by id.
-func (wou *WorkOrderUpdate) SetTechnicianID(id int) *WorkOrderUpdate {
-	wou.mutation.SetTechnicianID(id)
-	return wou
-}
-
-// SetNillableTechnicianID sets the technician edge to Technician by id if the given value is not nil.
-func (wou *WorkOrderUpdate) SetNillableTechnicianID(id *int) *WorkOrderUpdate {
-	if id != nil {
-		wou = wou.SetTechnicianID(*id)
-	}
-	return wou
-}
-
-// SetTechnician sets the technician edge to Technician.
-func (wou *WorkOrderUpdate) SetTechnician(t *Technician) *WorkOrderUpdate {
-	return wou.SetTechnicianID(t.ID)
-}
-
 // SetProjectID sets the project edge to Project by id.
 func (wou *WorkOrderUpdate) SetProjectID(id int) *WorkOrderUpdate {
 	wou.mutation.SetProjectID(id)
@@ -514,27 +478,6 @@ func (wou *WorkOrderUpdate) RemoveCheckListCategories(c ...*CheckListCategory) *
 		ids[i] = c[i].ID
 	}
 	return wou.RemoveCheckListCategoryIDs(ids...)
-}
-
-// RemoveCheckListItemIDs removes the check_list_items edge to CheckListItem by ids.
-func (wou *WorkOrderUpdate) RemoveCheckListItemIDs(ids ...int) *WorkOrderUpdate {
-	wou.mutation.RemoveCheckListItemIDs(ids...)
-	return wou
-}
-
-// RemoveCheckListItems removes check_list_items edges to CheckListItem.
-func (wou *WorkOrderUpdate) RemoveCheckListItems(c ...*CheckListItem) *WorkOrderUpdate {
-	ids := make([]int, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
-	}
-	return wou.RemoveCheckListItemIDs(ids...)
-}
-
-// ClearTechnician clears the technician edge to Technician.
-func (wou *WorkOrderUpdate) ClearTechnician() *WorkOrderUpdate {
-	wou.mutation.ClearTechnician()
-	return wou
 }
 
 // ClearProject clears the project edge to Project.
@@ -1067,79 +1010,6 @@ func (wou *WorkOrderUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if nodes := wou.mutation.RemovedCheckListItemsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   workorder.CheckListItemsTable,
-			Columns: []string{workorder.CheckListItemsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: checklistitem.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := wou.mutation.CheckListItemsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   workorder.CheckListItemsTable,
-			Columns: []string{workorder.CheckListItemsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: checklistitem.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if wou.mutation.TechnicianCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   workorder.TechnicianTable,
-			Columns: []string{workorder.TechnicianColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: technician.FieldID,
-				},
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := wou.mutation.TechnicianIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   workorder.TechnicianTable,
-			Columns: []string{workorder.TechnicianColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: technician.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
 	if wou.mutation.ProjectCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -1533,40 +1403,6 @@ func (wouo *WorkOrderUpdateOne) AddCheckListCategories(c ...*CheckListCategory) 
 	return wouo.AddCheckListCategoryIDs(ids...)
 }
 
-// AddCheckListItemIDs adds the check_list_items edge to CheckListItem by ids.
-func (wouo *WorkOrderUpdateOne) AddCheckListItemIDs(ids ...int) *WorkOrderUpdateOne {
-	wouo.mutation.AddCheckListItemIDs(ids...)
-	return wouo
-}
-
-// AddCheckListItems adds the check_list_items edges to CheckListItem.
-func (wouo *WorkOrderUpdateOne) AddCheckListItems(c ...*CheckListItem) *WorkOrderUpdateOne {
-	ids := make([]int, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
-	}
-	return wouo.AddCheckListItemIDs(ids...)
-}
-
-// SetTechnicianID sets the technician edge to Technician by id.
-func (wouo *WorkOrderUpdateOne) SetTechnicianID(id int) *WorkOrderUpdateOne {
-	wouo.mutation.SetTechnicianID(id)
-	return wouo
-}
-
-// SetNillableTechnicianID sets the technician edge to Technician by id if the given value is not nil.
-func (wouo *WorkOrderUpdateOne) SetNillableTechnicianID(id *int) *WorkOrderUpdateOne {
-	if id != nil {
-		wouo = wouo.SetTechnicianID(*id)
-	}
-	return wouo
-}
-
-// SetTechnician sets the technician edge to Technician.
-func (wouo *WorkOrderUpdateOne) SetTechnician(t *Technician) *WorkOrderUpdateOne {
-	return wouo.SetTechnicianID(t.ID)
-}
-
 // SetProjectID sets the project edge to Project by id.
 func (wouo *WorkOrderUpdateOne) SetProjectID(id int) *WorkOrderUpdateOne {
 	wouo.mutation.SetProjectID(id)
@@ -1731,27 +1567,6 @@ func (wouo *WorkOrderUpdateOne) RemoveCheckListCategories(c ...*CheckListCategor
 		ids[i] = c[i].ID
 	}
 	return wouo.RemoveCheckListCategoryIDs(ids...)
-}
-
-// RemoveCheckListItemIDs removes the check_list_items edge to CheckListItem by ids.
-func (wouo *WorkOrderUpdateOne) RemoveCheckListItemIDs(ids ...int) *WorkOrderUpdateOne {
-	wouo.mutation.RemoveCheckListItemIDs(ids...)
-	return wouo
-}
-
-// RemoveCheckListItems removes check_list_items edges to CheckListItem.
-func (wouo *WorkOrderUpdateOne) RemoveCheckListItems(c ...*CheckListItem) *WorkOrderUpdateOne {
-	ids := make([]int, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
-	}
-	return wouo.RemoveCheckListItemIDs(ids...)
-}
-
-// ClearTechnician clears the technician edge to Technician.
-func (wouo *WorkOrderUpdateOne) ClearTechnician() *WorkOrderUpdateOne {
-	wouo.mutation.ClearTechnician()
-	return wouo
 }
 
 // ClearProject clears the project edge to Project.
@@ -2274,79 +2089,6 @@ func (wouo *WorkOrderUpdateOne) sqlSave(ctx context.Context) (wo *WorkOrder, err
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: checklistcategory.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if nodes := wouo.mutation.RemovedCheckListItemsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   workorder.CheckListItemsTable,
-			Columns: []string{workorder.CheckListItemsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: checklistitem.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := wouo.mutation.CheckListItemsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   workorder.CheckListItemsTable,
-			Columns: []string{workorder.CheckListItemsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: checklistitem.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if wouo.mutation.TechnicianCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   workorder.TechnicianTable,
-			Columns: []string{workorder.TechnicianColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: technician.FieldID,
-				},
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := wouo.mutation.TechnicianIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   workorder.TechnicianTable,
-			Columns: []string{workorder.TechnicianColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: technician.FieldID,
 				},
 			},
 		}

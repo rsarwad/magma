@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/facebookincubator/symphony/graph/authz"
+
 	"github.com/AlekSi/pointer"
 	"github.com/facebookincubator/symphony/graph/ent/equipmentportdefinition"
 	"github.com/facebookincubator/symphony/graph/ent/equipmentpositiondefinition"
@@ -23,6 +25,7 @@ import (
 	"github.com/facebookincubator/symphony/graph/graphql/models"
 	"github.com/facebookincubator/symphony/graph/viewer"
 	"github.com/facebookincubator/symphony/graph/viewer/viewertest"
+	"github.com/facebookincubator/symphony/pkg/log/logtest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -203,14 +206,15 @@ func TestEmptyLinksDataExport(t *testing.T) {
 	log := r.exporter.log
 
 	e := &exporter{log, linksRower{log}}
-	th := viewer.TenancyHandler(e, viewer.NewFixedTenancy(r.client))
+	auth := authz.Handler(e, logtest.NewTestLogger(t))
+	th := viewer.TenancyHandler(auth, viewer.NewFixedTenancy(r.client), logtest.NewTestLogger(t))
 	server := httptest.NewServer(th)
 	defer server.Close()
 
 	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
 	require.NoError(t, err)
 
-	req.Header.Set(tenantHeader, "fb-test")
+	viewertest.SetDefaultViewerHeaders(req)
 	res, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
@@ -252,15 +256,16 @@ func TestLinksExport(t *testing.T) {
 	log := r.exporter.log
 
 	e := &exporter{log, linksRower{log}}
-	th := viewer.TenancyHandler(e, viewer.NewFixedTenancy(r.client))
+	auth := authz.Handler(e, logtest.NewTestLogger(t))
+	th := viewer.TenancyHandler(auth, viewer.NewFixedTenancy(r.client), logtest.NewTestLogger(t))
 	server := httptest.NewServer(th)
 	defer server.Close()
 
 	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
 	require.NoError(t, err)
-	req.Header.Set(tenantHeader, "fb-test")
+	viewertest.SetDefaultViewerHeaders(req)
 
-	ctx := viewertest.NewContext(r.client)
+	ctx := viewertest.NewContext(context.Background(), r.client)
 	prepareLinkData(ctx, t, *r)
 	require.NoError(t, err)
 	res, err := http.DefaultClient.Do(req)
@@ -369,9 +374,10 @@ func TestLinksExport(t *testing.T) {
 func TestLinksWithFilters(t *testing.T) {
 	r := newExporterTestResolver(t)
 	log := r.exporter.log
-	ctx := viewertest.NewContext(r.client)
+	ctx := viewertest.NewContext(context.Background(), r.client)
 	e := &exporter{log, linksRower{log}}
-	th := viewer.TenancyHandler(e, viewer.NewFixedTenancy(r.client))
+	auth := authz.Handler(e, logtest.NewTestLogger(t))
+	th := viewer.TenancyHandler(auth, viewer.NewFixedTenancy(r.client), logtest.NewTestLogger(t))
 	server := httptest.NewServer(th)
 	defer server.Close()
 
@@ -427,7 +433,7 @@ func TestLinksWithFilters(t *testing.T) {
 	for _, filter := range [][]byte{f1, f2, f3} {
 		req, err := http.NewRequest("GET", server.URL, nil)
 		require.NoError(t, err)
-		req.Header.Set(tenantHeader, "fb-test")
+		viewertest.SetDefaultViewerHeaders(req)
 
 		q := req.URL.Query()
 		q.Add("filters", string(filter))

@@ -5,6 +5,7 @@
 package resolver
 
 import (
+	"context"
 	"testing"
 
 	"github.com/facebookincubator/symphony/graph/ent"
@@ -29,8 +30,8 @@ func pointerToServiceStatus(status models.ServiceStatus) *models.ServiceStatus {
 
 func TestAddServiceWithProperties(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr := r.Mutation()
 	serviceTypeStrValue := "Foo"
@@ -69,8 +70,8 @@ func TestAddServiceWithProperties(t *testing.T) {
 
 func TestAddServiceWithExternalIdUnique(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr := r.Mutation()
 	serviceType, err := mr.AddServiceType(ctx, models.ServiceTypeCreateData{
@@ -115,8 +116,8 @@ func TestAddServiceWithExternalIdUnique(t *testing.T) {
 
 func TestAddServiceWithCustomer(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr, qr := r.Mutation(), r.Query()
 	serviceType, err := mr.AddServiceType(ctx, models.ServiceTypeCreateData{
@@ -150,8 +151,8 @@ func TestAddServiceWithCustomer(t *testing.T) {
 
 func TestServiceTopologyReturnsCorrectLinksAndEquipment(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr := r.Mutation()
 
@@ -250,8 +251,8 @@ func TestServiceTopologyReturnsCorrectLinksAndEquipment(t *testing.T) {
 
 func TestServiceTopologyWithSlots(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr := r.Mutation()
 
@@ -366,8 +367,8 @@ func TestServiceTopologyWithSlots(t *testing.T) {
 
 func TestEditService(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr, qr := r.Mutation(), r.Query()
 	serviceType, err := mr.AddServiceType(ctx, models.ServiceTypeCreateData{
@@ -399,8 +400,8 @@ func TestEditService(t *testing.T) {
 
 func TestEditServiceWithExternalID(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr, qr := r.Mutation(), r.Query()
 	serviceType, err := mr.AddServiceType(ctx, models.ServiceTypeCreateData{
@@ -450,8 +451,8 @@ func TestEditServiceWithExternalID(t *testing.T) {
 
 func TestEditServiceWithCustomer(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr, qr := r.Mutation(), r.Query()
 	serviceType, err := mr.AddServiceType(ctx, models.ServiceTypeCreateData{
@@ -513,8 +514,8 @@ func TestEditServiceWithCustomer(t *testing.T) {
 
 func TestEditServiceWithProperties(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr, qr := r.Mutation(), r.Query()
 	pTypes := models.PropertyTypeInput{
@@ -589,8 +590,8 @@ func TestEditServiceWithProperties(t *testing.T) {
 
 func TestAddEndpointsToService(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr, qr := r.Mutation(), r.Query()
 	locType, err := mr.AddLocationType(ctx, models.AddLocationTypeInput{
@@ -713,8 +714,8 @@ func TestAddEndpointsToService(t *testing.T) {
 
 func TestServicesOfEquipment(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr := r.Mutation()
 	locType, _ := mr.AddLocationType(ctx, models.AddLocationTypeInput{
@@ -829,8 +830,8 @@ func TestServicesOfEquipment(t *testing.T) {
 
 func TestAddServiceWithServiceProperty(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	mr := r.Mutation()
 	serviceType, err := mr.AddServiceType(ctx, models.ServiceTypeCreateData{
@@ -881,8 +882,8 @@ func TestAddServiceWithServiceProperty(t *testing.T) {
 
 func TestAddServiceEndpointType(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 	mr := r.Mutation()
 
 	locType, err := mr.AddLocationType(ctx, models.AddLocationTypeInput{

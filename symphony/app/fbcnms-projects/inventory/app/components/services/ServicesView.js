@@ -16,9 +16,9 @@ import Link from '@fbcnms/ui/components/Link';
 import LocationLink from '../location/LocationLink';
 import React from 'react';
 import Text from '@fbcnms/ui/components/design-system/Text';
-import classNames from 'classnames';
 import {AutoSizer, Column, Table} from 'react-virtualized';
 import {createFragmentContainer, graphql} from 'react-relay';
+import {discoveryMethods} from '../../common/Service';
 import {serviceStatusToVisibleNames} from '../../common/Service';
 import {withStyles} from '@material-ui/core/styles';
 
@@ -85,11 +85,7 @@ class ServicesView extends React.Component<Props> {
   _nameRenderer = ({rowData}) => {
     const {classes, onServiceSelected} = this.props;
     const content = (
-      <Link onClick={() => onServiceSelected(rowData.id)}>
-        <Text className={classNames(classes.cellText, classes.linkText)}>
-          {rowData.name}
-        </Text>
-      </Link>
+      <Link onClick={() => onServiceSelected(rowData.id)}>{rowData.name}</Link>
     );
     return <div className={classes.cell}>{content}</div>;
   };
@@ -104,6 +100,13 @@ class ServicesView extends React.Component<Props> {
     let data = cellData ?? '';
     if (dataKey === 'status') {
       data = serviceStatusToVisibleNames[data];
+    }
+    if (dataKey === 'discovery_method') {
+      if (data == '') {
+        data = discoveryMethods.MANUAL;
+      } else {
+        data = discoveryMethods[data];
+      }
     }
     const content = <Text className={classes.cellText}>{data}</Text>;
     return <div className={classes.cell}>{content}</div>;
@@ -139,6 +142,17 @@ class ServicesView extends React.Component<Props> {
               label="Type"
               dataKey="type"
               cellDataGetter={({rowData}) => rowData.serviceType?.name}
+              width={180}
+              flexGrow={1}
+              headerRenderer={this._headerRenderer}
+              cellRenderer={this._cellRenderer}
+            />
+            <Column
+              label="Discovery Method"
+              dataKey="discovery_method"
+              cellDataGetter={({rowData}) =>
+                rowData.serviceType?.discoveryMethod
+              }
               width={180}
               flexGrow={1}
               headerRenderer={this._headerRenderer}
@@ -193,6 +207,7 @@ export default withStyles(styles)(
         serviceType {
           id
           name
+          discoveryMethod
           propertyTypes {
             ...PropertyTypeFormField_propertyType
             ...DynamicPropertiesGrid_propertyTypes

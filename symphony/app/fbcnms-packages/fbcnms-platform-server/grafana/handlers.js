@@ -12,19 +12,31 @@ import {isEqual, sortBy} from 'lodash';
 
 import MagmaV1API from '@fbcnms/platform-server/magma/index';
 import {
+  AccessPointDashboard,
+  CWFNetworkDashboard,
+  SubscribersDashboard,
+} from './dashboards/CWFDashboards';
+import {
   GatewaysDashboard,
   InternalDashboard,
   NetworksDashboard,
+  TemplateDashboard,
 } from './dashboards/Dashboards';
 import {Organization} from '@fbcnms/sequelize-models';
 import {apiCredentials} from '../config';
 
-import type {Datasource, PostDatasource} from './GrafanaAPIType';
+import type {
+  CreateDashboardResponse,
+  Datasource,
+  PostDatasource,
+} from './GrafanaAPIType';
 import type {FBCNMSRequest} from '@fbcnms/auth/access';
-import type {GrafanaClient} from './GrafanaAPI';
+import type {GrafanaClient, GrafanaResponse} from './GrafanaAPI';
 import type {OrganizationType} from '@fbcnms/sequelize-models/models/organization';
 import type {UserType} from '@fbcnms/sequelize-models/models/user';
 import type {tenant} from '../../fbcnms-magma-api';
+
+const logger = require('@fbcnms/logging').getLogger(module);
 
 export type Task = {name: string, status: number, message: string};
 
@@ -453,41 +465,61 @@ export async function syncDashboards(
     };
   }
 
+  const dashboardData = db => ({
+    dashboard: db,
+    folderId: 0,
+    overwrite: true,
+    message: '',
+  });
+
+  // Basic dashboards
   const networksDB = NetworksDashboard().generate();
   const gatewaysDB = GatewaysDashboard().generate();
   const internalDB = InternalDashboard().generate();
+  const templateDB = TemplateDashboard().generate();
   const posts = [
-    {
-      dashboard: networksDB,
-      folderId: 0,
-      overwrite: true,
-      message: '',
-    },
-    {
-      dashboard: gatewaysDB,
-      folderId: 0,
-      overwrite: true,
-      message: '',
-    },
-    {
-      dashboard: internalDB,
-      folderId: 0,
-      overwrite: true,
-      message: '',
-    },
+    dashboardData(networksDB),
+    dashboardData(gatewaysDB),
+    dashboardData(internalDB),
+    dashboardData(templateDB),
   ];
 
+  // If an org contains CWF networks, add the CWF-specific dashboards
+  if (await hasCWFNetwork(networks)) {
+    console.log('Creating cwf dashboards');
+    posts.push(
+      dashboardData(SubscribersDashboard().generate()),
+      dashboardData(AccessPointDashboard().generate()),
+      dashboardData(CWFNetworkDashboard().generate()),
+    );
+  }
+
   for (const post of posts) {
-    const createDBResp = await client.createDashboard(post, grafanaOrgID);
+    // eslint-disable-next-line max-len
+    const createDBResp: GrafanaResponse<CreateDashboardResponse> = await client.createDashboard(
+      post,
+      grafanaOrgID,
+    );
     if (createDBResp.status !== 200) {
       return {
         completedTasks,
         errorTask: {
           name: 'Create Networks Dashboard',
           status: createDBResp.status,
-          message: createDBResp.data,
+          message: JSON.stringify(createDBResp.data),
         },
       };
+    }
+
+    // Starring the dashboard shouldn't break the page if it fails, so
+    // just log response
+    const dbID = createDBResp.data.id;
+    const username = makeGrafanaUsername(req.user.id);
+    const starDBResp = await client.starDashboard(dbID, grafanaOrgID, username);
+    if (starDBResp.status !== 200) {
+      console.log(
+        `Error starring Dashboard: ${dbID}: ${JSON.stringify(starDBResp)}`,
+      );
     }
   }
   return {completedTasks};
@@ -565,4 +597,20 @@ function organizationsEqual(
     nmsOrg.name == orc8rTenant.name &&
     isEqual(sortBy(nmsOrg.networkIDs), sortBy(orc8rTenant.networks))
   );
+}
+
+async function hasCWFNetwork(networks: Array<string>): Promise<boolean> {
+  for (const networkId of networks) {
+    try {
+      const networkInfo = await MagmaV1API.getNetworksByNetworkId({networkId});
+      if (networkInfo.type === 'carrier_wifi_network') {
+        return true;
+      }
+    } catch (error) {
+      logger.error(
+        `Error retrieving network info for network while building dashboards: ${networkId}. Error: ${error}`,
+      );
+    }
+  }
+  return false;
 }

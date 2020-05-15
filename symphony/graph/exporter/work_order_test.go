@@ -15,17 +15,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/facebookincubator/symphony/graph/ent"
-
-	"github.com/facebookincubator/symphony/graph/ent/propertytype"
+	"github.com/facebookincubator/symphony/graph/authz"
 
 	"github.com/AlekSi/pointer"
-	"github.com/facebookincubator/symphony/graph/graphql/models"
-
+	"github.com/facebookincubator/symphony/graph/ent"
 	"github.com/facebookincubator/symphony/graph/ent/location"
+	"github.com/facebookincubator/symphony/graph/ent/propertytype"
+	"github.com/facebookincubator/symphony/graph/ent/user"
+	"github.com/facebookincubator/symphony/graph/graphql/models"
 	"github.com/facebookincubator/symphony/graph/viewer"
 	"github.com/facebookincubator/symphony/graph/viewer/viewertest"
-
+	"github.com/facebookincubator/symphony/pkg/log/logtest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,7 +36,7 @@ type woTestType struct {
 
 func prepareWOData(ctx context.Context, t *testing.T, r TestExporterResolver) woTestType {
 	prepareData(ctx, t, r)
-	u2 := viewertest.CreateUserEnt(ctx, r.client, "tester2@example.com")
+	u2 := viewer.MustGetOrCreateUser(ctx, "tester2@example.com", user.RoleOWNER)
 
 	// Add templates
 	typInput1 := models.AddWorkOrderTypeInput{
@@ -81,10 +81,7 @@ func prepareWOData(ctx context.Context, t *testing.T, r TestExporterResolver) wo
 		Name: "projTemplate",
 	}
 	projTyp, _ := r.Mutation().CreateProjectType(ctx, projTypeInput)
-
-	u, err := viewer.UserFromContext(ctx)
-	require.NoError(t, err)
-
+	u := viewer.FromContext(ctx).(*viewer.UserViewer).User()
 	// Add instances
 	projInput := models.AddProjectInput{
 		Name:      "Project 1",
@@ -155,14 +152,18 @@ func TestEmptyDataExport(t *testing.T) {
 	log := r.exporter.log
 
 	e := &exporter{log, woRower{log}}
-	th := viewer.TenancyHandler(e, viewer.NewFixedTenancy(r.client))
+	auth := authz.Handler(e, logtest.NewTestLogger(t))
+	th := viewer.TenancyHandler(auth,
+		viewer.NewFixedTenancy(r.client),
+		logtest.NewTestLogger(t),
+	)
 	server := httptest.NewServer(th)
 	defer server.Close()
 
 	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
 	require.NoError(t, err)
 
-	req.Header.Set(tenantHeader, "fb-test")
+	viewertest.SetDefaultViewerHeaders(req)
 	res, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
@@ -183,15 +184,19 @@ func TestWOExport(t *testing.T) {
 	log := r.exporter.log
 
 	e := &exporter{log, woRower{log}}
-	th := viewer.TenancyHandler(e, viewer.NewFixedTenancy(r.client))
+	auth := authz.Handler(e, logtest.NewTestLogger(t))
+	th := viewer.TenancyHandler(auth,
+		viewer.NewFixedTenancy(r.client),
+		logtest.NewTestLogger(t),
+	)
 	server := httptest.NewServer(th)
 	defer server.Close()
 
 	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
 	require.NoError(t, err)
-	req.Header.Set(tenantHeader, "fb-test")
+	viewertest.SetDefaultViewerHeaders(req)
 
-	ctx := viewertest.NewContext(r.client)
+	ctx := viewertest.NewContext(context.Background(), r.client)
 	data := prepareWOData(ctx, t, *r)
 	require.NoError(t, err)
 	res, err := http.DefaultClient.Do(req)
@@ -216,7 +221,7 @@ func TestWOExport(t *testing.T) {
 				wo.QueryProject().OnlyX(ctx).Name,
 				models.WorkOrderStatusDone.String(),
 				"tester@example.com",
-				viewertest.DefaultViewer.User,
+				viewertest.DefaultUser,
 				models.WorkOrderPriorityHigh.String(),
 				getStringDate(time.Now()),
 				"",
@@ -233,7 +238,7 @@ func TestWOExport(t *testing.T) {
 				"",
 				models.WorkOrderStatusPlanned.String(),
 				"tester2@example.com",
-				viewertest.DefaultViewer.User,
+				viewertest.DefaultUser,
 				models.WorkOrderPriorityMedium.String(),
 				getStringDate(time.Now()),
 				"",
@@ -252,9 +257,13 @@ func TestWOExport(t *testing.T) {
 func TestExportWOWithFilters(t *testing.T) {
 	r := newExporterTestResolver(t)
 	log := r.exporter.log
-	ctx := viewertest.NewContext(r.client)
+	ctx := viewertest.NewContext(context.Background(), r.client)
 	e := &exporter{log, woRower{log}}
-	th := viewer.TenancyHandler(e, viewer.NewFixedTenancy(r.client))
+	auth := authz.Handler(e, logtest.NewTestLogger(t))
+	th := viewer.TenancyHandler(auth,
+		viewer.NewFixedTenancy(r.client),
+		logtest.NewTestLogger(t),
+	)
 	server := httptest.NewServer(th)
 	defer server.Close()
 
@@ -262,7 +271,7 @@ func TestExportWOWithFilters(t *testing.T) {
 
 	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
 	require.NoError(t, err)
-	req.Header.Set(tenantHeader, "fb-test")
+	viewertest.SetDefaultViewerHeaders(req)
 
 	f, err := json.Marshal([]equipmentFilterInput{
 		{
@@ -301,7 +310,7 @@ func TestExportWOWithFilters(t *testing.T) {
 				wo.QueryProject().OnlyX(ctx).Name,
 				models.WorkOrderStatusDone.String(),
 				"tester@example.com",
-				viewertest.DefaultViewer.User,
+				viewertest.DefaultUser,
 				models.WorkOrderPriorityHigh.String(),
 				getStringDate(time.Now()),
 				"",
@@ -312,5 +321,4 @@ func TestExportWOWithFilters(t *testing.T) {
 		}
 	}
 	require.Equal(t, 2, linesCount)
-
 }

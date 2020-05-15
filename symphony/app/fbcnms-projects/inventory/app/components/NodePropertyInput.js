@@ -4,7 +4,7 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @flow strict-local
+ * @flow
  * @format
  */
 
@@ -14,6 +14,8 @@ import * as React from 'react';
 import EquipmentTypeahead from './typeahead/EquipmentTypeahead';
 import LocationTypeahead from './typeahead/LocationTypeahead';
 import ServiceTypeahead from './typeahead/ServiceTypeahead';
+import UserTypeahead from './typeahead/UserTypeahead';
+import WorkOrderTypeahead from './typeahead/WorkOrderTypeahead';
 
 type Props = $ReadOnly<{|
   type: string,
@@ -24,12 +26,13 @@ type Props = $ReadOnly<{|
 
 const NodePropertyInput = (props: Props) => {
   const {type, value, onChange, label} = props;
+  const basicValue = value != null ? {id: value.id, name: value.name} : null;
   switch (type) {
     case 'equipment':
       return (
         <EquipmentTypeahead
           margin="dense"
-          selectedEquipment={value}
+          selectedEquipment={basicValue}
           onEquipmentSelection={onChange}
           headline={label}
         />
@@ -38,7 +41,7 @@ const NodePropertyInput = (props: Props) => {
       return (
         <LocationTypeahead
           margin="dense"
-          selectedLocation={value}
+          selectedLocation={basicValue}
           onLocationSelection={onChange}
           headline={label}
         />
@@ -47,8 +50,28 @@ const NodePropertyInput = (props: Props) => {
       return (
         <ServiceTypeahead
           margin="dense"
-          selectedService={value}
+          selectedService={basicValue}
           onServiceSelection={onChange}
+          headline={label}
+        />
+      );
+    case 'work_order':
+      return (
+        <WorkOrderTypeahead
+          margin="dense"
+          selectedWorkOrder={basicValue}
+          onWorkOrderSelected={onChange}
+          headline={label}
+        />
+      );
+    case 'user':
+      return (
+        <UserTypeahead
+          margin="dense"
+          selectedUser={value ? {id: value.id, email: value.name ?? ''} : null}
+          onUserSelection={newUser =>
+            onChange(newUser ? {id: newUser.id, name: newUser.email} : null)
+          }
           headline={label}
         />
       );

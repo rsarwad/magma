@@ -90,8 +90,8 @@ func prepareLocationData(ctx context.Context, r *TestResolver) locationSearchDat
 
 func TestSearchLocationAncestors(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	data := prepareLocationData(ctx, r)
 	/*
@@ -132,8 +132,8 @@ func TestSearchLocationAncestors(t *testing.T) {
 
 func TestSearchLocationByExternalID(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	data := prepareLocationData(ctx, r)
 	/*
@@ -162,8 +162,8 @@ func TestSearchLocationByExternalID(t *testing.T) {
 
 func TestSearchLocationByName(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	data := prepareLocationData(ctx, r)
 	/*
@@ -192,8 +192,8 @@ func TestSearchLocationByName(t *testing.T) {
 
 func TestSearchLocationByType(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	data := prepareLocationData(ctx, r)
 	/*
@@ -216,8 +216,8 @@ func TestSearchLocationByType(t *testing.T) {
 
 func TestSearchLocationHasEquipment(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	prepareLocationData(ctx, r)
 	/*
@@ -250,8 +250,8 @@ func TestSearchLocationHasEquipment(t *testing.T) {
 
 func TestSearchMultipleFilters(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	data := prepareLocationData(ctx, r)
 	/*
@@ -285,8 +285,8 @@ func TestSearchMultipleFilters(t *testing.T) {
 
 func TestSearchLocationProperties(t *testing.T) {
 	r := newTestResolver(t)
-	defer r.drv.Close()
-	ctx := viewertest.NewContext(r.client)
+	defer r.Close()
+	ctx := viewertest.NewContext(context.Background(), r.client)
 
 	prepareLocationData(ctx, r)
 	/*

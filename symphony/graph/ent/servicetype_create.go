@@ -75,6 +75,34 @@ func (stc *ServiceTypeCreate) SetNillableHasCustomer(b *bool) *ServiceTypeCreate
 	return stc
 }
 
+// SetIsDeleted sets the is_deleted field.
+func (stc *ServiceTypeCreate) SetIsDeleted(b bool) *ServiceTypeCreate {
+	stc.mutation.SetIsDeleted(b)
+	return stc
+}
+
+// SetNillableIsDeleted sets the is_deleted field if the given value is not nil.
+func (stc *ServiceTypeCreate) SetNillableIsDeleted(b *bool) *ServiceTypeCreate {
+	if b != nil {
+		stc.SetIsDeleted(*b)
+	}
+	return stc
+}
+
+// SetDiscoveryMethod sets the discovery_method field.
+func (stc *ServiceTypeCreate) SetDiscoveryMethod(sm servicetype.DiscoveryMethod) *ServiceTypeCreate {
+	stc.mutation.SetDiscoveryMethod(sm)
+	return stc
+}
+
+// SetNillableDiscoveryMethod sets the discovery_method field if the given value is not nil.
+func (stc *ServiceTypeCreate) SetNillableDiscoveryMethod(sm *servicetype.DiscoveryMethod) *ServiceTypeCreate {
+	if sm != nil {
+		stc.SetDiscoveryMethod(*sm)
+	}
+	return stc
+}
+
 // AddServiceIDs adds the services edge to Service by ids.
 func (stc *ServiceTypeCreate) AddServiceIDs(ids ...int) *ServiceTypeCreate {
 	stc.mutation.AddServiceIDs(ids...)
@@ -136,6 +164,15 @@ func (stc *ServiceTypeCreate) Save(ctx context.Context) (*ServiceType, error) {
 	if _, ok := stc.mutation.HasCustomer(); !ok {
 		v := servicetype.DefaultHasCustomer
 		stc.mutation.SetHasCustomer(v)
+	}
+	if _, ok := stc.mutation.IsDeleted(); !ok {
+		v := servicetype.DefaultIsDeleted
+		stc.mutation.SetIsDeleted(v)
+	}
+	if v, ok := stc.mutation.DiscoveryMethod(); ok {
+		if err := servicetype.DiscoveryMethodValidator(v); err != nil {
+			return nil, fmt.Errorf("ent: validator failed for field \"discovery_method\": %v", err)
+		}
 	}
 	var (
 		err  error
@@ -214,6 +251,22 @@ func (stc *ServiceTypeCreate) sqlSave(ctx context.Context) (*ServiceType, error)
 			Column: servicetype.FieldHasCustomer,
 		})
 		st.HasCustomer = value
+	}
+	if value, ok := stc.mutation.IsDeleted(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeBool,
+			Value:  value,
+			Column: servicetype.FieldIsDeleted,
+		})
+		st.IsDeleted = value
+	}
+	if value, ok := stc.mutation.DiscoveryMethod(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeEnum,
+			Value:  value,
+			Column: servicetype.FieldDiscoveryMethod,
+		})
+		st.DiscoveryMethod = value
 	}
 	if nodes := stc.mutation.ServicesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

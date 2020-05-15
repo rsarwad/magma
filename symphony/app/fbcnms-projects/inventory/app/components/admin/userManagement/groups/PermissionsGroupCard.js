@@ -9,10 +9,12 @@
  */
 
 import type {UserPermissionsGroup} from '../utils/UserManagementUtils';
+import type {WithAlert} from '@fbcnms/ui/components/Alert/withAlert';
 
 import * as React from 'react';
 import AppContext from '@fbcnms/ui/context/AppContext';
 import Breadcrumbs from '@fbcnms/ui/components/Breadcrumbs';
+import DeleteIcon from '@fbcnms/ui/components/design-system/Icons/Actions/DeleteIcon';
 import Grid from '@material-ui/core/Grid';
 import InventoryErrorBoundary from '../../../../common/InventoryErrorBoundary';
 import PermissionsGroupDetailsPane from './PermissionsGroupDetailsPane';
@@ -22,11 +24,14 @@ import Strings from '@fbcnms/strings/Strings';
 import ViewContainer from '@fbcnms/ui/components/design-system/View/ViewContainer';
 import fbt from 'fbt';
 import symphony from '@fbcnms/ui/theme/symphony';
+import withAlert from '@fbcnms/ui/components/Alert/withAlert';
 import {
-  GROUP_STATUSES,
-  NEW_GROUP_DIALOG_PARAM,
-} from '../utils/UserManagementUtils';
+  ButtonAction,
+  IconAction,
+} from '@fbcnms/ui/components/design-system/View/ViewHeaderActions';
+import {GROUP_STATUSES, NEW_DIALOG_PARAM} from '../utils/UserManagementUtils';
 import {PERMISSION_GROUPS_VIEW_NAME} from './PermissionsGroupsView';
+import {generateTempId} from '../../../../common/EntUtils';
 import {makeStyles} from '@material-ui/styles';
 import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import {useEnqueueSnackbar} from '@fbcnms/ui/hooks/useSnackbar';
@@ -48,13 +53,14 @@ const useStyles = makeStyles(() => ({
   },
 }));
 
-type Props = {
+type Props = $ReadOnly<{|
   redirectToGroupsView: () => void,
   onClose: () => void,
-};
+  ...WithAlert,
+|}>;
 
 const initialNewGroup: UserPermissionsGroup = {
-  id: '',
+  id: generateTempId(),
   name: '',
   description: '',
   status: GROUP_STATUSES.ACTIVE.key,
@@ -62,17 +68,15 @@ const initialNewGroup: UserPermissionsGroup = {
   memberUsers: [],
 };
 
-export default function PermissionsGroupCard({
-  redirectToGroupsView,
-  onClose,
-}: Props) {
+function PermissionsGroupCard(props: Props) {
+  const {redirectToGroupsView, onClose} = props;
   const classes = useStyles();
   const match = useRouteMatch();
   const {isFeatureEnabled} = useContext(AppContext);
   const userManagementDevMode = isFeatureEnabled('user_management_dev');
-  const {groups, editGroup, addGroup} = useUserManagement();
+  const {groups, editGroup, addGroup, deleteGroup} = useUserManagement();
   const groupId = match.params.id;
-  const isOnNewGroup = groupId === NEW_GROUP_DIALOG_PARAM;
+  const isOnNewGroup = groupId === NEW_DIALOG_PARAM;
   const [group, setGroup] = useState<?UserPermissionsGroup>(
     isOnNewGroup ? {...initialNewGroup} : null,
   );
@@ -109,14 +113,12 @@ export default function PermissionsGroupCard({
       },
     ];
     const actions = [
-      {
-        title: Strings.common.cancelButton,
-        action: onClose,
-        skin: 'regular',
-      },
-      {
-        title: Strings.common.saveButton,
-        action: () => {
+      <ButtonAction skin="regular" action={onClose}>
+        {Strings.common.cancelButton}
+      </ButtonAction>,
+      <ButtonAction
+        disableOnFromError={true}
+        action={() => {
           if (group == null) {
             return;
           }
@@ -124,10 +126,34 @@ export default function PermissionsGroupCard({
           saveAction(group)
             .then(onClose)
             .catch(handleError);
-        },
-        disableOnFromError: true,
-      },
+        }}>
+        {Strings.common.saveButton}
+      </ButtonAction>,
     ];
+    if (!isOnNewGroup && userManagementDevMode) {
+      actions.unshift(
+        <IconAction
+          skin="gray"
+          icon={DeleteIcon}
+          action={() => {
+            if (group == null) {
+              return;
+            }
+            props
+              .confirm(
+                <fbt desc="">Are you sure you want to delete this group?</fbt>,
+              )
+              .then(confirm => {
+                if (!confirm) {
+                  return;
+                }
+                return deleteGroup(group.id).then(onClose);
+              })
+              .catch(handleError);
+          }}
+        />,
+      );
+    }
     return {
       title: <Breadcrumbs breadcrumbs={breadcrumbs} />,
       subtitle: fbt('Manage group details, members and policies', ''),
@@ -135,12 +161,15 @@ export default function PermissionsGroupCard({
     };
   }, [
     addGroup,
+    deleteGroup,
     editGroup,
     group,
     handleError,
     isOnNewGroup,
     onClose,
+    props,
     redirectToGroupsView,
+    userManagementDevMode,
   ]);
 
   if (group == null) {
@@ -166,6 +195,7 @@ export default function PermissionsGroupCard({
           <Grid item xs={4} sm={4} lg={4} xl={4} className={classes.container}>
             <PermissionsGroupMembersPane
               group={group}
+              onChange={setGroup}
               className={classes.detailsPane}
             />
           </Grid>
@@ -174,3 +204,5 @@ export default function PermissionsGroupCard({
     </InventoryErrorBoundary>
   );
 }
+
+export default withAlert(PermissionsGroupCard);

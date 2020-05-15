@@ -15,6 +15,7 @@
 
 #include "SessionState.h"
 #include "MemoryStoreClient.h"
+#include "MeteringReporter.h"
 #include "StoredState.h"
 #include "RedisStoreClient.h"
 #include "RuleStore.h"
@@ -122,11 +123,12 @@ class SessionStore {
  private:
   static bool merge_into_session(
       std::unique_ptr<SessionState>& session,
-      const SessionStateUpdateCriteria& update_criteria);
+      SessionStateUpdateCriteria& update_criteria);
 
  private:
   std::shared_ptr<StoreClient> store_client_;
   std::shared_ptr<StaticRuleStore> rule_store_;
+  std::shared_ptr<MeteringReporter> metering_reporter_;
 };
 
 }  // namespace lte

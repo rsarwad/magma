@@ -18,7 +18,7 @@ import UserAccountPane from './UserAccountPane';
 import UserPermissionsPane from './UserPermissionsPane';
 import UserProfilePane from './UserProfilePane';
 import fbt from 'fbt';
-import {FormContextProvider} from '../../../../common/FormContext';
+import {MessageShowingContextProvider} from '@fbcnms/ui/components/design-system/Dialog/MessageShowingContext';
 import {makeStyles} from '@material-ui/styles';
 import {useContext, useMemo, useState} from 'react';
 
@@ -60,7 +60,11 @@ export default function UserDetailsCard(props: Props) {
         tab: {
           label: `${fbt('Profile', '')}`,
         },
-        view: <UserProfilePane user={user} onChange={onChange} />,
+        view: (
+          <MessageShowingContextProvider>
+            <UserProfilePane user={user} onChange={onChange} />
+          </MessageShowingContextProvider>
+        ),
       },
       {
         tab: {
@@ -83,18 +87,16 @@ export default function UserDetailsCard(props: Props) {
 
   return (
     <div className={classes.root}>
-      <FormContextProvider>
-        <TabsBar
-          className={classes.tabsContainer}
-          tabs={userDetailParts.map(part => part.tab)}
-          activeTabIndex={activePart}
-          onChange={setActivePart}
-          spread={false}
-        />
-        <div className={classes.viewContainer}>
-          {userDetailParts[activePart].view}
-        </div>
-      </FormContextProvider>
+      <TabsBar
+        className={classes.tabsContainer}
+        tabs={userDetailParts.map(part => part.tab)}
+        activeTabIndex={activePart}
+        onChange={setActivePart}
+        spread={false}
+      />
+      <div className={classes.viewContainer}>
+        {userDetailParts[activePart].view}
+      </div>
     </div>
   );
 }

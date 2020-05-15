@@ -11,9 +11,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/facebookincubator/symphony/graph/viewer/viewertest"
+
 	"github.com/facebookincubator/symphony/graph/ent"
 	"github.com/facebookincubator/symphony/graph/graphql/models"
-	"github.com/facebookincubator/symphony/graph/viewer/viewertest"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -47,7 +48,7 @@ func (s *workOrderTestSuite) TestWorkOrderCreate() {
 		err := SubscribeAndListen(ctx, ListenerConfig{
 			Subscriber: s.subscriber,
 			Logger:     s.logger.Background(),
-			Tenant:     viewertest.DefaultViewer.Tenant,
+			Tenant:     viewertest.DefaultTenant,
 			Events:     events,
 			Handler: HandlerFunc(func(_ context.Context, name string, body []byte) error {
 				s.Assert().NotEmpty(body)
@@ -62,8 +63,12 @@ func (s *workOrderTestSuite) TestWorkOrderCreate() {
 		})
 		s.Require().True(errors.Is(err, context.Canceled))
 	}()
+	woType := s.client.WorkOrderType.Create().
+		SetName("CleanType").
+		SaveX(s.ctx)
 	s.client.WorkOrder.Create().
 		SetName("Clean").
+		SetType(woType).
 		SetCreationDate(time.Now()).
 		SetOwner(s.user).
 		SetStatus(models.WorkOrderStatusDone.String()).
@@ -88,7 +93,7 @@ func (s *workOrderTestSuite) TestWorkOrderUpdateOne() {
 		err := SubscribeAndListen(ctx, ListenerConfig{
 			Subscriber: s.subscriber,
 			Logger:     s.logger.Background(),
-			Tenant:     viewertest.DefaultViewer.Tenant,
+			Tenant:     viewertest.DefaultTenant,
 			Events:     []string{WorkOrderDone},
 			Handler: HandlerFunc(func(_ context.Context, name string, body []byte) error {
 				s.Assert().Equal(WorkOrderDone, name)
@@ -100,8 +105,12 @@ func (s *workOrderTestSuite) TestWorkOrderUpdateOne() {
 		s.Require().True(errors.Is(err, context.Canceled))
 	}()
 
+	woType := s.client.WorkOrderType.Create().
+		SetName("VacuumType").
+		SaveX(s.ctx)
 	wo := s.client.WorkOrder.Create().
 		SetName("Vacuum").
+		SetType(woType).
 		SetCreationDate(time.Now()).
 		SetOwner(s.user).
 		SaveX(s.ctx)
