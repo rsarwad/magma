@@ -2476,80 +2476,80 @@ int s1ap_mme_handle_enb_reset(
           mme_ue_s1ap_id =
             (mme_ue_s1ap_id_t) * (s1_sig_conn_id_p->mME_UE_S1AP_ID);
           free_wrapper((void**) &s1_sig_conn_id_p->mME_UE_S1AP_ID);
+          if (s1_sig_conn_id_p->eNB_UE_S1AP_ID != NULL) {
+            enb_ue_s1ap_id =
+                (enb_ue_s1ap_id_t) * (s1_sig_conn_id_p->eNB_UE_S1AP_ID);
+            free_wrapper((void**) &s1_sig_conn_id_p->eNB_UE_S1AP_ID);
+          } else {
+            reset_req->ue_to_reset_list[i].mme_ue_s1ap_id =
+                ue_ref_p->mme_ue_s1ap_id;
+            reset_req->ue_to_reset_list[i].enb_ue_s1ap_id = -1;
+          }
+
           s1ap_imsi_map_t* imsi_map = get_s1ap_imsi_map();
           hashtable_uint64_ts_get(
-            imsi_map->mme_ue_id_imsi_htbl,
-            (const hash_key_t) mme_ue_s1ap_id,
-            &imsi64);
-          if (
-            (ue_ref_p = s1ap_state_get_ue_mmeid(mme_ue_s1ap_id)) != NULL) {
-            if (s1_sig_conn_id_p->eNB_UE_S1AP_ID != NULL) {
-              enb_ue_s1ap_id =
-                (enb_ue_s1ap_id_t) * (s1_sig_conn_id_p->eNB_UE_S1AP_ID);
-              free_wrapper((void**) &s1_sig_conn_id_p->eNB_UE_S1AP_ID);
-              if (
-                ue_ref_p->enb_ue_s1ap_id ==
+              imsi_map->mme_ue_id_imsi_htbl, (const hash_key_t) mme_ue_s1ap_id,
+              &imsi64);
+          if ((ue_ref_p = s1ap_state_get_ue_mmeid(mme_ue_s1ap_id)) != NULL) {
+            if (ue_ref_p->enb_ue_s1ap_id ==
                 (enb_ue_s1ap_id & ENB_UE_S1AP_ID_MASK)) {
-                reset_req->ue_to_reset_list[i].mme_ue_s1ap_id =
+              reset_req->ue_to_reset_list[i].mme_ue_s1ap_id =
                   ue_ref_p->mme_ue_s1ap_id;
-                enb_ue_s1ap_id &= ENB_UE_S1AP_ID_MASK;
-                reset_req->ue_to_reset_list[i].enb_ue_s1ap_id = enb_ue_s1ap_id;
-              } else {
-                // mismatch in enb_ue_s1ap_id sent by eNB and stored in S1AP ue context in EPC. Abnormal case.
-                reset_req->ue_to_reset_list[i].mme_ue_s1ap_id =
+              enb_ue_s1ap_id &= ENB_UE_S1AP_ID_MASK;
+              reset_req->ue_to_reset_list[i].enb_ue_s1ap_id = enb_ue_s1ap_id;
+            } else {
+              // mismatch in enb_ue_s1ap_id sent by eNB and stored in S1AP ue
+              // context in EPC. Abnormal case.
+              reset_req->ue_to_reset_list[i].mme_ue_s1ap_id =
                   INVALID_MME_UE_S1AP_ID;
-                reset_req->ue_to_reset_list[i].enb_ue_s1ap_id = -1;
-                OAILOG_ERROR_UE(
-                  LOG_S1AP,
-                  imsi64,
+              reset_req->ue_to_reset_list[i].enb_ue_s1ap_id = -1;
+              OAILOG_ERROR_UE(
+                  LOG_S1AP, imsi64,
                   "Partial Reset Request:enb_ue_s1ap_id mismatch between id %d "
                   "sent by eNB and id %d stored in epc for mme_ue_s1ap_id %d "
                   "\n",
-                  enb_ue_s1ap_id,
-                  ue_ref_p->enb_ue_s1ap_id,
-                  mme_ue_s1ap_id);
-              }
-            } else {
-              reset_req->ue_to_reset_list[i].mme_ue_s1ap_id =
-                ue_ref_p->mme_ue_s1ap_id;
-              reset_req->ue_to_reset_list[i].enb_ue_s1ap_id = -1;
+                  enb_ue_s1ap_id, ue_ref_p->enb_ue_s1ap_id, mme_ue_s1ap_id);
             }
           } else {
             OAILOG_ERROR_UE(
-              LOG_S1AP,
-              imsi64,
-              "Partial Reset Request - No UE context found for mme_ue_s1ap_id "
-              "%d "
-              "\n",
-              mme_ue_s1ap_id);
+                LOG_S1AP, imsi64,
+                "Partial Reset Request - No UE context found for "
+                "mme_ue_s1ap_id "
+                "%d "
+                "\n",
+                mme_ue_s1ap_id);
             reset_req->ue_to_reset_list[i].mme_ue_s1ap_id = mme_ue_s1ap_id;
+
+            if (enb_ue_s1ap_id & ENB_UE_S1AP_ID_MASK) {
+              enb_ue_s1ap_id &= ENB_UE_S1AP_ID_MASK;
+              reset_req->ue_to_reset_list[i].enb_ue_s1ap_id = enb_ue_s1ap_id;
+            } else {
+              reset_req->ue_to_reset_list[i].enb_ue_s1ap_id = -1;
+            }
           }
         } else {
           if (s1_sig_conn_id_p->eNB_UE_S1AP_ID != NULL) {
             enb_ue_s1ap_id =
-              (enb_ue_s1ap_id_t) * (s1_sig_conn_id_p->eNB_UE_S1AP_ID);
-            if (
-              (ue_ref_p = s1ap_state_get_ue_enbid(
-                 enb_association->sctp_assoc_id, enb_ue_s1ap_id)) != NULL) {
+                (enb_ue_s1ap_id_t) * (s1_sig_conn_id_p->eNB_UE_S1AP_ID);
+            if ((ue_ref_p = s1ap_state_get_ue_enbid(
+                     enb_association->sctp_assoc_id, enb_ue_s1ap_id)) != NULL) {
               enb_ue_s1ap_id &= ENB_UE_S1AP_ID_MASK;
               reset_req->ue_to_reset_list[i].enb_ue_s1ap_id = enb_ue_s1ap_id;
               reset_req->ue_to_reset_list[i].mme_ue_s1ap_id =
-                ue_ref_p->mme_ue_s1ap_id;
+                  ue_ref_p->mme_ue_s1ap_id;
             } else {
               OAILOG_ERROR_UE(
-                LOG_S1AP,
-                imsi64,
-                "Partial Reset Request without any valid S1 signaling "
-                "connection.Ignoring it \n");
+                  LOG_S1AP, imsi64,
+                  "Partial Reset Request without any valid S1 signaling "
+                  "connection.Ignoring it \n");
               reset_req->ue_to_reset_list[i].enb_ue_s1ap_id = enb_ue_s1ap_id;
               reset_req->ue_to_reset_list[i].mme_ue_s1ap_id = -1;
             }
           } else {
             OAILOG_ERROR_UE(
-              LOG_S1AP,
-              imsi64,
-              "Partial Reset Request without any valid S1 signaling "
-              "connection.Ignoring it \n");
+                LOG_S1AP, imsi64,
+                "Partial Reset Request without any valid S1 signaling "
+                "connection.Ignoring it \n");
             // TBD - Here MME should send Error Indication as it is abnormal
             // scenario.
             OAILOG_FUNC_RETURN(LOG_S1AP, RETURNerror);
