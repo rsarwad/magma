@@ -4,6 +4,7 @@ import "lte/gateway/c/oai/protos/3gpp_types.proto";
 import "lte/gateway/c/oai/protos/common_types.proto";
 import "lte/gateway/c/oai/protos/nas_state.proto";
 import "lte/gateway/c/oai/protos/spgw_state.proto";
+import "google/protobuf/timestamp.proto";
 
 package magma.lte;
 
@@ -130,6 +131,7 @@ message UeContext {
   Timer paging_response_timer = 204;
   uint32 rau_tau_timer = 205;
   Timer ulr_response_timer = 206;
+  google.protobuf.Timestamp time_mobile_reachability_timer_started = 207;
 }
 
 // mme_ue_context_t

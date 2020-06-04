@@ -93,7 +93,7 @@ void *mme_app_thread(void *args)
     imsi64_t imsi64 = itti_get_associated_imsi(received_message_p);
 
     OAILOG_DEBUG(LOG_MME_APP, "Getting mme_nas_state");
-    mme_app_desc_p = get_mme_nas_state(false);
+    mme_app_desc_p = get_mme_nas_state(true);
 
     switch (ITTI_MSG_ID(received_message_p)) {
       case MESSAGE_TEST: {
@@ -424,6 +424,10 @@ void *mme_app_thread(void *args)
         itti_free(ITTI_MSG_ORIGIN_ID(received_message_p), received_message_p);
         OAI_FPRINTF_INFO("TASK_MME_APP terminated\n");
         itti_exit_task();
+      } break;
+      case RECOVERY_MESSAGE: {
+        mme_app_recover_timers_for_all_ues();
+        OAILOG_INFO(LOG_MME_APP, "Received RECOVERY_MESSAGE \n");
       } break;
 
       default: {
