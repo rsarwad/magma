@@ -33,7 +33,6 @@ StoredChargingCreditPool ChargingCreditPool::marshal() {
     auto key = CreditKey();
     key.rating_group = credit_pair.first.rating_group;
     key.service_identifier = credit_pair.first.service_identifier;
-    key.use_sid = credit_pair.first.use_sid;
     credit_map[key] = credit_pair.second->marshal();
   }
   marshaled.credit_map = credit_map;
@@ -126,7 +125,7 @@ void ChargingCreditPool::get_updates(
     std::string imsi, std::string ip_addr, StaticRuleStore &static_rules,
     DynamicRuleStore *dynamic_rules, std::vector<CreditUsage> *updates_out,
     std::vector<std::unique_ptr<ServiceAction>> *actions_out,
-    SessionStateUpdateCriteria &update_criteria, const bool force_update) {
+    SessionStateUpdateCriteria &update_criteria) {
   for (auto &credit_pair : credit_map_) {
     auto &credit = *(credit_pair.second);
     auto credit_uc = get_credit_update(credit_pair.first, update_criteria);
@@ -143,7 +142,7 @@ void ChargingCreditPool::get_updates(
                               dynamic_rules, action, actions_out);
     } else {
       auto update_type = credit.get_update_type();
-      if (update_type != CREDIT_NO_UPDATE || force_update) {
+      if (update_type != CREDIT_NO_UPDATE) {
         MLOG(MDEBUG) << "Subscriber " << imsi_ << " rating group "
                      << credit_pair.first << " updating due to type "
                      << update_type;
@@ -294,7 +293,8 @@ void ChargingCreditPool::merge_credit_update(
   if (it == credit_map_.end()) {
     return;
   }
-  it->second->set_is_final_grant(credit_update.is_final, credit_update);
+  it->second->set_is_final_grant_and_final_action(
+        credit_update.is_final, credit_update.final_action_info, credit_update);
   it->second->set_reauth(credit_update.reauth_state, credit_update);
   it->second->set_service_state(credit_update.service_state, credit_update);
   it->second->set_expiry_time(credit_update.expiry_time, credit_update);
@@ -454,7 +454,7 @@ void UsageMonitoringCreditPool::get_updates(
     DynamicRuleStore *dynamic_rules,
     std::vector<UsageMonitorUpdate> *updates_out,
     std::vector<std::unique_ptr<ServiceAction>> *actions_out,
-    SessionStateUpdateCriteria &update_criteria, const bool force_update) {
+    SessionStateUpdateCriteria &update_criteria) {
   for (auto &monitor_pair : monitor_map_) {
     auto &credit = monitor_pair.second->credit;
     auto credit_uc = get_credit_update(monitor_pair.first, update_criteria);
@@ -465,7 +465,7 @@ void UsageMonitoringCreditPool::get_updates(
                               dynamic_rules, action, actions_out);
     }
     auto update_type = credit.get_update_type();
-    if (update_type != CREDIT_NO_UPDATE || force_update) {
+    if (update_type != CREDIT_NO_UPDATE) {
       MLOG(MDEBUG) << "Subscriber " << imsi_ << " monitoring key "
                    << monitor_pair.first << " updating due to type "
                    << update_type;
@@ -604,7 +604,9 @@ void UsageMonitoringCreditPool::merge_credit_update(
   if (it == monitor_map_.end()) {
     return;
   }
-  it->second->credit.set_is_final_grant(credit_update.is_final, credit_update);
+
+  it->second->credit.set_is_final_grant_and_final_action(
+        credit_update.is_final, credit_update.final_action_info, credit_update);
   it->second->credit.set_reauth(credit_update.reauth_state, credit_update);
   it->second->credit.set_service_state(credit_update.service_state,
                                        credit_update);

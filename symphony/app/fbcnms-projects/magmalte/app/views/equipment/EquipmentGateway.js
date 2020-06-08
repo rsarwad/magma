@@ -15,11 +15,8 @@ import CellWifiIcon from '@material-ui/icons/CellWifi';
 import EquipmentGatewayKPIs from './EquipmentGatewayKPIs';
 import GatewayCheckinChart from './GatewayCheckinChart';
 import Grid from '@material-ui/core/Grid';
-import MagmaV1API from '@fbcnms/magma-api/client/WebClient';
 import React, {useState} from 'react';
 import isGatewayHealthy from '../../components/GatewayUtils';
-import nullthrows from '@fbcnms/util/nullthrows';
-import useMagmaAPI from '@fbcnms/ui/magma/useMagmaAPI';
 
 import {makeStyles} from '@material-ui/styles';
 import {useRouter} from '@fbcnms/ui/hooks';
@@ -67,7 +64,11 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export default function Gateway() {
+export default function Gateway({
+  lteGateways,
+}: {
+  lteGateways: {[string]: lte_gateway},
+}) {
   const classes = useStyles();
 
   return (
@@ -77,10 +78,10 @@ export default function Gateway() {
           <GatewayCheckinChart />
         </Grid>
         <Grid item xs={12}>
-          <EquipmentGatewayKPIs />
+          <EquipmentGatewayKPIs lteGateways={lteGateways} />
         </Grid>
         <Grid item xs={12}>
-          <GatewayTable />
+          <GatewayTable lteGateways={lteGateways} />
         </Grid>
       </Grid>
     </div>
@@ -96,22 +97,13 @@ type EquipmentGatewayRowType = {
   checkInTime: Date,
 };
 
-function GatewayTable() {
-  const {match, history, relativeUrl} = useRouter();
-  const networkId: string = nullthrows(match.params.networkId);
+function GatewayTable({lteGateways}: {lteGateways: {[string]: lte_gateway}}) {
+  const {history, relativeUrl} = useRouter();
   const [currRow, setCurrRow] = useState<EquipmentGatewayRowType>({});
-
-  const {response} = useMagmaAPI(MagmaV1API.getLteByNetworkIdGateways, {
-    networkId: networkId,
-  });
-  if (!response) {
-    return null;
-  }
-  const lte_gateways: {[string]: lte_gateway} = response;
-  const lte_gateway_rows: Array<EquipmentGatewayRowType> = Object.keys(
-    lte_gateways,
+  const lteGatewayRows: Array<EquipmentGatewayRowType> = Object.keys(
+    lteGateways,
   )
-    .map((gwId: string) => lte_gateways[gwId])
+    .map((gwId: string) => lteGateways[gwId])
     .filter((g: lte_gateway) => g.cellular && g.id)
     .map((gateway: lte_gateway) => {
       let numEnodeBs = 0;
@@ -142,7 +134,7 @@ function GatewayTable() {
     <ActionTable
       titleIcon={CellWifiIcon}
       title={'Gateways'}
-      data={lte_gateway_rows}
+      data={lteGatewayRows}
       columns={[
         {title: 'Name', field: 'name'},
         {title: 'ID', field: 'id'},

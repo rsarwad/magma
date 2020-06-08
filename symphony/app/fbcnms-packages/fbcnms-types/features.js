@@ -41,4 +41,6 @@ export type FeatureID =
   | 'permission_policies'
   | 'permissions_ui_enforcement'
   | 'graph_event_logging'
-  | 'dashboard_v2';
+  | 'dashboard_v2'
+  | 'work_order_activities_hook'
+  | 'work_order_activities_display';

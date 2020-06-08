@@ -11,6 +11,7 @@ from enum import Enum
 import sys
 from fabric.api import (cd, env, execute, lcd, local, put, run, settings,
                         sudo, shell_env)
+from fabric.contrib import files
 sys.path.append('../../orc8r')
 
 from tools.fab.hosts import ansible_setup, vagrant_setup
@@ -42,7 +43,8 @@ class SubTests(Enum):
 
 def integ_test(gateway_host=None, test_host=None, trf_host=None,
                transfer_images=False, destroy_vm=False, no_build=False,
-               tests_to_run="all", skip_unit_tests=False, test_re=None):
+               tests_to_run="all", skip_unit_tests=False, test_re=None,
+               run_tests=True):
     """
     Run the integration tests. This defaults to running on local vagrant
     machines, but can also be pointed to an arbitrary host (e.g. amazon) by
@@ -72,6 +74,13 @@ def integ_test(gateway_host=None, test_host=None, trf_host=None,
     # Setup the gateway: use the provided gateway if given, else default to the
     # vagrant machine
     _switch_to_vm(gateway_host, "cwag", "cwag_dev.yml", destroy_vm)
+
+    # We will direct coredumps to be placed in this directory
+    # Clean up before every run
+    if files.exists("/var/opt/magma/cores/"):
+        run("sudo rm /var/opt/magma/cores/*", warn_only=True)
+    else:
+        run("sudo mkdir -p /var/opt/magma/cores", warn_only=True)
 
     if not skip_unit_tests:
         execute(_run_unit_tests)
@@ -121,6 +130,11 @@ def integ_test(gateway_host=None, test_host=None, trf_host=None,
     execute(_start_ue_simulator)
     execute(_set_cwag_test_networking, cwag_br_mac)
 
+    if run_tests == "False":
+        print("run_test was set to false. Test will not be run\n"
+              "You can now run the tests manually from cwag_test")
+        sys.exit(0)
+
     if tests_to_run.value not in SubTests.MULTISESSIONPROXY.value:
         execute(_run_integ_tests, test_host, trf_host, tests_to_run, test_re)
 
@@ -146,7 +160,14 @@ def integ_test(gateway_host=None, test_host=None, trf_host=None,
     print('Integration Test Passed for "{}"!'.format(tests_to_run.value))
     sys.exit(0)
 
-def transfer_service_logs(services="sessiond session_proxy"):
+
+def transfer_artifacts(services="sessiond session_proxy", get_core_dump=False):
+    """
+    Fetches service logs from Docker and optionally gets core dumps
+    Args:
+        services: A list of services for which services logs are requested
+        get_core_dump: When set to True, it will fetch a tar of the core dumps
+    """
     services = services.strip().split(' ')
     print("Transferring logs for " + str(services))
 
@@ -156,6 +177,16 @@ def transfer_service_logs(services="sessiond session_proxy"):
         for service in services:
             run("docker logs -t " + service + " &> " + service + ".log")
             # For vagrant the files should already be in CWAG_ROOT
+    if get_core_dump == "True":
+        execute(_tar_coredump)
+
+
+def _tar_coredump():
+    _switch_to_vm_no_destroy(None, "cwag", "cwag_dev.yml")
+    with cd(CWAG_ROOT):
+        run("sudo tar -czvf coredump.tar.gz /var/opt/magma/cores/*", warn_only=True)
+        run("sudo rm /var/opt/magma/cores/*", warn_only=True)
+
 
 def _switch_to_vm(addr, host_name, ansible_file, destroy_vm):
     if not addr:
@@ -208,10 +239,8 @@ def _set_cwag_test_configs():
 
 
 def _start_ipfix_controller():
-    """ Install and start the ipfix collector"""
+    """ Start the IPFIX collector"""
     with cd("$MAGMA_ROOT"):
-        sudo('curl -L https://sourceforge.net/projects/libipfix/files/RELEASES/libipfix-dev_0.8.1-1ubuntu1_amd64.deb/download?use_mirror=autoselect --output  libipfix-dev_0.8.1-1ubuntu1_amd64.deb')
-        sudo('apt install ./libipfix-dev_0.8.1-1ubuntu1_amd64.deb')
         sudo('mkdir -p records')
         sudo('rm -rf records/*')
         sudo('pkill ipfix_collector > /dev/null &', pty=False, warn_only=True)
@@ -346,7 +375,7 @@ def _run_integ_tests(test_host, trf_host, tests_to_run: SubTests,
         shell_env_vars["TESTS"] = test_re
 
     # QOS take a while to run. Increasing the timeout to 20m
-    go_test_cmd = "go test -timeout 20m"
+    go_test_cmd = "go test -v -test.short -timeout 20m"
     go_test_cmd += " -tags " + tests_to_run.value
     if test_re:
         go_test_cmd += " -run " + test_re

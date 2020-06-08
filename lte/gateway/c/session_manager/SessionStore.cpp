@@ -76,14 +76,13 @@ bool SessionStore::create_sessions(
 }
 
 bool SessionStore::update_sessions(const SessionUpdate& update_criteria) {
-  MLOG(MDEBUG) << "Updating session changes in SessionStore (update_sessions)";
   // Read the current state
   auto subscriber_ids = std::set<std::string>{};
   for (const auto& it : update_criteria) {
     subscriber_ids.insert(it.first);
   }
   auto session_map = store_client_->read_sessions(subscriber_ids);
-
+  MLOG(MDEBUG) << "Merging updates into existing sessions";
   // Now attempt to modify the state
   for (auto& it : session_map) {
     auto imsi = it.first;
@@ -108,24 +107,33 @@ bool SessionStore::update_sessions(const SessionUpdate& update_criteria) {
       ++it2;
     }
   }
+  MLOG(MDEBUG) << "Writing into session store";
   return store_client_->write_sessions(std::move(session_map));
 }
 
 bool SessionStore::merge_into_session(
     std::unique_ptr<SessionState>& session,
     SessionStateUpdateCriteria& update_criteria) {
+  auto uc = get_default_update_criteria();
   // FSM State
   if (update_criteria.is_fsm_updated) {
-    session->set_fsm_state(update_criteria.updated_fsm_state);
+    session->set_fsm_state(update_criteria.updated_fsm_state, uc);
   }
 
+  if (update_criteria.is_pending_event_triggers_updated) {
+    for (auto it : update_criteria.pending_event_triggers) {
+      session->set_event_trigger(it.first, it.second, uc);
+      if (it.first == REVALIDATION_TIMEOUT) {
+        session->set_revalidation_time(update_criteria.revalidation_time, uc);
+      }
+    }
+  }
   // Config
   if (update_criteria.is_config_updated) {
     session->set_config(update_criteria.updated_config);
   }
 
   // Static rules
-  auto uc = get_default_update_criteria();
   for (const auto& rule_id : update_criteria.static_rules_to_install) {
     if (session->is_static_rule_installed(rule_id)) {
       MLOG(MERROR) << "Failed to merge: " << session->get_session_id()

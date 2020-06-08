@@ -8,12 +8,14 @@
  * @flow strict-local
  * @format
  */
+import type {lte_gateway} from '@fbcnms/magma-api';
 
 import AccessAlarmIcon from '@material-ui/icons/AccessAlarm';
 import AppBar from '@material-ui/core/AppBar';
 import Button from '@material-ui/core/Button';
 import CellWifiIcon from '@material-ui/icons/CellWifi';
 import DashboardIcon from '@material-ui/icons/Dashboard';
+import GatewayLogs from './GatewayLogs';
 import GatewaySummary from './GatewaySummary';
 import GraphicEqIcon from '@material-ui/icons/GraphicEq';
 import Grid from '@material-ui/core/Grid';
@@ -29,6 +31,7 @@ import Tab from '@material-ui/core/Tab';
 import Tabs from '@material-ui/core/Tabs';
 import Text from '@fbcnms/ui/components/design-system/Text';
 import nullthrows from '@fbcnms/util/nullthrows';
+
 import {Redirect, Route, Switch} from 'react-router-dom';
 import {makeStyles} from '@material-ui/styles';
 import {useRouter} from '@fbcnms/ui/hooks';
@@ -72,10 +75,16 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export function GatewayDetail() {
+export function GatewayDetail({
+  lteGateways,
+}: {
+  lteGateways: {[string]: lte_gateway},
+}) {
   const classes = useStyles();
+  const [tabPos, setTabPos] = React.useState(0);
   const {relativePath, relativeUrl, match} = useRouter();
   const gatewayId: string = nullthrows(match.params.gatewayId);
+  const gwInfo = lteGateways[gatewayId];
   return (
     <>
       <div className={classes.topBar}>
@@ -88,7 +97,8 @@ export function GatewayDetail() {
         <Grid container>
           <Grid item xs={6}>
             <Tabs
-              value={0}
+              value={tabPos}
+              onChange={(event, v) => setTabPos(v)}
               indicatorColor="primary"
               TabIndicatorProps={{style: {height: '5px'}}}
               textColor="inherit"
@@ -111,7 +121,7 @@ export function GatewayDetail() {
                 key="Log"
                 component={NestedRouteLink}
                 label={<LogTabLabel />}
-                to="/log"
+                to="/logs"
                 className={classes.tab}
               />
               <Tab
@@ -146,14 +156,18 @@ export function GatewayDetail() {
       </AppBar>
 
       <Switch>
-        <Route path={relativePath('/overview')} component={GatewayOverview} />
+        <Route
+          path={relativePath('/overview')}
+          render={() => <GatewayOverview gwInfo={gwInfo} />}
+        />
+        <Route path={relativePath('/logs')} component={GatewayLogs} />
         <Redirect to={relativeUrl('/overview')} />
       </Switch>
     </>
   );
 }
 
-function GatewayOverview() {
+function GatewayOverview({gwInfo}: {gwInfo: lte_gateway}) {
   const classes = useStyles();
   const {match} = useRouter();
   const gatewayId: string = nullthrows(match.params.gatewayId);
@@ -166,7 +180,7 @@ function GatewayOverview() {
             <Text>
               <CellWifiIcon /> {gatewayId}
             </Text>
-            <GatewaySummary />
+            <GatewaySummary gwInfo={gwInfo} />
           </Grid>
           <Grid item xs={12}>
             <Text>

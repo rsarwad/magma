@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 
 from pysymphony import SymphonyClient
 
-from .._utils import format_property_definitions, get_graphql_property_type_inputs
+from .._utils import get_graphql_property_type_inputs
 from ..common.cache import SERVICE_TYPES
 from ..common.data_class import (
     PropertyDefinition,
@@ -16,6 +16,10 @@ from ..common.data_class import (
     ServiceType,
 )
 from ..common.data_enum import Entity
+from ..common.data_format import (
+    format_to_property_definitions,
+    format_to_property_type_inputs,
+)
 from ..exceptions import EntityNotFoundError
 from ..graphql.input.service_type_create_data import ServiceTypeCreateData
 from ..graphql.input.service_type_edit_data import (
@@ -38,11 +42,24 @@ def _populate_service_types(client: SymphonyClient) -> None:
     for edge in edges:
         node = edge.node
         if node is not None:
+            definitions = []
+            if node.endpointDefinitions:
+                definitions = [
+                    ServiceEndpointDefinition(
+                        id=definition.id,
+                        name=definition.name,
+                        endpoint_definition_index=definition.index,
+                        role=definition.role,
+                        equipment_type_id=definition.equipmentType.id,
+                    )
+                    for definition in node.endpointDefinitions
+                ]
             SERVICE_TYPES[node.name] = ServiceType(
                 id=node.id,
                 name=node.name,
                 has_customer=node.hasCustomer,
-                property_types=node.propertyTypes,
+                property_types=format_to_property_definitions(node.propertyTypes),
+                endpoint_definitions=definitions,
             )
 
 
@@ -51,6 +68,7 @@ def add_service_type(
     name: str,
     has_customer: bool,
     properties: Optional[List[PropertyDefinition]],
+    endpoint_definitions: Optional[List[ServiceEndpointDefinition]],
 ) -> ServiceType:
     """This function creates new service type.
 
@@ -75,14 +93,14 @@ def add_service_type(
                     PropertyDefinition(
                         property_name="Service Package",
                         property_kind=PropertyKind.string,
-                        default_value="Public 5G",
-                        is_fixed=True,
+                        default_raw_value="Public 5G",
+                        is_fixed=False,
                     ),
                     PropertyDefinition(
                         property_name="Address Family",
                         property_kind=PropertyKind.string,
-                        default_value=None,
-                        is_fixed=True,
+                        default_raw_value=None,
+                        is_fixed=False,
                     ),
                 )
             ```
@@ -90,18 +108,45 @@ def add_service_type(
 
     formated_property_types = None
     if properties is not None:
-        formated_property_types = format_property_definitions(properties=properties)
+        formated_property_types = format_to_property_type_inputs(data=properties)
+    definition_inputs = []
+    if endpoint_definitions:
+        for endpoint in endpoint_definitions:
+            definition_inputs.append(
+                ServiceEndpointDefinitionInput(
+                    name=endpoint.name,
+                    role=endpoint.role,
+                    index=endpoint.endpoint_definition_index,
+                    equipmentTypeID=endpoint.equipment_type_id,
+                )
+            )
     result = AddServiceTypeMutation.execute(
         client,
         data=ServiceTypeCreateData(
-            name=name, hasCustomer=has_customer, properties=formated_property_types
+            name=name,
+            hasCustomer=has_customer,
+            properties=formated_property_types,
+            endpoints=definition_inputs,
         ),
     )
+    definitions = []
+    if result.endpointDefinitions:
+        definitions = [
+            ServiceEndpointDefinition(
+                id=definition.id,
+                name=definition.name,
+                endpoint_definition_index=definition.index,
+                role=definition.role,
+                equipment_type_id=definition.equipmentType.id,
+            )
+            for definition in result.endpointDefinitions
+        ]
     service_type = ServiceType(
         id=result.id,
         name=result.name,
         has_customer=result.hasCustomer,
-        property_types=result.propertyTypes,
+        property_types=format_to_property_definitions(result.propertyTypes),
+        endpoint_definitions=definitions,
     )
     SERVICE_TYPES[name] = service_type
     return service_type
@@ -193,7 +238,6 @@ def edit_service_type(
         for endpoint in new_endpoints:
             new_endpoints_definition_inputs.append(
                 ServiceEndpointDefinitionInput(
-                    id=endpoint.id,
                     name=endpoint.name,
                     role=endpoint.role,
                     index=endpoint.endpoint_definition_index,
@@ -211,12 +255,27 @@ def edit_service_type(
             endpoints=new_endpoints_definition_inputs,
         ),
     )
-    return ServiceType(
+    definitions = []
+    if result.endpointDefinitions is not None:
+        definitions = [
+            ServiceEndpointDefinition(
+                id=definition.id,
+                name=definition.name,
+                endpoint_definition_index=definition.index,
+                role=definition.role,
+                equipment_type_id=definition.equipmentType.id,
+            )
+            for definition in result.endpointDefinitions
+        ]
+    service_type = ServiceType(
         id=result.id,
         name=result.name,
         has_customer=result.hasCustomer,
-        property_types=result.propertyTypes,
+        property_types=format_to_property_definitions(result.propertyTypes),
+        endpoint_definitions=definitions,
     )
+    SERVICE_TYPES[service_type.name] = service_type
+    return service_type
 
 
 def delete_service_type(client: SymphonyClient, service_type: ServiceType) -> None:

@@ -3,6 +3,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+from pyinventory.api.equipment_type import add_equipment_type
 from pyinventory.api.service import add_service
 from pyinventory.api.service_type import (
     _populate_service_types,
@@ -13,7 +14,7 @@ from pyinventory.api.service_type import (
     get_service_type,
 )
 from pyinventory.common.cache import SERVICE_TYPES
-from pyinventory.common.data_class import PropertyDefinition
+from pyinventory.common.data_class import PropertyDefinition, ServiceEndpointDefinition
 from pyinventory.graphql.enum.property_kind import PropertyKind
 from pysymphony import SymphonyClient
 
@@ -37,10 +38,11 @@ class TestServiceType(BaseTest):
                 PropertyDefinition(
                     property_name="Service Package",
                     property_kind=PropertyKind.string,
-                    default_value=None,
+                    default_raw_value=None,
                     is_fixed=False,
                 )
             ],
+            endpoint_definitions=[],
         )
         self.service = add_service(
             client=self.client,
@@ -64,17 +66,51 @@ class TestServiceType(BaseTest):
         self.assertEqual(fetched_service_type, self.service_type)
 
     def test_service_type_edited(self) -> None:
+        equipment_type = add_equipment_type(
+            client=self.client,
+            name="Tp-Link T1600G",
+            category="Router",
+            properties=[
+                PropertyDefinition(
+                    property_name="IP",
+                    property_kind=PropertyKind.string,
+                    default_raw_value=None,
+                    is_fixed=False,
+                )
+            ],
+            ports_dict={},
+            position_list=[],
+        )
         new_name = "New Service Package"
         new_properties = {"Service Package": "Public 5G"}
+        endpoint_definitions = SERVICE_TYPES[
+            self.service_type.name
+        ].endpoint_definitions
+        self.assertFalse(endpoint_definitions)
         edited_service_type = edit_service_type(
             client=self.client,
             service_type=self.service_type,
             new_name=new_name,
             new_properties=new_properties,
+            new_endpoints=[
+                ServiceEndpointDefinition(
+                    id=None,
+                    name="EndpointDefinition",
+                    role="CPE",
+                    endpoint_definition_index=0,
+                    equipment_type_id=equipment_type.id,
+                )
+            ],
         )
+        endpoint_definitions = SERVICE_TYPES[
+            edited_service_type.name
+        ].endpoint_definitions
+        self.assertEqual(len(endpoint_definitions), 1)
         self.assertEqual(edited_service_type.name, new_name)
         self.assertEqual(len(edited_service_type.property_types), 1)
-        self.assertEqual(edited_service_type.property_types[0].stringValue, "Public 5G")
+        self.assertEqual(
+            edited_service_type.property_types[0].default_raw_value, "Public 5G"
+        )
 
     def test_service_type_delete(self) -> None:
         delete_service_type(client=self.client, service_type=self.service_type)
