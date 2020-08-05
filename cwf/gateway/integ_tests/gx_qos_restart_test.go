@@ -1,11 +1,16 @@
-// +build all gx qos
+// +build all qos
 
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package integration
@@ -13,14 +18,14 @@ package integration
 import (
 	"fmt"
 	"io/ioutil"
-	cwfprotos "magma/cwf/cloud/go/protos"
-	"magma/feg/cloud/go/protos"
-	"magma/lte/cloud/go/plugin/models"
-	"os"
-
 	"math/rand"
+	"os"
 	"testing"
 	"time"
+
+	cwfprotos "magma/cwf/cloud/go/protos"
+	"magma/feg/cloud/go/protos"
+	"magma/lte/cloud/go/services/policydb/obsidian/models"
 
 	"github.com/fiorix/go-diameter/v4/diam"
 	"github.com/go-openapi/swag"
@@ -67,9 +72,9 @@ const (
 func testQosEnforcementRestart(t *testing.T, cfgCh chan string, restartCfg string) {
 	tr := NewTestRunner(t)
 
-	err := tr.RestartService("pipelined", true)
-	fmt.Println("Restarting service")
-
+	// do not use restartPipeline functon. Otherwise we are not testing the case where attach
+	// comes while pipelined is still rebooting.
+	err := tr.RestartService("pipelined")
 	if err != nil {
 		fmt.Printf("error restarting pipelined %v", err)
 		assert.Fail(t, "failed restarting pipelined")
@@ -93,7 +98,7 @@ func testQosEnforcementRestart(t *testing.T, cfgCh chan string, restartCfg strin
 	monitorKey := fmt.Sprintf("monitor-ULQos-%d", ki)
 	ruleKey := fmt.Sprintf("static-ULQos-%d", ki)
 
-	uplinkBwMax := uint32(1000000)
+	uplinkBwMax := uint32(100000)
 	qos := &models.FlowQos{MaxReqBwUl: &uplinkBwMax}
 	rule := getStaticPassAll(ruleKey, monitorKey, 0, models.PolicyRuleTrackingTypeONLYPCRF, 3, qos)
 
@@ -101,7 +106,7 @@ func testQosEnforcementRestart(t *testing.T, cfgCh chan string, restartCfg strin
 	assert.NoError(t, err)
 	tr.WaitForPoliciesToSync()
 
-	usageMonitorInfo := getUsageInformation(monitorKey, 15*MegaBytes)
+	usageMonitorInfo := getUsageInformation(monitorKey, 1.5*MegaBytes)
 	initRequest := protos.NewGxCCRequest(imsi, protos.CCRequestType_INITIAL)
 	initAnswer := protos.NewGxCCAnswer(diam.Success).
 		SetStaticRuleInstalls([]string{ruleKey}, []string{}).
@@ -112,10 +117,10 @@ func testQosEnforcementRestart(t *testing.T, cfgCh chan string, restartCfg strin
 	assert.NoError(t, setPCRFExpectations([]*protos.GxCreditControlExpectation{initExpectation},
 		protos.NewGxCCAnswer(diam.Success)))
 
-	tr.AuthenticateAndAssertSuccess(imsi)
+	tr.AuthenticateAndAssertSuccessWithRetries(imsi, 5)
 	req := &cwfprotos.GenTrafficRequest{
 		Imsi:   imsi,
-		Volume: &wrappers.StringValue{Value: *swag.String("5M")},
+		Volume: &wrappers.StringValue{Value: *swag.String("500k")},
 	}
 	verifyEgressRate(t, tr, req, float64(uplinkBwMax))
 
@@ -125,22 +130,10 @@ func testQosEnforcementRestart(t *testing.T, cfgCh chan string, restartCfg strin
 	record := recordsBySubID["IMSI"+imsi][ruleKey]
 	assert.NotNil(t, record, fmt.Sprintf("No policy usage record for imsi: %v", imsi))
 
-	// restart the pipelined service and verify that Qos is still enforced
-	oldCnt := tr.ScanContainerLogs("pipelined", "Starting pipelined")
-
 	// modify pipelined yml to set clean_restart
 	cfgCh <- restartCfg
-	err = tr.RestartService("pipelined", true)
-	if err != nil {
-		fmt.Printf("error restarting pipelined %v", err)
-		assert.Fail(t, "failed restarting pipelined")
-	}
-	waitForPipelinedRestart := func() bool {
-		cnt := tr.ScanContainerLogs("pipelined", "Starting pipelined")
-		fmt.Printf("curr restart count %d old count %d\n", cnt, oldCnt)
-		return ((oldCnt + 1) == cnt)
-	}
-	assert.Eventually(t, waitForPipelinedRestart, time.Minute, 2*time.Second)
+
+	restartPipelined(t, tr)
 
 	// verify the egress rate after the restart of pipelined
 	verifyEgressRate(t, tr, req, float64(uplinkBwMax))
@@ -150,26 +143,49 @@ func testQosEnforcementRestart(t *testing.T, cfgCh chan string, restartCfg strin
 	time.Sleep(3 * time.Second)
 }
 
-func TestQosRestartMeter(t *testing.T) {
-	t.Log("Running TestQosRestartMeter")
+func restartPipelined(t *testing.T, tr *TestRunner) {
+	oldCount := tr.ScanContainerLogs("pipelined", "Starting pipelined")
+	err := tr.RestartService("pipelined")
+	if err != nil {
+		fmt.Printf("error restarting pipelined %v", err)
+		assert.Fail(t, "failed restarting pipelined")
+	}
+	waitForPipelinedRestart := func() bool {
+		cnt := tr.ScanContainerLogs("pipelined", "Starting pipelined")
+		fmt.Printf("curr restart count %d old count %d\n", cnt, oldCount)
+		return ((oldCount + 1) == cnt)
+	}
+	assert.Eventually(t, waitForPipelinedRestart, time.Minute, 2*time.Second)
+}
+
+func TestQosRestartMeterClean(t *testing.T) {
+	fmt.Println("\nRunning TestQosRestartMeterClean...")
 	cfgCh, err := configFileManager(pipelinedCfgFn)
 	defer func() {
 		close(cfgCh)
-
 		// add a additional second for original file to be syncd
 		time.Sleep(time.Second)
 	}()
-
 	if err != nil {
 		t.Logf("failed modifying pipelined configs %v", err)
 		t.Fail()
 	}
-
 	// clean restart test
-	t.Log("Running TestQosRestartMeter - clean restart")
 	testQosEnforcementRestart(t, cfgCh, cleanRestartYaml)
+}
 
+func TestQosRestartMeterNonClean(t *testing.T) {
+	fmt.Println("\nRunning TestQosRestartMeterNonClean...")
+	cfgCh, err := configFileManager(pipelinedCfgFn)
+	defer func() {
+		close(cfgCh)
+		// add a additional second for original file to be syncd
+		time.Sleep(time.Second)
+	}()
+	if err != nil {
+		t.Logf("failed modifying pipelined configs %v", err)
+		t.Fail()
+	}
 	// non clean restart test
-	t.Log("Running TestQosRestartMeter - non clean restart")
 	testQosEnforcementRestart(t, cfgCh, nonCleanRestartYaml)
 }

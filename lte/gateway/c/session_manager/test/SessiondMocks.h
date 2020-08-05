@@ -1,10 +1,14 @@
 /**
- * Copyright (c) 2016-present, Facebook, Inc.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 #pragma once
 
@@ -62,7 +66,7 @@ public:
     ON_CALL(*this, deactivate_all_flows(_)).WillByDefault(Return(true));
     ON_CALL(*this, deactivate_flows_for_rules(_, _, _, _))
       .WillByDefault(Return(true));
-    ON_CALL(*this, activate_flows_for_rules(_, _, _, _))
+    ON_CALL(*this, activate_flows_for_rules(_, _, _, _, _))
         .WillByDefault(Return(true));
     ON_CALL(*this, add_ue_mac_flow(_, _, _, _, _, _)).WillByDefault(Return(true));
     ON_CALL(*this, delete_ue_mac_flow(_, _)).WillByDefault(Return(true));
@@ -97,13 +101,14 @@ public:
       const std::vector<std::string>& rule_ids,
       const std::vector<PolicyRule>& dynamic_rules,
       const RequestOriginType_OriginType origin_type));
-  MOCK_METHOD4(
+  MOCK_METHOD5(
     activate_flows_for_rules,
     bool(
       const std::string& imsi,
       const std::string& ip_addr,
       const std::vector<std::string>& static_rules,
-      const std::vector<PolicyRule>& dynamic_rules));
+      const std::vector<PolicyRule>& dynamic_rules,
+      std::function<void(Status status, ActivateFlowsResult)> callback));
   MOCK_METHOD6(
     add_ue_mac_flow,
     bool(
@@ -152,8 +157,6 @@ public:
 
 class MockEventdClient : public AsyncEventdClient {
 public:
-  MockEventdClient() {}
-
   MOCK_METHOD2(log_event,
                void(const Event &request,
                     std::function<void(Status status, Void)> callback));
@@ -251,6 +254,22 @@ public:
   MOCK_METHOD4(create_dedicated_bearer,
                bool(const std::string &, const std::string &, const uint32_t,
                     const std::vector<PolicyRule> &));
+};
+
+class MockEventsReporter : public EventsReporter{
+ public:
+  MOCK_METHOD1(session_created,
+               void(const std::unique_ptr<SessionState> &));
+  MOCK_METHOD4(session_create_failure,
+               void(const std::string &, const std::string &,
+                   const std::string &, const std::string &));
+  MOCK_METHOD1(session_updated,
+               void(std::unique_ptr<SessionState> &));
+  MOCK_METHOD2(session_update_failure,
+               void(const std::string &,
+                   const std::unique_ptr<SessionState> &));
+  MOCK_METHOD1(session_terminated,
+               void(const std::unique_ptr<SessionState> &));
 };
 
 } // namespace magma

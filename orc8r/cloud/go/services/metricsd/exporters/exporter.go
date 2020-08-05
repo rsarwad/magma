@@ -1,9 +1,14 @@
 /*
-Copyright (c) Facebook, Inc. and its affiliates.
-All rights reserved.
+Copyright 2020 The Magma Authors.
 
 This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 // Package exporters provides an interface for converting protobuf metrics to
@@ -11,7 +16,7 @@ LICENSE file in the root directory of this source tree.
 package exporters
 
 import (
-	dto "github.com/prometheus/client_model/go"
+	prometheus_models "github.com/prometheus/client_model/go"
 )
 
 // Exporter exports metrics received by the metricsd servicer to a datasink.
@@ -19,22 +24,17 @@ type Exporter interface {
 	// Submit metrics to the exporter.
 	// This method must be thread-safe.
 	Submit(metrics []MetricAndContext) error
-
-	// Start the metrics export loop.
-	// This method is async, i.e. the callee begins a goroutine and
-	// returns immediately.
-	Start()
 }
 
 // MetricAndContext wraps a metric family and metric context
 type MetricAndContext struct {
-	Family  *dto.MetricFamily
-	Context MetricsContext
+	Family  *prometheus_models.MetricFamily
+	Context MetricContext
 }
 
-// MetricsContext provides information to the exporter about where this metric
+// MetricContext provides information to the exporter about where this metric
 // comes from.
-type MetricsContext struct {
+type MetricContext struct {
 	MetricName        string
 	AdditionalContext AdditionalMetricContext
 }
@@ -48,16 +48,15 @@ type CloudMetricContext struct {
 	CloudHost string
 }
 
-func (c *CloudMetricContext) isExtraMetricContext() {}
-
 type GatewayMetricContext struct {
-	NetworkID, GatewayID string
+	NetworkID string
+	GatewayID string
 }
-
-func (c *GatewayMetricContext) isExtraMetricContext() {}
 
 type PushedMetricContext struct {
 	NetworkID string
 }
 
-func (c *PushedMetricContext) isExtraMetricContext() {}
+func (c *CloudMetricContext) isExtraMetricContext()   {}
+func (c *GatewayMetricContext) isExtraMetricContext() {}
+func (c *PushedMetricContext) isExtraMetricContext()  {}

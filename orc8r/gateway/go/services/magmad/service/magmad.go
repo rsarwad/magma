@@ -1,9 +1,14 @@
 /*
-Copyright (c) Facebook, Inc. and its affiliates.
-All rights reserved.
+Copyright 2020 The Magma Authors.
 
 This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 // package service implements magmad GRPC service
@@ -12,7 +17,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"log"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -20,6 +24,7 @@ import (
 
 	"github.com/aeden/traceroute"
 	"github.com/emakeev/snowflake"
+	"github.com/golang/glog"
 
 	"magma/gateway/config"
 	"magma/gateway/mconfig"
@@ -40,7 +45,7 @@ func (m *magmadService) StartServices(context.Context, *protos.Void) (*protos.Vo
 	resErrs := errors.NewMulti()
 	sm := service_manager.Get()
 	for _, srv := range getServices() {
-		log.Printf("Starting service '%s'", srv)
+		glog.Infof("Starting service '%s'", srv)
 		resErrs = resErrs.AddFmt(sm.Start(srv), "service '%s' start error:", srv)
 	}
 	return &protos.Void{}, resErrs.AsError()
@@ -50,14 +55,14 @@ func (m *magmadService) StopServices(context.Context, *protos.Void) (*protos.Voi
 	resErrs := errors.NewMulti()
 	sm := service_manager.Get()
 	for _, srv := range getServices() {
-		log.Printf("Stopping service '%s'", srv)
+		glog.Infof("Stopping service '%s'", srv)
 		resErrs = resErrs.AddFmt(sm.Stop(srv), "service '%s' stop error:", srv)
 	}
 	return &protos.Void{}, resErrs.AsError()
 }
 
 func (m *magmadService) Reboot(context.Context, *protos.Void) (*protos.Void, error) {
-	log.Print("Rebooting Gateway")
+	glog.Info("Rebooting Gateway")
 	go exec.Command("reboot").Run()
 	return &protos.Void{}, nil
 }
@@ -66,7 +71,7 @@ func (m *magmadService) RestartServices(context.Context, *protos.RestartServices
 	resErrs := errors.NewMulti()
 	sm := service_manager.Get()
 	for _, srv := range getServices() {
-		log.Printf("Restarting service '%s'", srv)
+		glog.Infof("Restarting service '%s'", srv)
 		resErrs = resErrs.AddFmt(sm.Restart(srv), "service '%s' restart error:", srv)
 	}
 	return &protos.Void{}, resErrs.AsError()
@@ -82,7 +87,7 @@ func (m *magmadService) SetConfigs(_ context.Context, cfg *protos.GatewayConfigs
 		var marshaled []byte
 		marshaled, err = protos.MarshalMconfig(cfg)
 		if err == nil {
-			_, err = config_service.SaveConfigs(marshaled, false)
+			err = config_service.SaveConfigs(marshaled)
 		}
 	}
 	return &protos.Void{}, err
@@ -106,7 +111,7 @@ func (m *magmadService) RunNetworkTests(ctx context.Context, req *protos.Network
 		}
 		packets := strconv.FormatInt(int64(pingRes.NumPackets), 10)
 		cmd := exec.CommandContext(execCtx, "ping", "-c", packets, png.HostOrIp)
-		log.Print(cmd.String())
+		glog.Info(cmd.String())
 		out, err := cmd.Output()
 		if err != nil {
 			pingRes.Error = fmt.Sprintf("error executing '%s': %v", cmd.String(), err)
@@ -124,7 +129,7 @@ func (m *magmadService) RunNetworkTests(ctx context.Context, req *protos.Network
 		options := &traceroute.TracerouteOptions{}
 		options.SetMaxHops(int(trt.GetMaxHops()))
 		options.SetPacketSize(int(trt.GetBytesPerPacket()))
-		log.Printf("traceroute %s -m %d %d", trt.GetHostOrIp(), options.MaxHops(), options.PacketSize())
+		glog.Infof("traceroute %s -m %d %d", trt.GetHostOrIp(), options.MaxHops(), options.PacketSize())
 		trtRes := &protos.TracerouteResult{
 			HostOrIp: trt.GetHostOrIp(),
 		}
@@ -216,7 +221,7 @@ func StartMagmadServer() error {
 		return fmt.Errorf("error creating '%s' service: %v", definitions.MagmadServiceName, err)
 	}
 	protos.RegisterMagmadServer(srv.GrpcServer, NewMagmadService())
-	log.Printf("starting '%s' Service", definitions.MagmadServiceName)
+	glog.Infof("starting '%s' Service", definitions.MagmadServiceName)
 	err = srv.Run()
 	if err != nil {
 		return fmt.Errorf("error starting '%s' service: %s", definitions.MagmadServiceName, err)

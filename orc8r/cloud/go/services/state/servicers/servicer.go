@@ -1,9 +1,14 @@
 /*
-Copyright (c) Facebook, Inc. and its affiliates.
-All rights reserved.
+Copyright 2020 The Magma Authors.
 
 This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 package servicers
@@ -14,8 +19,8 @@ import (
 
 	"magma/orc8r/cloud/go/blobstore"
 	"magma/orc8r/cloud/go/clock"
-	"magma/orc8r/cloud/go/services/state"
 	"magma/orc8r/cloud/go/services/state/indexer/index"
+	state_types "magma/orc8r/cloud/go/services/state/types"
 	"magma/orc8r/cloud/go/storage"
 	"magma/orc8r/lib/go/protos"
 
@@ -35,32 +40,25 @@ type stateServicer struct {
 	factory blobstore.BlobStorageFactory
 }
 
-// StateServicer provides both the servicer definition as well as methods
-// local to the state service.
-type StateServicer interface {
-	protos.StateServiceServer
-	StateServiceInternal
-}
-
 // NewStateServicer returns a state server backed by storage passed in.
-func NewStateServicer(factory blobstore.BlobStorageFactory) (StateServicer, error) {
+func NewStateServicer(factory blobstore.BlobStorageFactory) (protos.StateServiceServer, error) {
 	if factory == nil {
 		return nil, errors.New("storage factory is nil")
 	}
 	return &stateServicer{factory}, nil
 }
 
-func (srv *stateServicer) GetStates(context context.Context, req *protos.GetStatesRequest) (*protos.GetStatesResponse, error) {
+func (srv *stateServicer) GetStates(ctx context.Context, req *protos.GetStatesRequest) (*protos.GetStatesResponse, error) {
 	if err := ValidateGetStatesRequest(req); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 	if !funk.IsEmpty(req.Ids) {
-		return srv.getStates(context, req)
+		return srv.getStates(ctx, req)
 	}
-	return srv.searchStates(context, req)
+	return srv.searchStates(ctx, req)
 }
 
-func (srv *stateServicer) ReportStates(context context.Context, req *protos.ReportStatesRequest) (*protos.ReportStatesResponse, error) {
+func (srv *stateServicer) ReportStates(ctx context.Context, req *protos.ReportStatesRequest) (*protos.ReportStatesResponse, error) {
 	res := &protos.ReportStatesResponse{}
 	validatedStates, invalidStates, err := PartitionStatesBySerializability(req)
 	if err != nil {
@@ -69,7 +67,7 @@ func (srv *stateServicer) ReportStates(context context.Context, req *protos.Repo
 	res.UnreportedStates = invalidStates
 
 	// Get gateway information from context
-	gw := protos.GetClientGateway(context)
+	gw := protos.GetClientGateway(ctx)
 	if gw == nil {
 		return res, errMissingGateway
 	}
@@ -78,7 +76,7 @@ func (srv *stateServicer) ReportStates(context context.Context, req *protos.Repo
 	}
 	hwID := gw.HardwareId
 	networkID := gw.NetworkId
-	certExpiry := protos.GetClientCertExpiration(context)
+	certExpiry := protos.GetClientCertExpiration(ctx)
 	timeMs := uint64(clock.Now().UnixNano()) / uint64(time.Millisecond)
 
 	states, err := addWrapperAndMakeBlobs(validatedStates, hwID, timeMs, certExpiry)
@@ -100,19 +98,19 @@ func (srv *stateServicer) ReportStates(context context.Context, req *protos.Repo
 		return res, internalErr(err, "ReportStates blobstore commit transaction")
 	}
 
-	byID, err := state.MakeStatesByID(req.States)
+	byID, err := state_types.MakeStatesByID(req.States)
 	if err != nil {
 		return res, internalErr(err, "ReportStates make states by ID")
 	}
-	go index.Index(networkID, byID)
+	go index.MustIndex(networkID, byID)
 
 	return res, nil
 }
 
-func (srv *stateServicer) DeleteStates(context context.Context, req *protos.DeleteStatesRequest) (*protos.Void, error) {
+func (srv *stateServicer) DeleteStates(ctx context.Context, req *protos.DeleteStatesRequest) (*protos.Void, error) {
 	if len(req.GetNetworkID()) == 0 {
 		// Get gateway information from context
-		gw := protos.GetClientGateway(context)
+		gw := protos.GetClientGateway(ctx)
 		if gw == nil {
 			return nil, status.Error(codes.PermissionDenied, "missing network and missing gateway identity")
 		}
@@ -144,12 +142,12 @@ func (srv *stateServicer) DeleteStates(context context.Context, req *protos.Dele
 	return &protos.Void{}, nil
 }
 
-func (srv *stateServicer) SyncStates(context context.Context, req *protos.SyncStatesRequest) (*protos.SyncStatesResponse, error) {
+func (srv *stateServicer) SyncStates(ctx context.Context, req *protos.SyncStatesRequest) (*protos.SyncStatesResponse, error) {
 	if err := ValidateSyncStatesRequest(req); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 	// Get gateway information from context
-	gw := protos.GetClientGateway(context)
+	gw := protos.GetClientGateway(ctx)
 	if gw == nil {
 		return nil, errMissingGateway
 	}
@@ -194,30 +192,7 @@ func (srv *stateServicer) SyncStates(context context.Context, req *protos.SyncSt
 	return &protos.SyncStatesResponse{UnsyncedStates: unsyncedStates}, nil
 }
 
-func (srv *stateServicer) GetAllIDs() (state.IDsByNetwork, error) {
-	store, err := srv.factory.StartTransaction(nil)
-	if err != nil {
-		return nil, internalErr(err, "GetAllIDs blobstore start transaction")
-	}
-
-	blobsByNetwork, err := store.Search(
-		blobstore.CreateSearchFilter(nil, nil, nil),
-		blobstore.LoadCriteria{LoadValue: false},
-	)
-	if err != nil {
-		_ = store.Rollback()
-		return nil, internalErr(err, "GetAllIDs blobstore search")
-	}
-	err = store.Commit()
-	if err != nil {
-		return nil, internalErr(err, "GetAllIDs blobstore commit transaction")
-	}
-
-	ids := blobsToIDs(blobsByNetwork)
-	return ids, nil
-}
-
-func (srv *stateServicer) getStates(context context.Context, req *protos.GetStatesRequest) (*protos.GetStatesResponse, error) {
+func (srv *stateServicer) getStates(ctx context.Context, req *protos.GetStatesRequest) (*protos.GetStatesResponse, error) {
 	store, err := srv.factory.StartTransaction(nil)
 	if err != nil {
 		return nil, internalErr(err, "GetStates (get) blobstore start transaction")
@@ -238,14 +213,14 @@ func (srv *stateServicer) getStates(context context.Context, req *protos.GetStat
 	return &protos.GetStatesResponse{States: blobsToStates(blobs)}, nil
 }
 
-func (srv *stateServicer) searchStates(context context.Context, req *protos.GetStatesRequest) (*protos.GetStatesResponse, error) {
+func (srv *stateServicer) searchStates(ctx context.Context, req *protos.GetStatesRequest) (*protos.GetStatesResponse, error) {
 	store, err := srv.factory.StartTransaction(nil)
 	if err != nil {
 		return nil, internalErr(err, "GetStates (search) blobstore start transaction")
 	}
 
 	searchResults, err := store.Search(
-		blobstore.CreateSearchFilter(&req.NetworkID, req.TypeFilter, req.IdFilter),
+		blobstore.CreateSearchFilter(&req.NetworkID, req.TypeFilter, req.IdFilter, nil),
 		blobstore.LoadCriteria{LoadValue: req.LoadValues},
 	)
 	if err != nil {
@@ -277,7 +252,7 @@ func isStateSynced(deviceIdToStates map[string][]*protos.State, reqIdAndVersion 
 }
 
 func wrapStateWithAdditionalInfo(st *protos.State, hwID string, time uint64, certExpiry int64) ([]byte, error) {
-	wrap := state.SerializedStateWithMeta{
+	wrap := state_types.SerializedStateWithMeta{
 		ReporterID:              hwID,
 		TimeMs:                  time,
 		CertExpirationTime:      certExpiry,
@@ -319,16 +294,6 @@ func idAndVersionsToTKs(IDs []*protos.IDAndVersion) []storage.TypeAndKey {
 	var ids []storage.TypeAndKey
 	for _, idAndVersion := range IDs {
 		ids = append(ids, idToTK(idAndVersion.Id))
-	}
-	return ids
-}
-
-func blobsToIDs(byNetwork map[string][]blobstore.Blob) state.IDsByNetwork {
-	ids := state.IDsByNetwork{}
-	for network, blobs := range byNetwork {
-		for _, b := range blobs {
-			ids[network] = append(ids[network], state.ID{Type: b.Type, DeviceID: b.Key})
-		}
 	}
 	return ids
 }

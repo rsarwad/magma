@@ -13,7 +13,8 @@
       "flush_interval_sec": 2,
       "batch_size": 15,
       "graph_url": "https://graph.facebook.com/scribe_logs",
-      "access_token": "$SCUBA_ACCESS_TOKEN"
+      "access_token": "$SCUBA_ACCESS_TOKEN",
+      "partner_shortname": "$PARTNER_SHORTNAME"
     }
   },
   "server": {
@@ -35,7 +36,7 @@
             "config": {
               "URI": "$AAA_ENDPOINT",
               "AccessToken": "$AAA_ACCESS_TOKEN",
-              "DryRun": true
+              "DryRun": false
             }
           }
         ]

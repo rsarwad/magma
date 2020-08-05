@@ -1,9 +1,14 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package blobstore_test
@@ -178,7 +183,7 @@ func TestSqlBlobStorage_Search(t *testing.T) {
 
 		run: func(store blobstore.TransactionalBlobStorage) (interface{}, error) {
 			return store.Search(
-				blobstore.CreateSearchFilter(strPtr("network"), []string{"t1", "t2", "t3"}, []string{"k1", "k2", "k3"}),
+				blobstore.CreateSearchFilter(strPtr("network"), []string{"t1", "t2", "t3"}, []string{"k1", "k2", "k3"}, nil),
 				blobstore.GetDefaultLoadCriteria(),
 			)
 		},
@@ -188,6 +193,33 @@ func TestSqlBlobStorage_Search(t *testing.T) {
 			"network": {
 				{Type: "t1", Key: "k1", Value: []byte("value1"), Version: 42},
 				{Type: "t2", Key: "k2", Value: []byte("value2"), Version: 43},
+			},
+		},
+	}
+
+	keyPrefix := &testCase{
+		setup: func(mock sqlmock.Sqlmock) {
+			mock.ExpectQuery("SELECT network_id, type, \"key\", version, value FROM network_table").
+				WithArgs("network", "t1", "t2", "kprefix%").
+				WillReturnRows(
+					sqlmock.NewRows([]string{"network_id", "type", "key", "version", "value"}).
+						AddRow("network", "t1", "kprefix1", 42, []byte("value1")).
+						AddRow("network", "t2", "kprefix2", 43, []byte("value2")),
+				)
+		},
+
+		run: func(store blobstore.TransactionalBlobStorage) (interface{}, error) {
+			return store.Search(
+				blobstore.CreateSearchFilter(strPtr("network"), []string{"t1", "t2"}, nil, strPtr("kprefix")),
+				blobstore.GetDefaultLoadCriteria(),
+			)
+		},
+
+		expectedError: nil,
+		expectedResult: map[string][]blobstore.Blob{
+			"network": {
+				{Type: "t1", Key: "kprefix1", Value: []byte("value1"), Version: 42},
+				{Type: "t2", Key: "kprefix2", Value: []byte("value2"), Version: 43},
 			},
 		},
 	}
@@ -206,7 +238,7 @@ func TestSqlBlobStorage_Search(t *testing.T) {
 
 		run: func(store blobstore.TransactionalBlobStorage) (interface{}, error) {
 			return store.Search(
-				blobstore.CreateSearchFilter(nil, nil, nil),
+				blobstore.CreateSearchFilter(nil, nil, nil, nil),
 				blobstore.GetDefaultLoadCriteria(),
 			)
 		},
@@ -236,7 +268,7 @@ func TestSqlBlobStorage_Search(t *testing.T) {
 
 		run: func(store blobstore.TransactionalBlobStorage) (interface{}, error) {
 			return store.Search(
-				blobstore.CreateSearchFilter(nil, []string{"t1", "t2", "t3"}, []string{"k1", "k2", "k3"}),
+				blobstore.CreateSearchFilter(nil, []string{"t1", "t2", "t3"}, []string{"k1", "k2", "k3"}, nil),
 				blobstore.GetDefaultLoadCriteria(),
 			)
 		},
@@ -265,7 +297,7 @@ func TestSqlBlobStorage_Search(t *testing.T) {
 
 		run: func(store blobstore.TransactionalBlobStorage) (interface{}, error) {
 			return store.Search(
-				blobstore.CreateSearchFilter(nil, []string{"t1", "t2", "t3"}, []string{"k1", "k2", "k3"}),
+				blobstore.CreateSearchFilter(nil, []string{"t1", "t2", "t3"}, []string{"k1", "k2", "k3"}, nil),
 				blobstore.LoadCriteria{LoadValue: false},
 			)
 		},
@@ -290,7 +322,7 @@ func TestSqlBlobStorage_Search(t *testing.T) {
 
 		run: func(store blobstore.TransactionalBlobStorage) (interface{}, error) {
 			return store.Search(
-				blobstore.CreateSearchFilter(strPtr("network"), []string{"t1", "t2", "t3"}, []string{"k1", "k2", "k3"}),
+				blobstore.CreateSearchFilter(strPtr("network"), []string{"t1", "t2", "t3"}, []string{"k1", "k2", "k3"}, nil),
 				blobstore.GetDefaultLoadCriteria(),
 			)
 		},
@@ -299,6 +331,7 @@ func TestSqlBlobStorage_Search(t *testing.T) {
 	}
 
 	runCase(t, happyPath)
+	runCase(t, keyPrefix)
 	runCase(t, emptyFilterReturnsAll)
 	runCase(t, multipleNetworks)
 	runCase(t, loadCriteria)

@@ -1,9 +1,14 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package plugin
@@ -13,8 +18,8 @@ import (
 	"strings"
 
 	"magma/cwf/cloud/go/cwf"
-	"magma/cwf/cloud/go/plugin/models"
 	cwfmconfig "magma/cwf/cloud/go/protos/mconfig"
+	"magma/cwf/cloud/go/services/cwf/obsidian/models"
 	fegmconfig "magma/feg/cloud/go/protos/mconfig"
 	ltemconfig "magma/lte/cloud/go/protos/mconfig"
 	"magma/orc8r/cloud/go/services/configurator"
@@ -162,7 +167,6 @@ func buildFromConfigs(nwConfig *models.NetworkCarrierWifiConfigs, gwConfig *mode
 		UeIpBlock:       DefaultUeIpBlock, // Unused by CWF
 		NatEnabled:      false,
 		DefaultRuleId:   swag.StringValue(nwConfig.DefaultRuleID),
-		RelayEnabled:    true,
 		Services:        pipelineDServices,
 		AllowedGrePeers: allowedGrePeers,
 		LiImsis:         gwConfig.LiImsis,
@@ -171,6 +175,10 @@ func buildFromConfigs(nwConfig *models.NetworkCarrierWifiConfigs, gwConfig *mode
 	ret["sessiond"] = &ltemconfig.SessionD{
 		LogLevel:     protos.LogLevel_INFO,
 		RelayEnabled: true,
+		WalletExhaustDetection: &ltemconfig.WalletExhaustDetection{
+			TerminateOnExhaust: true,
+			Method:             ltemconfig.WalletExhaustDetection_GxTrackedRules,
+		},
 	}
 	ret["redirectd"] = &ltemconfig.RedirectD{
 		LogLevel: protos.LogLevel_INFO,
@@ -188,6 +196,11 @@ func buildFromConfigs(nwConfig *models.NetworkCarrierWifiConfigs, gwConfig *mode
 		}
 		protos.FillIn(healthCfg, mc)
 		mc.GrePeers = getHealthServiceGrePeers(allowedGrePeers)
+		ret["health"] = mc
+	} else {
+		mc := &cwfmconfig.CwfGatewayHealthConfig{
+			GrePeers: getHealthServiceGrePeers(allowedGrePeers),
+		}
 		ret["health"] = mc
 	}
 	return ret, err

@@ -1,9 +1,14 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package main
@@ -53,23 +58,23 @@ func main() {
 	}
 
 	analysisSchedule := defaultAnalysisSchedule
-	providedSchedule, _ := srv.Config.GetStringParam("analysisSchedule")
+	providedSchedule, _ := srv.Config.GetString("analysisSchedule")
 	if providedSchedule != "" {
 		analysisSchedule = providedSchedule
 	}
 
 	calculations := getAnalyticsCalculations()
 	promAPIClient := getPrometheusClient()
-	shouldExportData, _ := srv.Config.GetBoolParam("exportMetrics")
+	shouldExportData, _ := srv.Config.GetBool("exportMetrics")
 	var exporter analytics.Exporter
 	if shouldExportData {
 		glog.Errorf("Creating CWF Analytics Exporter")
 		exporter = analytics.NewWWWExporter(
-			srv.Config.GetRequiredStringParam("metricsPrefix"),
-			srv.Config.GetRequiredStringParam("appSecret"),
-			srv.Config.GetRequiredStringParam("appID"),
-			srv.Config.GetRequiredStringParam("metricExportURL"),
-			srv.Config.GetRequiredStringParam("categoryName"),
+			srv.Config.MustGetString("metricsPrefix"),
+			srv.Config.MustGetString("appSecret"),
+			srv.Config.MustGetString("appID"),
+			srv.Config.MustGetString("metricExportURL"),
+			srv.Config.MustGetString("categoryName"),
 		)
 	}
 	analyzer := analytics.NewPrometheusAnalyzer(promAPIClient, calculations, exporter)
@@ -187,7 +192,7 @@ func getPrometheusClient() v1.API {
 	if err != nil {
 		glog.Fatalf("Could not retrieve metricsd configuration: %s", err)
 	}
-	promClient, err := promAPI.NewClient(promAPI.Config{Address: metricsConfig.GetRequiredStringParam(metricsd.PrometheusQueryAddress)})
+	promClient, err := promAPI.NewClient(promAPI.Config{Address: metricsConfig.MustGetString(metricsd.PrometheusQueryAddress)})
 	if err != nil {
 		glog.Fatalf("Error creating prometheus client: %s", promClient)
 	}

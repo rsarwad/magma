@@ -1,22 +1,30 @@
 """
-Copyright (c) 2016-present, Facebook, Inc.
-All rights reserved.
+Copyright 2020 The Magma Authors.
 
 This source code is licensed under the BSD-style license found in the
-LICENSE file in the root directory of this source tree. An additional grant
-of patent rights can be found in the PATENTS file in the same directory.
+LICENSE file in the root directory of this source tree.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 """
 from typing import List
 
 from lte.protos.pipelined_pb2 import RuleModResult
+from lte.protos.policydb_pb2 import PolicyRule
 from magma.pipelined.app.base import MagmaController, ControllerType
-from magma.pipelined.app.enforcement_stats import EnforcementStatsController
+from magma.pipelined.app.enforcement_stats import EnforcementStatsController, \
+    IGNORE_STATS
 from magma.pipelined.app.policy_mixin import PolicyMixin
+from magma.pipelined.app.dpi import UNCLASSIFIED_PROTO_ID, get_app_id
 from magma.pipelined.imsi import encode_imsi
 from magma.pipelined.openflow import flows
 from magma.pipelined.openflow.magma_match import MagmaMatch
 from magma.pipelined.openflow.messages import MsgChannel, MessageHub
-from magma.pipelined.openflow.registers import Direction, RULE_VERSION_REG
+from magma.pipelined.openflow.registers import Direction, RULE_VERSION_REG, \
+    SCRATCH_REGS
 from magma.pipelined.policy_converters import FlowMatchError, \
     flow_match_to_magma_match
 from magma.pipelined.redirect import RedirectionManager, RedirectException
@@ -47,10 +55,12 @@ class EnforcementController(PolicyMixin, MagmaController):
     APP_NAME = "enforcement"
     APP_TYPE = ControllerType.LOGICAL
     ENFORCE_DROP_PRIORITY = flows.MINIMUM_PRIORITY + 1
+    # For allowing unlcassified flows for app/service type rules.
+    UNCLASSIFIED_ALLOW_PRIORITY = ENFORCE_DROP_PRIORITY + 1
     # Should not overlap with the drop flow as drop matches all packets.
-    MIN_ENFORCE_PROGRAMMED_FLOW = ENFORCE_DROP_PRIORITY + 1
+    MIN_ENFORCE_PROGRAMMED_FLOW = UNCLASSIFIED_ALLOW_PRIORITY + 1
     MAX_ENFORCE_PRIORITY = flows.MAXIMUM_PRIORITY
-    # Effectively range is 2 -> 65535
+    # Effectively range is 3 -> 65535
     ENFORCE_PRIORITY_RANGE = MAX_ENFORCE_PRIORITY - MIN_ENFORCE_PROGRAMMED_FLOW
 
     def __init__(self, *args, **kwargs):
@@ -62,7 +72,6 @@ class EnforcementController(PolicyMixin, MagmaController):
         self._enforcement_stats_scratch = self._service_manager.get_table_num(
             EnforcementStatsController.APP_NAME)
         self.loop = kwargs['loop']
-        self._relay_enabled = kwargs['mconfig'].relay_enabled
 
         self._msg_hub = MessageHub(self.logger)
         self._redirect_scratch = \
@@ -71,10 +80,6 @@ class EnforcementController(PolicyMixin, MagmaController):
         self._redirect_manager = None
         self._qos_mgr = None
         self._clean_restart = kwargs['config']['clean_restart']
-        self._relay_enabled = kwargs['mconfig'].relay_enabled
-        if not self._relay_enabled:
-            self.logger.info('Relay mode is not enabled, enforcement will not'
-                             ' wait for sessiond to push flows.')
 
     def initialize_on_connect(self, datapath):
         """
@@ -86,9 +91,6 @@ class EnforcementController(PolicyMixin, MagmaController):
         self._datapath = datapath
         self._qos_mgr = QosManager(datapath, self.loop, self._config)
         self._qos_mgr.setup()
-
-        if not self._relay_enabled:
-            self._install_default_flows_if_not_installed(datapath, [])
 
         self._redirect_manager = RedirectionManager(
             self._bridge_ip_address,
@@ -199,7 +201,7 @@ class EnforcementController(PolicyMixin, MagmaController):
 
     def _get_rule_match_flow_msgs(self, imsi, rule):
         """
-        Get a flow msg to get stats for a particular rule. Flows will match on
+        Get flow msgs to get stats for a particular rule. Flows will match on
         IMSI, cookie (the rule num), in/out direction
 
         Args:
@@ -213,9 +215,9 @@ class EnforcementController(PolicyMixin, MagmaController):
         flow_adds = []
         for flow in rule.flow_list:
             try:
-                flow_adds.append(self._get_classify_rule_flow_msg(
-                    imsi, flow, rule_num, priority, rule.qos,
-                    rule.hard_timeout, rule.id))
+                flow_adds.extend(self._get_classify_rule_flow_msgs(
+                    imsi, flow, rule_num, priority, rule.qos, rule.hard_timeout,
+                    rule.id, rule.app_name, rule.app_service_type))
 
             except FlowMatchError as err:  # invalid match
                 self.logger.error(
@@ -270,8 +272,9 @@ class EnforcementController(PolicyMixin, MagmaController):
                 return fail(result.exception())
         return RuleModResult.SUCCESS
 
-    def _get_classify_rule_flow_msg(self, imsi, flow, rule_num, priority,
-                                    qos, hard_timeout, rule_id):
+    def _get_classify_rule_flow_msgs(self, imsi, flow, rule_num, priority,
+                                     qos, hard_timeout, rule_id,
+                                     app_name, app_service_type):
         """
         Install a flow from a rule. If the flow action is DENY, then the flow
         will drop the packet. Otherwise, the flow classifies the packet with
@@ -281,18 +284,45 @@ class EnforcementController(PolicyMixin, MagmaController):
         flow_match.imsi = encode_imsi(imsi)
         flow_match_actions, instructions = self._get_classify_rule_of_actions(
             flow, rule_num, imsi, qos, rule_id)
+        msgs = []
+        if app_name:
+            # We have to allow initial traffic to pass through, before it gets
+            # classified by DPI, flow match set app_id to unclassified
+            flow_match.app_id = UNCLASSIFIED_PROTO_ID
+            # Set
+            parser = self._datapath.ofproto_parser
+            passthrough_actions = flow_match_actions + \
+                [parser.NXActionRegLoad2(dst=SCRATCH_REGS[1],
+                                         value=IGNORE_STATS)]
+            msgs.append(
+                flows.get_add_resubmit_current_service_flow_msg(
+                    self._datapath,
+                    self.tbl_num,
+                    flow_match,
+                    passthrough_actions,
+                    hard_timeout=hard_timeout,
+                    priority=self.UNCLASSIFIED_ALLOW_PRIORITY,
+                    cookie=rule_num,
+                    resubmit_table=self._enforcement_stats_scratch
+                )
+            )
+            flow_match.app_id = get_app_id(
+                PolicyRule.AppName.Name(app_name),
+                PolicyRule.AppServiceType.Name(app_service_type),
+            )
 
         if flow.action == flow.DENY:
-            return flows.get_add_drop_flow_msg(self._datapath,
-                                               self.tbl_num,
-                                               flow_match,
-                                               flow_match_actions,
-                                               hard_timeout=hard_timeout,
-                                               priority=priority,
-                                               cookie=rule_num)
-
-        if self._enforcement_stats_scratch:
-            return flows.get_add_resubmit_current_service_flow_msg(
+            msgs.append(flows.get_add_drop_flow_msg(
+                self._datapath,
+                self.tbl_num,
+                flow_match,
+                flow_match_actions,
+                hard_timeout=hard_timeout,
+                priority=priority,
+                cookie=rule_num)
+            )
+        else:
+            msgs.append(flows.get_add_resubmit_current_service_flow_msg(
                 self._datapath,
                 self.tbl_num,
                 flow_match,
@@ -302,19 +332,8 @@ class EnforcementController(PolicyMixin, MagmaController):
                 priority=priority,
                 cookie=rule_num,
                 resubmit_table=self._enforcement_stats_scratch)
-
-        # If enforcement stats has not claimed a scratch table, resubmit
-        # directly to the next app.
-        return flows.get_add_resubmit_next_service_flow_msg(
-            self._datapath,
-            self.tbl_num,
-            flow_match,
-            flow_match_actions,
-            instructions=instructions,
-            hard_timeout=hard_timeout,
-            priority=priority,
-            cookie=rule_num,
-            resubmit_table=self.next_main_table)
+            )
+        return msgs
 
     def _install_redirect_flow(self, imsi, ip_addr, rule):
         rule_num = self._rule_mapper.get_or_create_rule_num(rule.id)

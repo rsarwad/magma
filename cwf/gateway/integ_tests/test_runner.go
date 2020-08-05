@@ -1,9 +1,14 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package integration
@@ -12,6 +17,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -39,6 +45,7 @@ const (
 	RedisRemote      = "REDIS"
 	CwagIP           = "192.168.70.101"
 	TrafficCltIP     = "192.168.128.2"
+	IPDRControllerIP = "192.168.40.11"
 	OCSPort          = 9201
 	PCRFPort         = 9202
 	OCSPort2         = 9205
@@ -48,8 +55,13 @@ const (
 	RedisPort        = 6380
 	DirectorydPort   = 8443
 
+	// If updating these, also update the ipfix exported hex values
 	defaultMSISDN          = "5100001234"
 	defaultCalledStationID = "98-DE-D0-84-B5-47:CWF-TP-LINK_B547_5G"
+
+	ipfixMSISDN        = "0x35313030303031323334000000000000"
+	ipfixApnMacAddress = "0x98ded084b547"
+	ipfixApnName       = "0x4357462d54502d4c494e4b5f423534375f35470000000000"
 
 	KiloBytes                = 1024
 	MegaBytes                = 1024 * KiloBytes
@@ -197,7 +209,7 @@ func (tr *TestRunner) Authenticate(imsi, calledStationID string) (*radius.Packet
 		fmt.Println(err)
 		return &radius.Packet{}, err
 	}
-	tr.t.Logf("Finished Authenticating UE. Resulting RADIUS Packet: %d\n", radiusP)
+	fmt.Println("Finished Authenticating UE")
 	return radiusP, nil
 }
 
@@ -216,16 +228,8 @@ func (tr *TestRunner) Disconnect(imsi, calledStationID string) (*radius.Packet, 
 		fmt.Println(err)
 		return &radius.Packet{}, err
 	}
-	tr.t.Logf("Finished Discconnecting UE. Resulting RADIUS Packet: %d\n", radiusP)
+	fmt.Println("Finished Discconnecting UE")
 	return radiusP, nil
-}
-
-// ResetUESeq reset sequence for a UE allowing multiple authentication.
-//
-func (tr *TestRunner) ResetUESeq(ue *cwfprotos.UEConfig) error {
-	fmt.Printf("************************* Reset Ue Sequence for IMSI: %v\n", ue.Imsi)
-	ue.Seq--
-	return uesim.AddUE(ue)
 }
 
 // GenULTraffic simulates the UE sending traffic through the CWAG to the Internet
@@ -282,18 +286,18 @@ func (tr *TestRunner) GetPolicyUsage() (RecordByIMSI, error) {
 func (tr *TestRunner) WaitForEnforcementStatsToSync() {
 	// TODO load this value from pipelined.yml
 	enforcementPollPeriod := 1 * time.Second
-	time.Sleep(3 * enforcementPollPeriod)
+	time.Sleep(4 * enforcementPollPeriod)
 }
 
 func (tr *TestRunner) WaitForPoliciesToSync() {
 	// TODO load this value from sessiond.yml (rule_update_interval_sec)
 	ruleUpdatePeriod := 1 * time.Second
-	time.Sleep(2 * ruleUpdatePeriod)
+	time.Sleep(4 * ruleUpdatePeriod)
 }
 
 func (tr *TestRunner) WaitForReAuthToProcess() {
 	// Todo figure out the best way to figure out when RAR is processed
-	time.Sleep(3 * time.Second)
+	time.Sleep(4 * time.Second)
 }
 
 // generateRandomIMSIS creates a slice of unique Random IMSIs taking into consideration a previous list with IMSIS
@@ -384,4 +388,16 @@ func makeSubscriber(imsi string, key []byte, opc []byte, seq uint64) *lteprotos.
 			ApnConfig:           []*lteprotos.APNConfiguration{&lteprotos.APNConfiguration{}},
 		},
 	}
+}
+
+// Get the Pipelined encoded version of IMSI (set in metadata register)
+func getEncodedIMSI(imsiStr string) (string, error) {
+	imsi, err := strconv.Atoi(imsiStr)
+	if err != nil {
+		return "", err
+	}
+
+	prefixLen := len(imsiStr) - len(strings.TrimLeft(imsiStr, "0"))
+	compacted := (imsi << 2) | (prefixLen & 0x3)
+	return fmt.Sprintf("0x%016x", compacted<<1|0x1), nil
 }

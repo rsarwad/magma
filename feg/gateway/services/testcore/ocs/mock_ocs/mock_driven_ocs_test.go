@@ -1,9 +1,14 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package mock_ocs_test
@@ -49,7 +54,11 @@ func TestOCSExpectations(t *testing.T) {
 
 	updateReq := fegprotos.NewGyCCRequest(test.IMSI1, fegprotos.CCRequestType_UPDATE).
 		SetRequestNumber(1).
-		SetMSCC(&fegprotos.MultipleServicesCreditControl{RatingGroup: 1, UsedServiceUnit: &fegprotos.Octets{TotalOctets: 100}})
+		SetMSCC(&fegprotos.MultipleServicesCreditControl{
+			UpdateType:      int32(gy.QUOTA_EXHAUSTED),
+			RatingGroup:     1,
+			UsedServiceUnit: &fegprotos.Octets{TotalOctets: 100},
+		})
 	updateAnswer := fegprotos.NewGyCCAnswer(diam.Success)
 	updateAnswer.RequestNumber = 1
 	updateExpectation := fegprotos.NewGyCreditControlExpectation().Expect(updateReq).Return(updateAnswer)
@@ -90,7 +99,7 @@ func TestOCSExpectations(t *testing.T) {
 		Type:          credit_control.CRTUpdate,
 		IMSI:          test.IMSI1,
 		RequestNumber: 1,
-		Credits:       []*gy.UsedCredits{{TotalOctets: 100, RatingGroup: 1}},
+		Credits:       []*gy.UsedCredits{{TotalOctets: 100, RatingGroup: 1, Type: gy.QUOTA_EXHAUSTED}},
 	}
 	done = make(chan interface{}, 1000)
 	assert.NoError(t, gyClient.SendCreditControlRequest(&serverConfig, done, ccrUpdate))
@@ -105,10 +114,11 @@ func TestOCSExpectations(t *testing.T) {
 		{ExpectationMet: false, ExpectationIndex: 2}, //no terminate
 	}
 	assert.ElementsMatch(t, expectedResult, res.Results)
+	assert.Empty(t, res.Errors)
 }
 
 func assertCCAIsEqualToExpectedAnswer(t *testing.T, actual *gy.CreditControlAnswer, expectation *fegprotos.GyCreditControlAnswer) {
-	assert.Equal(t, actual.ResultCode, expectation.ResultCode)
+	assert.Equal(t, int(expectation.ResultCode), int(actual.ResultCode))
 	assert.Equal(t, actual.RequestNumber, expectation.RequestNumber)
 	actualCreditsByKey := getCreditByKey(actual.Credits)
 	expectedCreditsByKey := getExpectedCreditByKey(expectation.QuotaGrants)

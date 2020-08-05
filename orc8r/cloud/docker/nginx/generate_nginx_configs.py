@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 
-#  Copyright (c) Facebook, Inc. and its affiliates.
-#  All rights reserved.
-#
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree.
+"""
+Copyright 2020 The Magma Authors.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 import os
 from typing import Any, Dict
 
@@ -45,11 +52,8 @@ def main():
         'service_registry': _load_services(),
         'controller_hostname': os.environ['CONTROLLER_HOSTNAME'],
         'backend': os.environ['PROXY_BACKENDS'],
+        'resolver': os.environ['RESOLVER'],
     }
-    # We need to set the resolver when running in docker-compose
-    # In k8s the /etc/resolv.conf has search domains so this isn't needed
-    if os.environ['TEST_MODE'] == '1':
-        context['resolver'] = '127.0.0.11'
     _generate_config(context)
 
 

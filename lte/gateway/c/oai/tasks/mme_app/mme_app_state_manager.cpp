@@ -3,11 +3,7 @@
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The OpenAirInterface Software Alliance licenses this file to You under
- * the Apache License, Version 2.0  (the "License"); you may not use this file
- * except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * the terms found in the LICENSE file in the root of this source tree.
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -215,7 +211,7 @@ int MmeNasStateManager::read_ue_state_from_db() {
     auto keys = redis_client->get_keys("IMSI*" + task_name + "*");
     for (const auto& key : keys) {
       OAILOG_DEBUG(log_task, "Reading UE state from db for %s", key.c_str());
-      UeContext ue_proto = UeContext();
+      oai::UeContext ue_proto = oai::UeContext();
       auto* ue_context =
           (ue_mm_context_t*) (calloc(1, sizeof(ue_mm_context_t)));
       if (redis_client->read_proto(key.c_str(), ue_proto) != RETURNok) {

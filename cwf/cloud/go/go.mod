@@ -1,8 +1,13 @@
-// Copyright (c) Facebook, Inc. and its affiliates.
-// All rights reserved.
+// Copyright 2020 The Magma Authors.
 //
 // This source code is licensed under the BSD-style license found in the
 // LICENSE file in the root directory of this source tree.
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 //
 module magma/cwf/cloud/go
 
@@ -30,7 +35,6 @@ require (
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
-	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc v1.27.1
 
 	magma/feg/cloud/go v0.0.0

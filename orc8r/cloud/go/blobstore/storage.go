@@ -1,15 +1,21 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package blobstore
 
 import (
 	"sort"
+	"strings"
 
 	"magma/orc8r/cloud/go/storage"
 
@@ -27,11 +33,12 @@ type Blob struct {
 // CreateSearchFilter creates a search filter for the given criteria.
 // Nil elements result in no filtering. If you prefer to instantiate string
 // sets manually, you can also create a SearchFilter directly.
-func CreateSearchFilter(networkID *string, types []string, keys []string) SearchFilter {
+func CreateSearchFilter(networkID *string, types []string, keys []string, keyPrefix *string) SearchFilter {
 	return SearchFilter{
 		NetworkID: networkID,
 		Types:     stringListToSet(types),
 		Keys:      stringListToSet(keys),
+		KeyPrefix: keyPrefix,
 	}
 }
 
@@ -106,7 +113,7 @@ type TransactionalBlobStorage interface {
 
 // ListKeysByNetwork returns all blob keys, keyed by network ID.
 func ListKeysByNetwork(store TransactionalBlobStorage) (map[string][]storage.TypeAndKey, error) {
-	filter := CreateSearchFilter(nil, nil, nil)
+	filter := CreateSearchFilter(nil, nil, nil, nil)
 	criteria := LoadCriteria{LoadValue: false}
 
 	blobsByNetwork, err := store.Search(filter, criteria)
@@ -131,21 +138,31 @@ type SearchFilter struct {
 	// Limit search to an OR matching any of the specified types
 	Types map[string]bool
 	// Limit search to an OR matching any of the specified keys
+	// If the KeyPrefix of the search filter is specified, this argument will
+	// be ignored by the blobstore.
 	Keys map[string]bool
+	// Prefix to match keys against. If this is specified (non-nil and non-
+	// empty), the values of Keys will be ignored.
+	KeyPrefix *string
 }
 
 // DoesTKMatch returns true if the given TK matches the search filter,
 // false otherwise.
 func (sf SearchFilter) DoesTKMatch(tk storage.TypeAndKey) bool {
-	isTypesEmpty, isKeysEmpty := funk.IsEmpty(sf.Types), funk.IsEmpty(sf.Keys)
+	isTypesEmpty, isKeysEmpty, isPrefixEmpty := funk.IsEmpty(sf.Types), funk.IsEmpty(sf.Keys), funk.IsEmpty(sf.KeyPrefix)
 
 	// Empty search filter matches everything
-	if isTypesEmpty && isKeysEmpty {
+	if isTypesEmpty && isKeysEmpty && isPrefixEmpty {
 		return true
 	}
 
 	if typeMatch := sf.Types[tk.Type]; !isTypesEmpty && !typeMatch {
 		return false
+	}
+
+	// Key match: short-circuit if prefix is specified
+	if !isPrefixEmpty {
+		return strings.HasPrefix(tk.Key, *sf.KeyPrefix)
 	}
 	if keyMatch := sf.Keys[tk.Key]; !isKeysEmpty && !keyMatch {
 		return false

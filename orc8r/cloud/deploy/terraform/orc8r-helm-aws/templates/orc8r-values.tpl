@@ -1,3 +1,16 @@
+################################################################################
+# Copyright 2020 The Magma Authors.
+
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+################################################################################
+
 imagePullSecrets:
   - name: ${image_pull_secret}
 
@@ -9,22 +22,26 @@ secret:
     orc8r: ${configs_secret}
   envdir: ${envdir_secret}
 
-proxy:
+nginx:
+  create: true
+
   podDisruptionBudget:
     enabled: true
   image:
-    repository: ${docker_registry}/proxy
+    repository: ${docker_registry}/nginx
     tag: "${docker_tag}"
-  replicas: ${proxy_replicas}
+  replicas: ${nginx_replicas}
   service:
     enabled: true
     legacyEnabled: true
     extraAnnotations:
+      proxy:
+        external-dns.alpha.kubernetes.io/hostname: ${api_hostname}
       bootstrapLagacy:
         external-dns.alpha.kubernetes.io/hostname: bootstrapper-${controller_hostname}
       clientcertLegacy:
-        external-dns.alpha.kubernetes.io/hostname: ${controller_hostname},${api_hostname}
-    name: orc8r-bootstrap-legacy
+        external-dns.alpha.kubernetes.io/hostname: ${controller_hostname}
+    name: orc8r-bootstrap-nginx
     type: LoadBalancer
   spec:
     hostname: ${controller_hostname}
@@ -69,22 +86,22 @@ metrics:
   prometheusConfigurer:
     create: true
     image:
-      repository: ${docker_registry}/prometheus-configurer
-      tag: "${docker_tag}"
+      repository: docker.io/facebookincubator/prometheus-configurer
+      tag: 1.0.0
     prometheusURL: ${prometheus_url}
 
   alertmanagerConfigurer:
     create: true
     image:
-      repository: ${docker_registry}/alertmanager-configurer
-      tag: "${docker_tag}"
+      repository: docker.io/facebookincubator/alertmanager-configurer:
+      tag: 1.0.0
     alertmanagerURL: ${alertmanager_url}
 
   prometheusCache:
     create: true
     image:
-      repository: ${docker_registry}/prometheus-cache
-      tag: "${docker_tag}"
+      repository: docker.io/facebookincubator/prometheus-edge-hub
+      tag: 1.0.0
     limit: 500000
   grafana:
     create: false
@@ -118,29 +135,20 @@ nms:
     certs: ${nms_certs_secret}
 
   magmalte:
-    manifests:
-      secrets: true
-      deployment: true
-      service: true
-      rbac: false
+    create: true
 
     image:
       repository: ${docker_registry}/magmalte
       tag: "${docker_tag}"
 
     env:
-      api_host: ${controller_hostname}
+      api_host: ${api_hostname}
       mysql_host: ${nms_db_host}
       mysql_user: ${nms_db_user}
       grafana_address: ${user_grafana_hostname}
 
   nginx:
-    manifests:
-      configmap: true
-      secrets: true
-      deployment: true
-      service: true
-      rbac: false
+    create: true
 
     service:
       type: LoadBalancer

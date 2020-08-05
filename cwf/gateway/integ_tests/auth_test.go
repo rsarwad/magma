@@ -1,11 +1,16 @@
 // +build all authenticate
 
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package integration
@@ -179,7 +184,7 @@ func TestAuthenticateUplinkTraffic(t *testing.T) {
 //   respond with a rule install for a pass-all dynamic rule and 250KB of quota.
 // - Trigger UE authentications through AP1 and generate traffic to  put it
 //   through the newly installed rule.
-// - Reset Ue Seqence and trigger UE authentications through AP2 and assert that
+// - Trigger UE authentications through AP2 and assert that
 //   only one CCR-I is received. Sessiond must re-use the same session
 //   during the handover.
 // - Generate traffic to put traffic through the newly installed rule.
@@ -212,9 +217,6 @@ func TestAuthenticateMultipleAPsUplinkTraffic(t *testing.T) {
 
 	req := &cwfprotos.GenTrafficRequest{Imsi: imsi, Volume: &wrappers.StringValue{Value: "100K"}}
 	_, err = tr.GenULTraffic(req)
-	assert.NoError(t, err)
-
-	err = tr.ResetUESeq(ues[0])
 	assert.NoError(t, err)
 
 	tr.AuthenticateWithCalledIDAndAssertSuccess(imsi, CalledStationIDs[1])

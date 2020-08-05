@@ -1,10 +1,14 @@
 /**
- * Copyright (c) 2016-present, Facebook, Inc.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include "AAAClient.h"
@@ -14,12 +18,10 @@
 
 using grpc::Status;
 
-namespace { // anonymous
+namespace {  // anonymous
 
 aaa::terminate_session_request create_deactivate_req(
-  const std::string &radius_session_id,
-  const std::string &imsi)
-{
+    const std::string& radius_session_id, const std::string& imsi) {
   aaa::terminate_session_request req;
   req.set_radius_session_id(radius_session_id);
   req.set_imsi(imsi);
@@ -27,23 +29,23 @@ aaa::terminate_session_request create_deactivate_req(
 }
 
 aaa::add_sessions_request create_add_sessions_req(
-  magma::lte::SessionMap &session_map)
-{
+    magma::lte::SessionMap& session_map) {
   aaa::add_sessions_request req;
   for (auto it = session_map.begin(); it != session_map.end(); it++) {
-    for (const auto &session : it->second) {
+    for (const auto& session : it->second) {
       aaa::context ctx;
       if (!session->is_radius_cwf_session()) {
         continue;
       }
+      auto config = session->get_config();
       magma::SessionState::SessionInfo session_info;
       session->get_session_info(session_info);
       ctx.set_imsi(session_info.imsi);
-      ctx.set_session_id(session->get_radius_session_id());
+      ctx.set_session_id(config.radius_session_id);
       ctx.set_acct_session_id(session->get_session_id());
-      ctx.set_mac_addr(session->get_mac_addr());
-      ctx.set_msisdn(session->get_msisdn());
-      ctx.set_apn(session->get_apn());
+      ctx.set_mac_addr(config.mac_addr);
+      ctx.set_msisdn(config.msisdn);
+      ctx.set_apn(config.apn);
       auto mutable_sessions = req.mutable_sessions();
       mutable_sessions->Add()->CopyFrom(ctx);
     }
@@ -51,45 +53,36 @@ aaa::add_sessions_request create_add_sessions_req(
   return req;
 }
 
-} // namespace
-
+}  // namespace
 
 namespace aaa {
 
-AsyncAAAClient::AsyncAAAClient(
-  std::shared_ptr<grpc::Channel> channel):
-  stub_(accounting::NewStub(channel))
-{
-}
+AsyncAAAClient::AsyncAAAClient(std::shared_ptr<grpc::Channel> channel)
+    : stub_(accounting::NewStub(channel)) {}
 
-AsyncAAAClient::AsyncAAAClient():
-  AsyncAAAClient(magma::ServiceRegistrySingleton::Instance()->GetGrpcChannel(
-    "aaa_server",
-    magma::ServiceRegistrySingleton::LOCAL))
-{
-}
+AsyncAAAClient::AsyncAAAClient()
+    : AsyncAAAClient(
+          magma::ServiceRegistrySingleton::Instance()->GetGrpcChannel(
+              "aaa_server", magma::ServiceRegistrySingleton::LOCAL)) {}
 
 bool AsyncAAAClient::terminate_session(
-  const std::string &radius_session_id,
-  const std::string &imsi)
-{
+    const std::string& radius_session_id, const std::string& imsi) {
   auto req = create_deactivate_req(radius_session_id, imsi);
-  terminate_session_rpc(req, [radius_session_id, imsi](
-    Status status, acct_resp resp) {
-    if (status.ok()) {
-      MLOG(MDEBUG) << "Terminated session for Radius ID:"
-                   << radius_session_id << ", IMSI: " << imsi;
-    } else {
-      MLOG(MERROR) << "Could not add terminate session. Radius ID:"
-                   << radius_session_id << ", IMSI: " << imsi
-                   << ", Error: " << status.error_message();
-    }
-  });
+  terminate_session_rpc(
+      req, [radius_session_id, imsi](Status status, acct_resp resp) {
+        if (status.ok()) {
+          MLOG(MDEBUG) << "Terminated session for Radius ID:"
+                       << radius_session_id << ", IMSI: " << imsi;
+        } else {
+          MLOG(MERROR) << "Could not add terminate session. Radius ID:"
+                       << radius_session_id << ", IMSI: " << imsi
+                       << ", Error: " << status.error_message();
+        }
+      });
   return true;
 }
 
-bool AsyncAAAClient::add_sessions(magma::lte::SessionMap &session_map)
-{
+bool AsyncAAAClient::add_sessions(magma::lte::SessionMap& session_map) {
   auto req = create_add_sessions_req(session_map);
   if (req.sessions().size() == 0) {
     MLOG(MINFO) << "Not sending add_sessions request to AAA server. No AAA "
@@ -108,24 +101,21 @@ bool AsyncAAAClient::add_sessions(magma::lte::SessionMap &session_map)
 }
 
 void AsyncAAAClient::add_sessions_rpc(
-  const add_sessions_request &request,
-  std::function<void(Status, acct_resp)> callback)
-{
+    const add_sessions_request& request,
+    std::function<void(Status, acct_resp)> callback) {
   auto local_resp = new magma::AsyncLocalResponse<acct_resp>(
-    std::move(callback), RESPONSE_TIMEOUT);
-  local_resp->set_response_reader(std::move(stub_->Asyncadd_sessions(
-    local_resp->get_context(), request, &queue_)));
-
+      std::move(callback), RESPONSE_TIMEOUT);
+  local_resp->set_response_reader(std::move(
+      stub_->Asyncadd_sessions(local_resp->get_context(), request, &queue_)));
 }
 
 void AsyncAAAClient::terminate_session_rpc(
-  const terminate_session_request &request,
-  std::function<void(Status, acct_resp)> callback)
-{
+    const terminate_session_request& request,
+    std::function<void(Status, acct_resp)> callback) {
   auto local_resp = new magma::AsyncLocalResponse<acct_resp>(
-    std::move(callback), RESPONSE_TIMEOUT);
+      std::move(callback), RESPONSE_TIMEOUT);
   local_resp->set_response_reader(std::move(stub_->Asyncterminate_session(
-    local_resp->get_context(), request, &queue_)));
+      local_resp->get_context(), request, &queue_)));
 }
 
-} // namespace aaa
+}  // namespace aaa

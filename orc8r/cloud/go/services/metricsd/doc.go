@@ -1,9 +1,14 @@
 /*
- Copyright (c) Facebook, Inc. and its affiliates.
- All rights reserved.
+Copyright 2020 The Magma Authors.
 
- This source code is licensed under the BSD-style license found in the
- LICENSE file in the root directory of this source tree.
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 // Package metricsd supports metrics collection, augmentation, and export,
@@ -17,9 +22,10 @@
 // service consumes profiles from the registry and kicks off their respective
 // collect/export loops.
 //
-// The metrics profile in use is determined by a service-level config value.
-// Each exporter in the chosen metrics profile receives metrics from every
-// collector.
+// Only one metrics profile can be active at a time. The active profile is
+// determined by a service-level config value, and changing the active profile
+// requires a metricsd service restart. Each exporter in the active profile
+// receives metrics from every collector.
 //
 // Available exporters include export to a custom Prometheus push gateway, as
 // well as support for more time-series-oriented endpoints.
@@ -32,4 +38,6 @@
 // as view, configure, and silence alerts.
 package metricsd
 
-const ServiceName = "METRICSD"
+const (
+	ServiceName = "METRICSD"
+)

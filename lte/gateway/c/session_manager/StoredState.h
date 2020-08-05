@@ -1,10 +1,14 @@
 /**
- * Copyright (c) 2016-present, Facebook, Inc.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 #pragma once
 
@@ -40,20 +44,24 @@ struct SessionConfig {
   std::string hardware_addr; // MAC Address for WLAN (binary)
   std::string radius_session_id;
   uint32_t bearer_id;
+  // TODO The fields above will be replaced by the bundled fields below
   QoSInfo qos_info;
+  CommonSessionContext common_context;
+  RatSpecificContext rat_specific_context;
 };
 
 // Session Credit
-
-struct StoredRedirectServer {
-  RedirectServer_RedirectAddressType redirect_address_type;
-  std::string redirect_server_address;
-};
-
 struct FinalActionInfo {
   ChargingCredit_FinalAction final_action;
   RedirectServer redirect_server;
 };
+
+enum EventTriggerState {
+  PENDING   = 0, // trigger installed
+  READY     = 1, // ready to be reported on
+  CLEARED   = 2, // successfully reported
+};
+typedef std::unordered_map<magma::lte::EventTrigger, EventTriggerState> EventTriggerStatus;
 
 /**
  * A bucket is a counter used for tracking credit volume across sessiond.
@@ -61,16 +69,28 @@ struct FinalActionInfo {
  * Each value is in terms of a volume unit - either bytes or seconds
  */
 enum Bucket {
+  // USED: the actual used quota by the UE.
+  // USED = REPORTED + REPORTING
   USED_TX = 0,
   USED_RX = 1,
+  // ALLOWED: the granted units received
   ALLOWED_TOTAL = 2,
   ALLOWED_TX = 3,
   ALLOWED_RX = 4,
+  // REPORTING: quota that is in transit to be acknowledged by OCS/PCRF
   REPORTING_TX = 5,
   REPORTING_RX = 6,
+  // REPORTED: quota that has been acknowledged by OCS/PCRF
   REPORTED_TX = 7,
   REPORTED_RX = 8,
-  MAX_VALUES = 9,
+  // ALLOWED_FLOOR: saves the previous ALLOWED value after a new grant is received
+  // last_valid_nonzero_received_grant = ALLOWED - ALLOWED_FLOOR
+  ALLOWED_FLOOR_TOTAL = 9,
+  ALLOWED_FLOOR_TX    = 10,
+  ALLOWED_FLOOR_RX    = 11,
+
+  // delimiter to iterate enum
+  MAX_VALUES = 12,
 };
 
 enum ReAuthState {
@@ -84,6 +104,16 @@ enum ServiceState {
   SERVICE_NEEDS_DEACTIVATION = 1,
   SERVICE_DISABLED = 2,
   SERVICE_NEEDS_ACTIVATION = 3,
+  SERVICE_REDIRECTED = 4,
+  SERVICE_RESTRICTED = 5,
+};
+
+enum GrantTrackingType {
+  TOTAL_ONLY = 0,
+  TX_ONLY = 1,
+  RX_ONLY = 2,
+  TX_AND_RX = 3,
+  ALL_TOTAL_TX_RX = 4,
 };
 
 /**
@@ -123,14 +153,9 @@ enum SessionFsmState {
 
 struct StoredSessionCredit {
   bool reporting;
-  bool is_final;
-  bool unlimited_quota;
-  FinalActionInfo final_action_info;
-  ReAuthState reauth_state;
-  ServiceState service_state;
-  std::time_t expiry_time;
+  CreditLimitType credit_limit_type;
   std::unordered_map<Bucket, uint64_t> buckets;
-  uint64_t usage_reporting_limit;
+  GrantTrackingType grant_tracking_type;
 };
 
 struct StoredMonitor {
@@ -138,17 +163,13 @@ struct StoredMonitor {
   MonitoringLevel level;
 };
 
-struct StoredChargingCreditPool {
-  std::string imsi;
-  std::unordered_map<CreditKey, StoredSessionCredit, decltype(&ccHash),
-                     decltype(&ccEqual)>
-      credit_map;
-};
-
-struct StoredUsageMonitoringCreditPool {
-  std::string imsi;
-  std::string session_level_key; // "" maps to nullptr
-  std::unordered_map<std::string, StoredMonitor> monitor_map;
+struct StoredChargingGrant {
+  StoredSessionCredit credit;
+  bool is_final;
+  FinalActionInfo final_action_info;
+  ReAuthState reauth_state;
+  ServiceState service_state;
+  std::time_t expiry_time;
 };
 
 struct RuleLifetime {
@@ -156,11 +177,16 @@ struct RuleLifetime {
   std::time_t deactivation_time; // Unix timestamp
 };
 
+typedef std::unordered_map<std::string, StoredMonitor> StoredMonitorMap;
+typedef std::unordered_map<CreditKey, StoredChargingGrant, decltype(&ccHash),
+                     decltype(&ccEqual)> StoredChargingCreditMap;
+
 struct StoredSessionState {
   SessionFsmState fsm_state;
   SessionConfig config;
-  StoredChargingCreditPool charging_pool;
-  StoredUsageMonitoringCreditPool monitor_pool;
+  StoredChargingCreditMap credit_map;
+  StoredMonitorMap monitor_map;
+  std::string session_level_key; // "" maps to nullptr
   std::string imsi;
   std::string session_id;
   std::string core_session_id;
@@ -168,24 +194,31 @@ struct StoredSessionState {
   magma::lte::TgppContext tgpp_context;
   std::vector<std::string> static_rule_ids;
   std::vector<PolicyRule> dynamic_rules;
+  std::vector<PolicyRule> gy_dynamic_rules;
   std::set<std::string> scheduled_static_rules;
   std::vector<PolicyRule> scheduled_dynamic_rules;
   std::unordered_map<std::string, RuleLifetime> rule_lifetimes;
-  std::vector<PolicyRule> gy_dynamic_rules;
   uint32_t request_number;
+  EventTriggerStatus pending_event_triggers;
+  google::protobuf::Timestamp revalidation_time;
 };
 
 // Update Criteria
-
 struct SessionCreditUpdateCriteria {
+  // Maintained by ChargingGrant
   bool is_final;
-  bool reporting;
+  FinalActionInfo final_action_info;
   ReAuthState reauth_state;
   ServiceState service_state;
   std::time_t expiry_time;
+
+  // Maintained by SessionCredit
+  bool reporting;
+  GrantTrackingType grant_tracking_type;
   // Do not mark REPORTING buckets, but do mark REPORTED
   std::unordered_map<Bucket, uint64_t> bucket_deltas;
-  uint64_t usage_reporting_limit;
+
+  bool deleted;
 };
 
 struct SessionStateUpdateCriteria {
@@ -194,20 +227,30 @@ struct SessionStateUpdateCriteria {
   SessionConfig updated_config;
   bool is_fsm_updated;
   SessionFsmState updated_fsm_state;
+  // true if any of the event trigger state is updated
+  bool is_pending_event_triggers_updated;
+  EventTriggerStatus pending_event_triggers;
+  // this value is only valid if one of the updated event trigger is
+  // revalidation time
+  google::protobuf::Timestamp revalidation_time;
+  uint32_t request_number_increment;
+
   std::set<std::string> static_rules_to_install;
   std::set<std::string> static_rules_to_uninstall;
   std::set<std::string> new_scheduled_static_rules;
   std::vector<PolicyRule> dynamic_rules_to_install;
+  std::vector<PolicyRule> gy_dynamic_rules_to_install;
   std::set<std::string> dynamic_rules_to_uninstall;
+  std::set<std::string> gy_dynamic_rules_to_uninstall;
   std::vector<PolicyRule> new_scheduled_dynamic_rules;
   std::unordered_map<std::string, RuleLifetime> new_rule_lifetimes;
-  std::unordered_map<CreditKey, StoredSessionCredit, decltype(&ccHash),
-                     decltype(&ccEqual)>
-      charging_credit_to_install;
+  StoredChargingCreditMap charging_credit_to_install;
   std::unordered_map<CreditKey, SessionCreditUpdateCriteria, decltype(&ccHash),
                      decltype(&ccEqual)>
       charging_credit_map;
-  std::unordered_map<std::string, StoredMonitor> monitor_credit_to_install;
+  bool is_session_level_key_updated;
+  std::string updated_session_level_key;
+  StoredMonitorMap monitor_credit_to_install;
   std::unordered_map<std::string, SessionCreditUpdateCriteria>
       monitor_credit_map;
   TgppContext updated_tgpp_context;
@@ -224,12 +267,6 @@ std::string serialize_stored_session_config(const SessionConfig &stored);
 
 SessionConfig deserialize_stored_session_config(const std::string &serialized);
 
-std::string
-serialize_stored_redirect_server(const StoredRedirectServer &stored);
-
-StoredRedirectServer
-deserialize_stored_redirect_server(const std::string &serialized);
-
 std::string serialize_stored_final_action_info(const FinalActionInfo &stored);
 
 FinalActionInfo
@@ -240,24 +277,25 @@ std::string serialize_stored_session_credit(StoredSessionCredit &stored);
 StoredSessionCredit
 deserialize_stored_session_credit(const std::string &serialized);
 
+std::string serialize_stored_charging_grant(StoredChargingGrant &stored);
+
 std::string serialize_stored_monitor(StoredMonitor &stored);
 
 StoredMonitor deserialize_stored_monitor(const std::string &serialized);
 
 std::string
-serialize_stored_charging_credit_pool(StoredChargingCreditPool &stored);
+serialize_stored_charging_credit_map(StoredChargingCreditMap &stored);
 
-StoredChargingCreditPool
-deserialize_stored_charging_credit_pool(std::string &serialized);
+StoredChargingCreditMap
+deserialize_stored_charging_credit_map(std::string &serialized) ;
 
 std::string
-serialize_stored_usage_monitoring_pool(StoredUsageMonitoringCreditPool &stored);
+serialize_stored_usage_monitor_map(StoredMonitorMap &stored);
 
-StoredUsageMonitoringCreditPool
-deserialize_stored_usage_monitoring_pool(std::string &serialized);
+StoredMonitorMap
+deserialize_stored_usage_monitor_map(std::string &serialized);
 
 std::string serialize_stored_session(StoredSessionState &stored);
 
 StoredSessionState deserialize_stored_session(std::string &serialized);
-
 } // namespace magma

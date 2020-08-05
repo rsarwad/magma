@@ -1,9 +1,14 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree.
+ * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 // package service_manager defines and implements API for service management
 package service_manager
@@ -12,11 +17,12 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
 	"sync/atomic"
+
+	"github.com/golang/glog"
 
 	"magma/gateway/config"
 )
@@ -26,6 +32,8 @@ var (
 		strings.ToLower(DockerController{}.Name()):  DockerController{},
 		strings.ToLower(SystemdController{}.Name()): SystemdController{},
 		strings.ToLower(RunitController{}.Name()):   RunitController{},
+		"initd": InitdController{TailLogsCmd: DefaultInitdLogTailCmd},
+		"procd": InitdController{TailLogsCmd: "logread -f"},
 	}
 	defaultController = DockerController{}
 )
@@ -36,7 +44,7 @@ func Get() ServiceController {
 	if contr, ok := registry[initSystem]; ok {
 		return contr
 	}
-	log.Printf("process controller for '%s' cannot be found, using '%s' controller",
+	glog.Warningf("process controller for '%s' cannot be found, using '%s' controller",
 		initSystem, defaultController.Name())
 	return defaultController
 }

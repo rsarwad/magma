@@ -1,18 +1,23 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package pluginimpl
 
 import (
 	"magma/orc8r/cloud/go/orc8r"
-	"magma/orc8r/cloud/go/pluginimpl/models"
 	"magma/orc8r/cloud/go/services/configurator"
 	configuratorprotos "magma/orc8r/cloud/go/services/configurator/protos"
+	"magma/orc8r/cloud/go/services/orchestrator/obsidian/models"
 	merrors "magma/orc8r/lib/go/errors"
 	"magma/orc8r/lib/go/protos"
 	"magma/orc8r/lib/go/protos/mconfig"
@@ -80,6 +85,22 @@ func (s *BaseOrchestratorMconfigBuilderServicer) Build(
 		if err != nil {
 			return ret, err
 		}
+		var eventdMconfig *mconfig.EventD
+		if magmadGatewayConfig.Logging != nil && magmadGatewayConfig.Logging.EventVerbosity != nil {
+			eventdMconfig = &mconfig.EventD{
+				LogLevel:       protos.LogLevel_INFO,
+				EventVerbosity: *magmadGatewayConfig.Logging.EventVerbosity,
+			}
+		} else {
+			eventdMconfig = &mconfig.EventD{
+				LogLevel:       protos.LogLevel_INFO,
+				EventVerbosity: -1,
+			}
+		}
+		ret.ConfigsByKey["eventd"], err = ptypes.MarshalAny(eventdMconfig)
+		if err != nil {
+			return ret, err
+		}
 	}
 	controlProxyMconfig := &mconfig.ControlProxy{LogLevel: protos.LogLevel_INFO}
 	ret.ConfigsByKey["control_proxy"], err = ptypes.MarshalAny(controlProxyMconfig)
@@ -130,6 +151,13 @@ func (*BaseOrchestratorMconfigBuilder) Build(networkID string, gatewayID string,
 			return errors.WithStack(err)
 		}
 		mconfigOut["td-agent-bit"] = fluentBitMconfig
+
+		eventdMconfig := &mconfig.EventD{}
+		err = ptypes.UnmarshalAny(res.GetConfigsByKey()["eventd"], eventdMconfig)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		mconfigOut["eventd"] = eventdMconfig
 	}
 	controlProxyMconfig := &mconfig.ControlProxy{}
 	err = ptypes.UnmarshalAny(res.GetConfigsByKey()["control_proxy"], controlProxyMconfig)

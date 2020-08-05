@@ -1,9 +1,14 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package protos
@@ -106,6 +111,11 @@ func (m *GxCreditControlRequest) SetUsageReportDelta(delta uint64) *GxCreditCont
 	return m
 }
 
+func (m *GxCreditControlRequest) SetEventTrigger(eventTrigger int32) *GxCreditControlRequest {
+	m.EventTrigger = &wrappers.Int32Value{Value: eventTrigger}
+	return m
+}
+
 func NewGyCreditControlExpectation() *GyCreditControlExpectation {
 	return &GyCreditControlExpectation{}
 }
@@ -151,5 +161,10 @@ func (m *GyCreditControlRequest) SetMSCC(mscc *MultipleServicesCreditControl) *G
 		m.Mscc = []*MultipleServicesCreditControl{}
 	}
 	m.Mscc = append(m.Mscc, mscc)
+	return m
+}
+
+func (m *GyCreditControlRequest) SetMSCCDelta(delta uint64) *GyCreditControlRequest {
+	m.UsageReportDelta = delta
 	return m
 }

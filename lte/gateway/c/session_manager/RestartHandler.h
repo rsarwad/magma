@@ -1,10 +1,14 @@
 /**
- * Copyright (c) 2016-present, Facebook, Inc.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 #pragma once
 
@@ -41,13 +45,16 @@ class RestartHandler {
  private:
   void terminate_previous_session(
       const std::string& sid, const std::string& session_id);
+  bool populate_sessions_to_terminate_with_retries();
+  bool launch_threads_to_terminate_with_retries();
 
  private:
-  SessionStore& session_store_;
-  std::shared_ptr<LocalEnforcer> enforcer_;
   std::shared_ptr<AsyncDirectorydClient> directoryd_client_;
   std::shared_ptr<aaa::AsyncAAAClient> aaa_client_;
+  std::shared_ptr<LocalEnforcer> enforcer_;
   SessionReporter* reporter_;
+  SessionStore& session_store_;
+  std::mutex sessions_to_terminate_lock_; // mutex to guard add/remove access to sessions_to_terminate
   std::unordered_map<std::string, std::string> sessions_to_terminate_;
   static const uint max_cleanup_retries_;
   static const uint rpc_retry_interval_s_;

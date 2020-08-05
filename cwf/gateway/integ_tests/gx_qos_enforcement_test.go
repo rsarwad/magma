@@ -1,11 +1,16 @@
-// +build all gx qos
+// +build all qos
 
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package integration
@@ -16,8 +21,8 @@ import (
 	cwfprotos "magma/cwf/cloud/go/protos"
 	"magma/feg/cloud/go/protos"
 	fegProtos "magma/feg/cloud/go/protos"
-	"magma/lte/cloud/go/plugin/models"
 	lteProtos "magma/lte/cloud/go/protos"
+	"magma/lte/cloud/go/services/policydb/obsidian/models"
 
 	"math"
 	"math/rand"
@@ -41,7 +46,6 @@ func verifyEgressRate(t *testing.T, tr *TestRunner, req *cwfprotos.GenTrafficReq
 	}
 	// Wait for the traffic to go through
 	time.Sleep(6 * time.Second)
-
 	if resp != nil {
 		var perfResp map[string]interface{}
 		json.Unmarshal([]byte(resp.Output), &perfResp)
@@ -50,9 +54,11 @@ func verifyEgressRate(t *testing.T, tr *TestRunner, req *cwfprotos.GenTrafficReq
 		b := respEndRcvMap["bits_per_second"].(float64)
 
 		errRate := math.Abs((b-expRate)/expRate) * 100
-		fmt.Printf("bit rate observed at server %f err rate %f", b, errRate)
+		fmt.Printf("bit rate observed at server %.0fbps, err rate %.2f%%\n", b, errRate)
 		if (b > expRate) && (errRate > ErrMargin) {
 			fmt.Printf("recd bps %f exp bps %f\n", b, expRate)
+			// dump pipelined service state
+			dumpPipelinedState(tr)
 			assert.Fail(t, "error greater than acceptable margin")
 		}
 	}
@@ -67,6 +73,9 @@ func verifyEgressRate(t *testing.T, tr *TestRunner, req *cwfprotos.GenTrafficReq
 // bitrate
 func TestGxUplinkTrafficQosEnforcement(t *testing.T) {
 	fmt.Println("\nRunning TestGxUplinkTrafficQosEnforcement")
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 	tr := NewTestRunner(t)
 	ruleManager, err := NewRuleManager()
 	assert.NoError(t, err)
@@ -175,6 +184,7 @@ func TestGxDownlinkTrafficQosEnforcement(t *testing.T) {
 		Imsi:        imsi,
 		ReverseMode: true,
 		Volume:      &wrappers.StringValue{Value: *swag.String("5M")},
+		Timeout:     60,
 	}
 	verifyEgressRate(t, tr, req, float64(downlinkBwMax))
 
@@ -204,6 +214,9 @@ func TestGxDownlinkTrafficQosEnforcement(t *testing.T) {
 // that the observed bitrate maches the newly configured bitrate
 func TestGxQosDowngradeWithCCAUpdate(t *testing.T) {
 	fmt.Println("\nRunning TestGxQosDowngradeWithCCAUpdate")
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 	tr := NewTestRunner(t)
 	ruleManager, err := NewRuleManager()
 	assert.NoError(t, err)
@@ -253,7 +266,8 @@ func TestGxQosDowngradeWithCCAUpdate(t *testing.T) {
 	var c float64 = 0.3 * 5 * MegaBytes
 	updateRequest1 := protos.NewGxCCRequest(imsi, protos.CCRequestType_UPDATE).
 		SetUsageMonitorReport(usageMonitorInfo).
-		SetUsageReportDelta(uint64(c))
+		SetUsageReportDelta(uint64(c)).
+		SetEventTrigger(int32(lteProtos.EventTrigger_USAGE_REPORT))
 	updateAnswer1 := protos.NewGxCCAnswer(diam.Success).
 		SetStaticRuleInstalls([]string{rule2Key}, []string{}).
 		SetUsageMonitorInfo(getUsageInformation(monitorKey, 10*MegaBytes))
@@ -320,6 +334,9 @@ func TestGxQosDowngradeWithCCAUpdate(t *testing.T) {
 // downgraded bitrate
 func TestGxQosDowngradeWithReAuth(t *testing.T) {
 	fmt.Println("\nRunning TestGxQosDowngradeWithReAuth")
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 	tr := NewTestRunner(t)
 	ruleManager, err := NewRuleManager()
 	assert.NoError(t, err)

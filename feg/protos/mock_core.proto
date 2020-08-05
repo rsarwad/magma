@@ -1,9 +1,15 @@
-// Copyright (c) 2016-present, Facebook, Inc.
-// All rights reserved.
-//
-// This source code is licensed under the BSD-style license found in the
-// LICENSE file in the root directory of this source tree. An additional grant
-// of patent rights can be found in the PATENTS file in the same directory.
+/*
+Copyright 2020 The Magma Authors.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 syntax = "proto3";
 
@@ -246,6 +252,7 @@ message GxCreditControlRequest {
     // value. We will accept a request as matching if
     // (expected report - delta) < actual report < (expected report + delta)
     uint64 usage_report_delta = 12;
+    google.protobuf.Int32Value event_trigger = 13;
 }
 
 message GxCreditControlAnswer {
@@ -327,6 +334,7 @@ message UsageMonitoringInformation {
 message MultipleServicesCreditControl {
     uint32 rating_group = 1;
     Octets used_service_unit = 2;
+    int32 update_type = 3;
 }
 
 message QosInfo {

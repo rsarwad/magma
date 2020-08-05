@@ -1,10 +1,14 @@
 """
-Copyright (c) 2018-present, Facebook, Inc.
-All rights reserved.
+Copyright 2020 The Magma Authors.
 
 This source code is licensed under the BSD-style license found in the
-LICENSE file in the root directory of this source tree. An additional grant
-of patent rights can be found in the PATENTS file in the same directory.
+LICENSE file in the root directory of this source tree.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 """
 
 from typing import List  # noqa
@@ -41,7 +45,6 @@ def run_cmd(cmd_list, throw_except=False, show_error=True):
                 LOG.error("error running %s", cmd)
             if throw_except:
                 raise e
-            return
 
 
 # TODO - replace this implementation with pyroute2 tc
@@ -53,20 +56,22 @@ class TrafficClass:
     @staticmethod
     def delete_class(intf: str, qid: int, throw_except=True,
                      show_error=True) -> None:
-        tc_cmd = "tc class del dev {} classid 1:{}".format(intf, qid)
+        qid_hex = hex(qid)
+        tc_cmd = "tc class del dev {} classid 1:{}".format(intf, qid_hex)
         filter_cmd = "tc filter del dev {} protocol ip parent 1: prio 1 \
-                handle {qid} fw flowid 1:{qid}".format(intf, qid=qid)
+                handle {qid} fw flowid 1:{qid}".format(intf, qid=qid_hex)
         run_cmd((filter_cmd, tc_cmd), throw_except, show_error)
 
     @staticmethod
     def create_class(intf: str, qid: int, max_bw: int, throw_except=True,
                      show_error=True) -> None:
+        qid_hex = hex(qid)
         tc_cmd = "tc class add dev {} parent 1:fffe classid 1:{} htb \
-        rate 12000 ceil {}".format(intf, qid, max_bw)
+        rate 12000 ceil {}".format(intf, qid_hex, max_bw)
         qdisc_cmd = "tc qdisc add dev {} parent 1:{} \
-                fq_codel".format(intf, qid)
+                fq_codel".format(intf, qid_hex)
         filter_cmd = "tc filter add dev {} protocol ip parent 1: prio 1 \
-                handle {qid} fw flowid 1:{qid}".format(intf, qid=qid)
+                handle {qid} fw flowid 1:{qid}".format(intf, qid=qid_hex)
 
         # try to delete if exists
         TrafficClass.delete_class(intf, qid, throw_except=False,
@@ -76,7 +81,7 @@ class TrafficClass:
         run_cmd((tc_cmd, qdisc_cmd, filter_cmd), throw_except, show_error)
 
     @staticmethod
-    def init_qdisc(intf: str, throw_except=False, show_error=True) -> None:
+    def init_qdisc(intf: str, throw_except=False, show_error=False) -> None:
         qdisc_cmd = "tc qdisc add dev {} root handle 1: htb".format(intf)
         parent_q_cmd = "tc class add dev {} parent 1: classid 1:fffe htb \
                 rate 1Gbit ceil 1Gbit".format(intf)
@@ -108,6 +113,18 @@ class TrafficClass:
             qid = int(qid_str, 16)
             qid_list.append(qid)
         return qid_list
+
+    @staticmethod
+    def dump_class_state(intf: str, qid: int):
+        qid_hex = hex(qid)
+        tc_cmd = "tc -s -d class show dev {} classid 1:{}".format(intf,
+                                                                  qid_hex)
+        args = argSplit(tc_cmd)
+        try:
+            output = subprocess.check_output(args)
+            print(output.decode())
+        except subprocess.CalledProcessError:
+            print("Exception dumping Qos State for %s", intf)
 
 
 class TCManager(object):
@@ -145,12 +162,12 @@ class TCManager(object):
             if qid >= self._start_idx and qid < (self._max_idx - 1):
                 LOG.info("deleting class idx %d", qid)
                 TrafficClass.delete_class(self._uplink, qid,
-                                        throw_except=False, show_error=False)
+                                          throw_except=False, show_error=False)
         for qid in dl_qid_list:
             if qid >= self._start_idx and qid < (self._max_idx - 1):
                 LOG.info("deleting class idx %d", qid)
                 TrafficClass.delete_class(self._downlink, qid,
-                                        throw_except=False, show_error=False)
+                                          throw_except=False, show_error=False)
 
     def setup(self,):
         # initialize new qdisc

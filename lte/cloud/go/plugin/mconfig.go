@@ -1,9 +1,14 @@
 /*
- * Copyright (c) Facebook, Inc. and its affiliates.
- * All rights reserved.
+ * Copyright 2020 The Magma Authors.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package plugin
@@ -13,12 +18,12 @@ import (
 	"sort"
 
 	"magma/lte/cloud/go/lte"
-	models2 "magma/lte/cloud/go/plugin/models"
 	"magma/lte/cloud/go/protos/mconfig"
+	models2 "magma/lte/cloud/go/services/lte/obsidian/models"
 	"magma/orc8r/cloud/go/orc8r"
-	"magma/orc8r/cloud/go/pluginimpl/models"
 	"magma/orc8r/cloud/go/services/configurator"
 	configuratorprotos "magma/orc8r/cloud/go/services/configurator/protos"
+	"magma/orc8r/cloud/go/services/orchestrator/obsidian/models"
 	merrors "magma/orc8r/lib/go/errors"
 	"magma/orc8r/lib/go/protos"
 
@@ -126,13 +131,13 @@ func (s *LteMconfigBuilderServicer) Build(
 			AttachedEnodebTacs:       getEnodebTacs(enbConfigsBySerial),
 			DnsPrimary:               gwEpc.DNSPrimary,
 			DnsSecondary:             gwEpc.DNSSecondary,
+			NatEnabled:               swag.BoolValue(gwEpc.NatEnabled),
 		},
 		"pipelined": &mconfig.PipelineD{
 			LogLevel:      protos.LogLevel_INFO,
 			UeIpBlock:     gwEpc.IPBlock,
 			NatEnabled:    swag.BoolValue(gwEpc.NatEnabled),
 			DefaultRuleId: nwEpc.DefaultRuleID,
-			RelayEnabled:  swag.BoolValue(nwEpc.RelayEnabled),
 			Services:      pipelineDServices,
 		},
 		"subscriberdb": &mconfig.SubscriberDB{
@@ -142,10 +147,15 @@ func (s *LteMconfigBuilderServicer) Build(
 			SubProfiles:  getSubProfiles(nwEpc),
 			RelayEnabled: swag.BoolValue(nwEpc.RelayEnabled),
 		},
-		"policydb": getPolicydbMconfig(graph),
+		"policydb": &mconfig.PolicyDB{
+			LogLevel: protos.LogLevel_INFO,
+		},
 		"sessiond": &mconfig.SessionD{
 			LogLevel:     protos.LogLevel_INFO,
 			RelayEnabled: swag.BoolValue(nwEpc.RelayEnabled),
+			WalletExhaustDetection: &mconfig.WalletExhaustDetection{
+				TerminateOnExhaust: false,
+			},
 		},
 	}
 	for k, v := range vals {
@@ -380,37 +390,4 @@ func getSubProfiles(epc *models2.NetworkEpcConfigs) map[string]*mconfig.Subscrib
 		}
 	}
 	return ret
-}
-
-func getPolicydbMconfig(graph configurator.EntityGraph) *mconfig.PolicyDB {
-	ratingGroups := getRatingGroups(graph)
-	infiniteUnmetered := []uint32{}
-	infiniteMetered := []uint32{}
-
-	for _, ratingGroup := range ratingGroups {
-		id := uint32(ratingGroup.ID)
-		switch limitType := *ratingGroup.LimitType; limitType {
-		case "INFINITE_UNMETERED":
-			infiniteUnmetered = append(infiniteUnmetered, id)
-		case "INFINITE_METERED":
-			infiniteMetered = append(infiniteMetered, id)
-		}
-	}
-
-	return &mconfig.PolicyDB{
-		LogLevel:                      protos.LogLevel_INFO,
-		InfiniteMeteredChargingKeys:   infiniteMetered,
-		InfiniteUnmeteredChargingKeys: infiniteUnmetered,
-	}
-}
-
-func getRatingGroups(graph configurator.EntityGraph) map[uint32]*models2.RatingGroup {
-	ratingGroupEnts := graph.GetEntitiesOfType(lte.RatingGroupEntityType)
-	ratingGroups := map[uint32]*models2.RatingGroup{}
-	for _, ent := range ratingGroupEnts {
-		ratingGroup := (ent.Config).(*models2.RatingGroup)
-		id := uint32(ratingGroup.ID)
-		ratingGroups[id] = ratingGroup
-	}
-	return ratingGroups
 }

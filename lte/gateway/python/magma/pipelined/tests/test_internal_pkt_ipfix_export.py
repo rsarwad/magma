@@ -1,10 +1,14 @@
 """
-Copyright (c) 2018-present, Facebook, Inc.
-All rights reserved.
+Copyright 2020 The Magma Authors.
 
 This source code is licensed under the BSD-style license found in the
-LICENSE file in the root directory of this source tree. An additional grant
-of patent rights can be found in the PATENTS file in the same directory.
+LICENSE file in the root directory of this source tree.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 """
 
 import unittest
@@ -14,6 +18,7 @@ import warnings
 
 from lte.protos.mconfig.mconfigs_pb2 import PipelineD
 from lte.protos.policydb_pb2 import FlowMatch
+from lte.protos.pipelined_pb2 import FlowRequest
 from magma.pipelined.app.dpi import DPIController
 from magma.pipelined.bridge_util import BridgeTools
 from magma.pipelined.tests.app.start_pipelined import PipelinedController, \
@@ -27,6 +32,8 @@ class InternalPktIpfixExportTest(unittest.TestCase):
     IFACE = 'testing_br'
     MAC_DEST = "5e:cc:cc:b1:49:4b"
     BRIDGE_IP = '192.168.128.1'
+    DPI_PORT = 'mon1'
+    DPI_IP = '1.1.1.1'
 
     @classmethod
     def setUpClass(cls):
@@ -82,15 +89,16 @@ class InternalPktIpfixExportTest(unittest.TestCase):
                     'idle_timeout': 42,
                 },
             },
-            mconfig=PipelineD(
-                relay_enabled=True
-            ),
+            mconfig=PipelineD(),
             loop=None,
             service_manager=cls.service_manager,
             integ_test=False
         )
 
         BridgeTools.create_bridge(cls.BRIDGE, cls.IFACE)
+        BridgeTools.create_internal_iface(cls.BRIDGE, cls.DPI_PORT,
+                                          cls.DPI_IP)
+
         cls.thread = start_ryu_app_thread(test_setup)
 
         cls.ue_mac_controller = ue_mac_controller_reference.result()
@@ -116,17 +124,18 @@ class InternalPktIpfixExportTest(unittest.TestCase):
 
         self.ue_mac_controller.add_ue_mac_flow(imsi, ue_mac)
 
-        dst_mac = "5e:cc:cc:b1:49:4b"
         flow_match = FlowMatch(
             ip_proto=FlowMatch.IPPROTO_TCP, ipv4_dst='45.10.0.1',
             ipv4_src='1.2.3.0', tcp_dst=80, tcp_src=51115,
             direction=FlowMatch.UPLINK
         )
         self.dpi_controller.add_classify_flow(
-            flow_match, 'base.ip.http.facebook', 'tbd', ue_mac, dst_mac)
+            flow_match, FlowRequest.FLOW_FINAL_CLASSIFICATION,
+            'base.ip.http.facebook', 'tbd')
 
         snapshot_verifier = SnapshotVerifier(self, self.BRIDGE,
-                                             self.service_manager)
+                                             self.service_manager,
+                                             include_stats=False)
 
         with snapshot_verifier:
             pass

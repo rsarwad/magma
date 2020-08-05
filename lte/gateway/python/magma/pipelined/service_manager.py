@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """
-Copyright (c) 2019-present, Facebook, Inc.
-All rights reserved.
+Copyright 2020 The Magma Authors.
 
 This source code is licensed under the BSD-style license found in the
-LICENSE file in the root directory of this source tree. An additional grant
-of patent rights can be found in the PATENTS file in the same directory.
+LICENSE file in the root directory of this source tree.
 
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 ServiceManager manages the lifecycle and chaining of network services,
 which are cloud managed and provide discrete network functions.
@@ -24,10 +27,12 @@ Apps can also optionally claim additional scratch tables, which may be
 required for complex flow matching and aggregation use cases. Scratch tables
 should not be accessible to apps from other services.
 """
+
 # pylint: skip-file
 # pylint does not play well with aioeventlet, as it uses asyncio.async which
 # produces a parse error
 
+import time
 import asyncio
 import logging
 from concurrent.futures import Future
@@ -56,6 +61,8 @@ from magma.pipelined.app.ue_mac import UEMacAddressController
 from magma.pipelined.app.xwf_passthru import XWFPassthruController
 from magma.pipelined.app.startup_flows import StartupFlows
 from magma.pipelined.app.check_quota import CheckQuotaController
+from magma.pipelined.app.uplink_bridge import UplinkBridgeController
+
 from magma.pipelined.rule_mappers import RuleIDToNumMapper, \
     SessionRuleToVersionMapper
 from magma.pipelined.internal_ip_allocator import InternalIPAllocator
@@ -255,6 +262,7 @@ class ServiceManager:
     CHECK_QUOTA_SERVICE_NAME = 'check_quota'
     LI_MIRROR_SERVICE_NAME = 'li_mirror'
     XWF_PASSTHRU_NAME = 'xwf_passthru'
+    UPLINK_BRIDGE_NAME = 'uplink_bridge'
 
     INTERNAL_APP_SET_TABLE_NUM = 201
     INTERNAL_IMSI_SET_TABLE_NUM = 202
@@ -283,7 +291,7 @@ class ServiceManager:
         PipelineD.DPI: [
             App(name=DPIController.APP_NAME, module=DPIController.__module__,
                 type=DPIController.APP_TYPE,
-                order_priority=700),
+                order_priority=400),
         ],
     }
 
@@ -355,6 +363,13 @@ class ServiceManager:
                 type=XWFPassthruController.APP_TYPE,
                 order_priority=0),
         ],
+        UPLINK_BRIDGE_NAME: [
+            App(name=UplinkBridgeController.APP_NAME,
+                module=UplinkBridgeController.__module__,
+                type=UplinkBridgeController.APP_TYPE,
+                order_priority=0),
+        ],
+
     }
 
     # Some apps do not use a table, so they need to be excluded from table
@@ -362,6 +377,7 @@ class ServiceManager:
     STATIC_APP_WITH_NO_TABLE = [
         RYU_REST_APP_NAME,
         StartupFlows.APP_NAME,
+        UplinkBridgeController.APP_NAME,
     ]
 
     def __init__(self, magma_service: MagmaService):
@@ -375,6 +391,8 @@ class ServiceManager:
                           type=None,
                           order_priority=0)]
         self._table_manager = _TableManager()
+
+        self.rule_id_mapper = RuleIDToNumMapper()
         self.session_rule_version_mapper = SessionRuleToVersionMapper()
 
         apps = self._get_static_apps()
@@ -398,6 +416,12 @@ class ServiceManager:
         for each static service.
         """
         static_services = self._magma_service.config['static_services']
+        nat_enabled = self._magma_service.config.get('nat_enabled', False)
+        setup_type = self._magma_service.config.get('setup_type', None)
+        if nat_enabled is False and setup_type == 'LTE':
+            static_services.append(self.__class__.UPLINK_BRIDGE_NAME)
+            logging.info("added uplink bridge controller")
+
         static_apps = \
             [app for service in static_services for app in
              self.STATIC_SERVICE_TO_APPS[service]]
@@ -431,10 +455,22 @@ class ServiceManager:
         Instantiates and schedules the Ryu app eventlets in the service
         eventloop.
         """
+
+        # Some setups might not use REDIS
+        if (self._magma_service.config['redis_enabled']):
+            # Wait for redis as multiple controllers rely on it
+            while not redisAvailable(self.rule_id_mapper.redis_cli):
+                logging.warning("Pipelined waiting for redis...")
+                time.sleep(1)
+        else:
+            self.rule_id_mapper._rule_nums_by_rule = {}
+            self.rule_id_mapper._rules_by_rule_num = {}
+            self.session_rule_version_mapper._version_by_imsi_and_rule = {}
+
         manager = AppManager.get_instance()
         manager.load_apps([app.module for app in self._apps])
         contexts = manager.create_contexts()
-        contexts['rule_id_mapper'] = RuleIDToNumMapper()
+        contexts['rule_id_mapper'] = self.rule_id_mapper
         contexts[
             'session_rule_version_mapper'] = self.session_rule_version_mapper
         contexts['app_futures'] = {app.name: Future() for app in self._apps}
@@ -526,3 +562,12 @@ class ServiceManager:
         table number, and app name.
         """
         return self._table_manager.get_all_table_assignments()
+
+
+def redisAvailable(redis_cli):
+    try:
+        redis_cli.ping()
+    except Exception as e:
+        logging.error(e)
+        return False
+    return True

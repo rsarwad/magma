@@ -1,10 +1,14 @@
 """"
-Copyright (c) 2016-present, Facebook, Inc.
-All rights reserved.
+Copyright 2020 The Magma Authors.
 
 This source code is licensed under the BSD-style license found in the
-LICENSE file in the root directory of this source tree. An additional grant
-of patent rights can be found in the PATENTS file in the same directory.
+LICENSE file in the root directory of this source tree.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 """
 
 import os
@@ -17,7 +21,10 @@ from integ_tests.common.magmad_client import MagmadServiceGrpc
 # from integ_tests.cloud.cloud_manager import CloudManager
 from integ_tests.common.mobility_service_client import MobilityServiceGrpc
 from integ_tests.common.service303_utils import GatewayServicesUtil
-from integ_tests.common.subscriber_db_client import SubscriberDbGrpc
+from integ_tests.common.subscriber_db_client import (
+    SubscriberDbGrpc,
+    SubscriberDbCassandra,
+)
 from integ_tests.s1aptests.s1ap_utils import (
     MagmadUtil,
     MobilityUtil,
@@ -32,17 +39,35 @@ class TestWrapper(object):
     Module wrapping boiler plate code for all test setups and cleanups.
     """
 
+    # With the current mask value of 24 in TEST_IP_BLOCK, we can allocate a
+    # maximum of 255 UE IP addresses only. Moreover, magma has reserved 12 IP
+    # addresses for testing purpose, hence maximum allowed free IP addresses
+    # are 243. We need to change this mask value in order to allocate more than
+    # 243 UE IP addresses. Therefore, with the mask value of n, the maximum
+    # number of UE IP addresses allowed will be ((2^(32-n)) - 13).
+    # Example:
+    #  mask value 24, max allowed UE IP addresses = ((2^(32-24)) - 13) = 243
+    #  mask value 20, max allowed UE IP addresses = ((2^(32-20)) - 13) = 4083
+    #  mask value 17, max allowed UE IP addresses = ((2^(32-17)) - 13) = 32755
+    # Decreasing the mask value will provide more UE IP addresses in the free
+    # IP address pool
     TEST_IP_BLOCK = "192.168.128.0/24"
     MSX_S1_RETRY = 2
 
-    def __init__(self):
+    def __init__(self, stateless_mode=MagmadUtil.stateless_cmds.DISABLE):
         """
         Initialize the various classes required by the tests and setup.
         """
         self._s1_util = S1ApUtil()
         self._enBConfig()
 
-        subscriber_client = SubscriberDbGrpc()
+        if self._test_oai_upstream:
+            subscriber_client = SubscriberDbCassandra()
+            self.wait_gateway_healthy = False
+        else:
+            subscriber_client = SubscriberDbGrpc()
+            self.wait_gateway_healthy = True
+
         mobility_client = MobilityServiceGrpc()
         magmad_client = MagmadServiceGrpc()
         self._sub_util = SubscriberUtil(subscriber_client)
@@ -51,9 +76,9 @@ class TestWrapper(object):
         self._mobility_util = MobilityUtil(mobility_client)
         self._mobility_util.cleanup()
         self._magmad_util = MagmadUtil(magmad_client)
+        self._magmad_util.config_stateless(stateless_mode)
         # gateway tests don't require restart, just wait for healthy now
         self._gateway_services = GatewayServicesUtil()
-        self.wait_gateway_healthy = True
         if not self.wait_gateway_healthy:
             self.init_s1ap_tester()
 
@@ -161,22 +186,49 @@ class TestWrapper(object):
         print("************************* Waiting for IP changes to propagate")
         self._mobility_util.wait_for_changes()
 
-    def configUEDevice(self, num_ues):
+    def configUEDevice(self, num_ues, reqData=[]):
         """ Configure the device on the UE side """
         reqs = self._sub_util.add_sub(num_ues=num_ues)
         for i in range(num_ues):
             print(
-                "************************* UE device config for ue_id ", reqs[i].ue_id
+                "************************* UE device config for ue_id ",
+                reqs[i].ue_id,
             )
-            assert self._s1_util.issue_cmd(s1ap_types.tfwCmd.UE_CONFIG, reqs[i]) == 0
-            response = self._s1_util.get_response()
-            assert s1ap_types.tfwCmd.UE_CONFIG_COMPLETE_IND.value == response.msg_type
-            self._configuredUes.append(reqs[i])
-        self.check_gw_health_after_ue_load()
+            if reqData and bool(reqData[i]):
+                if reqData[i].ueNwCap_pr.pres:
+                    reqs[i].ueNwCap_pr.pres = reqData[i].ueNwCap_pr.pres
+                    reqs[i].ueNwCap_pr.eea2_128 = reqData[
+                        i
+                    ].ueNwCap_pr.eea2_128
+                    reqs[i].ueNwCap_pr.eea1_128 = reqData[
+                        i
+                    ].ueNwCap_pr.eea1_128
+                    reqs[i].ueNwCap_pr.eea0 = reqData[i].ueNwCap_pr.eea0
+                    reqs[i].ueNwCap_pr.eia2_128 = reqData[
+                        i
+                    ].ueNwCap_pr.eia2_128
+                    reqs[i].ueNwCap_pr.eia1_128 = reqData[
+                        i
+                    ].ueNwCap_pr.eia1_128
+                    reqs[i].ueNwCap_pr.eia0 = reqData[i].ueNwCap_pr.eia0
 
-    def configAPN(self, imsi, apn_list):
-        """ Configure the APN """
-        self._sub_util.config_apn_data(imsi, apn_list)
+            assert (
+                self._s1_util.issue_cmd(s1ap_types.tfwCmd.UE_CONFIG, reqs[i])
+                == 0
+            )
+            response = self._s1_util.get_response()
+            assert (
+                s1ap_types.tfwCmd.UE_CONFIG_COMPLETE_IND.value
+                == response.msg_type
+            )
+            # APN configuration below can be overwritten in the test case
+            # after configuring UE device.
+            self.configAPN(
+                "IMSI" + "".join([str(j) for j in reqs[i].imsi]), None
+            )
+            self._configuredUes.append(reqs[i])
+
+        self.check_gw_health_after_ue_load()
 
     def configUEDevice_ues_same_imsi(self, num_ues):
         """ Configure the device on the UE side with same IMSI and
@@ -189,6 +241,11 @@ class TestWrapper(object):
             assert self._s1_util.issue_cmd(s1ap_types.tfwCmd.UE_CONFIG, reqs[i]) == 0
             response = self._s1_util.get_response()
             assert s1ap_types.tfwCmd.UE_CONFIG_COMPLETE_IND.value == response.msg_type
+            # APN configuration below can be overwritten in the test case
+            # after configuring UE device.
+            self.configAPN(
+                "IMSI" + "".join([str(j) for j in reqs[i].imsi]), None
+            )
             self._configuredUes.append(reqs[i])
         for i in range(num_ues):
             reqs[i].ue_id = 2
@@ -212,7 +269,32 @@ class TestWrapper(object):
             assert self._s1_util.issue_cmd(s1ap_types.tfwCmd.UE_CONFIG, reqs[i]) == 0
             response = self._s1_util.get_response()
             assert s1ap_types.tfwCmd.UE_CONFIG_COMPLETE_IND.value == response.msg_type
+            # APN configuration below can be overwritten in the test case
+            # after configuring UE device.
+            self.configAPN(
+                "IMSI" + "".join([str(j) for j in reqs[i].imsi]), None
+            )
             self._configuredUes.append(reqs[i])
+
+    def configAPN(self, imsi, apn_list, default=True):
+        """ Configure the APN """
+        # add a default APN to be used in attach requests
+        if default:
+            magma_default_apn = {
+                "apn_name": "magma.ipv4",  # APN-name
+                "qci": 9,  # qci
+                "priority": 15,  # priority
+                "pre_cap": 1,  # preemption-capability
+                "pre_vul": 0,  # preemption-vulnerability
+                "mbr_ul": 200000000,  # MBR UL
+                "mbr_dl": 100000000,  # MBR DL
+            }
+            # APN list to be configured
+            if apn_list is not None:
+                apn_list.insert(0, magma_default_apn)
+            else:
+                apn_list = [magma_default_apn]
+        self._sub_util.config_apn_data(imsi, apn_list)
 
     def check_gw_health_after_ue_load(self):
         """ Wait for the MME only after adding entries to HSS """

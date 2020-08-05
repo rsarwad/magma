@@ -1,9 +1,14 @@
 /*
-Copyright (c) Facebook, Inc. and its affiliates.
-All rights reserved.
+Copyright 2020 The Magma Authors.
 
 This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 // package generic_command implements magmad shell command execution functionality
@@ -13,11 +18,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"os/exec"
 	"strings"
 	"time"
 
+	"github.com/golang/glog"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/google/shlex"
 
@@ -64,13 +69,13 @@ func Execute(ctx context.Context, req *protos.GenericCommandParams) (*protos.Gen
 	}
 	cmdList, splitErr := shlex.Split(cmdStr)
 	if splitErr != nil || len(cmdList) == 0 {
-		log.Printf("invalid command format: %v", splitErr)
+		glog.Errorf("invalid command format: %v", splitErr)
 		cmdList = []string{"sh", "-c", cmdStr}
 	}
 	execCtx, cancel := context.WithTimeout(ctx, Timeout)
 	defer cancel()
 	exeCmd := exec.CommandContext(execCtx, cmdList[0], cmdList[1:]...)
-	log.Printf("executing command '%s'", exeCmd.String())
+	glog.Infof("executing command '%s'", exeCmd.String())
 	var errBuff, outBuff bytes.Buffer
 	exeCmd.Stderr = &errBuff
 	exeCmd.Stdout = &outBuff

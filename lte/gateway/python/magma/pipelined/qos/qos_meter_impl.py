@@ -1,15 +1,20 @@
 """
-Copyright (c) 2018-present, Facebook, Inc.
-All rights reserved.
+Copyright 2020 The Magma Authors.
 
 This source code is licensed under the BSD-style license found in the
-LICENSE file in the root directory of this source tree. An additional grant
-of patent rights can be found in the PATENTS file in the same directory.
+LICENSE file in the root directory of this source tree.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 """
 import logging
 from magma.pipelined.openflow.meters import MeterClass
 from .utils import IdManager
 from .types import QosInfo
+import subprocess
 
 LOG = logging.getLogger('pipelined.qos.qos_meter_impl')
 BROKEN_KERN_ERROR_MSG = "kernel module has a broken meter implementation"
@@ -94,3 +99,13 @@ class MeterManager(object):
             if stat.max_meter == 0:
                 self._qos_impl_broken = True
                 LOG.error("kernel module has a broken meter implementation")
+
+    @staticmethod
+    def dump_meter_state(meter_id):
+        try:
+            output = subprocess.check_output(["ovs-ofctl", "-O", "OpenFlow15",
+                                              "meter-stats", "cwag_br0",
+                                              "meter=%s" % meter_id])
+            print(output.decode())
+        except subprocess.CalledProcessError:
+            print("Exception dumping meter state for %s", meter_id)

@@ -1,9 +1,14 @@
 /*
-Copyright (c) Facebook, Inc. and its affiliates.
-All rights reserved.
+Copyright 2020 The Magma Authors.
 
 This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 // package service implements the core of configurator
@@ -12,31 +17,26 @@ package service
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
+	"path/filepath"
 	"time"
+
+	"github.com/golang/glog"
 
 	"magma/gateway/config"
 	"magma/gateway/mconfig"
 )
 
 // SaveConfig saves new gateway.configs and returns old configuration if any
-func SaveConfigs(cfgJson []byte, readOldCfg bool) (oldCfgJson []byte, err error) {
+func SaveConfigs(cfgJson []byte) error {
 	if len(cfgJson) == 0 {
-		return oldCfgJson, fmt.Errorf("empty gateway mconfigs")
+		return fmt.Errorf("empty gateway mconfigs")
 	}
-	mconfigPath := mconfig.ConfigFilePath()
-	if readOldCfg {
-		var oerr error
-		if oldCfgJson, oerr = ioutil.ReadFile(mconfigPath); oerr != nil {
-			oldCfgJson = nil
-		}
-	}
-	err = safeSwap(mconfig.ConfigFilePath(), cfgJson)
+	err := safeSwap(mconfig.ConfigFilePath(), cfgJson)
 	if err == nil {
-		log.Printf("successfully updated mconfig in %s", mconfigPath)
+		glog.V(1).Infof("successfully updated mconfig in %s", mconfig.ConfigFilePath())
 	}
-	return oldCfgJson, err
+	return err
 }
 
 // updateStaticConfigs saves new gateway.configs into static mconfig location
@@ -59,7 +59,14 @@ func safeSwap(mconfigPath string, cfgJson []byte) error {
 	oldMconfigPath := mconfigPath + ".old"
 	err := ioutil.WriteFile(newMconfigPath, cfgJson, 0644)
 	if err != nil {
-		return fmt.Errorf("failed to save mconfigs into %s: %v", newMconfigPath, err)
+		if os.IsNotExist(err) {
+			if os.MkdirAll(filepath.Dir(mconfigPath), 0755) == nil {
+				err = ioutil.WriteFile(newMconfigPath, cfgJson, 0644)
+			}
+		}
+		if err != nil {
+			return fmt.Errorf("failed to save mconfigs into %s: %v", newMconfigPath, err)
+		}
 	}
 	oerr := os.Rename(mconfigPath, oldMconfigPath) // best effort, needed just for rollback on error
 	err = os.Rename(newMconfigPath, mconfigPath)
@@ -70,4 +77,8 @@ func safeSwap(mconfigPath string, cfgJson []byte) error {
 		}
 	}
 	return err
+}
+
+func readCfg() ([]byte, error) {
+	return ioutil.ReadFile(mconfig.ConfigFilePath())
 }

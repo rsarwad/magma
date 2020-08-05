@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """
-Copyright (c) 2016-present, Facebook, Inc.
-All rights reserved.
+Copyright 2020 The Magma Authors.
 
 This source code is licensed under the BSD-style license found in the
-LICENSE file in the root directory of this source tree. An additional grant
-of patent rights can be found in the PATENTS file in the same directory.
+LICENSE file in the root directory of this source tree.
 
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+"""
 Pre-run script for services to generate a nghttpx config from a jinja template
 and the config/mconfig for the service.
 """
@@ -117,6 +123,18 @@ def _get_identity():
     return "{}.{}".format(socket.gethostname(), realm)
 
 
+def _get_enable_nat():
+    nat_enabled = get_service_config_value("mme", "enable_nat", None)
+
+    if nat_enabled is None:
+        nat_enabled = load_service_mconfig("mme", MME()).nat_enabled
+
+    if nat_enabled is not None:
+        return nat_enabled
+
+    return True
+
+
 def _get_attached_enodeb_tacs():
     mme_config = load_service_mconfig("mme", MME())
     # attachedEnodebTacs overrides 'tac', which is being deprecated, but for
@@ -133,7 +151,9 @@ def _get_context():
     Create the context which has the interface IP and the OAI log level to use.
     """
     context = {}
-    context["s11_ip"] = _get_iface_ip("spgw", "s11_iface_name")
+    context["mme_s11_ip"] = _get_iface_ip("mme", "s11_iface_name")
+    context["sgw_s11_ip"] = _get_iface_ip("spgw", "s11_iface_name")
+    context["remote_sgw_ip"] = get_service_config_value("mme", "remote_sgw_ip", "")
     context["s1ap_ip"] = _get_iface_ip("mme", "s1ap_iface_name")
     context["s1u_ip"] = _get_iface_ip("spgw", "s1u_iface_name")
     context["oai_log_level"] = _get_oai_log_level()
@@ -147,6 +167,7 @@ def _get_context():
     context["lac"] = _get_lac()
     context["use_stateless"] = get_service_config_value("mme", "use_stateless", "")
     context["attached_enodeb_tacs"] = _get_attached_enodeb_tacs()
+    context["enable_nat"] = _get_enable_nat()
     # set ovs params
     for key in (
         "ovs_bridge_name",

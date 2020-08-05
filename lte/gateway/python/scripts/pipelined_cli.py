@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 
 """
-Copyright (c) 2016-present, Facebook, Inc.
-All rights reserved.
+Copyright 2020 The Magma Authors.
 
 This source code is licensed under the BSD-style license found in the
-LICENSE file in the root directory of this source tree. An additional grant
-of patent rights can be found in the PATENTS file in the same directory.
+LICENSE file in the root directory of this source tree.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 """
 
 import argparse
@@ -26,6 +30,7 @@ from magma.subscriberdb.sid import SIDUtils
 from magma.configuration.service_configs import load_service_config
 from magma.pipelined.bridge_util import BridgeTools
 from magma.pipelined.service_manager import Tables
+from magma.pipelined.qos.common import QosManager
 from orc8r.protos.common_pb2 import Void
 from lte.protos.pipelined_pb2 import (
     ActivateFlowsRequest,
@@ -367,6 +372,8 @@ def create_debug_parser(apps):
                              'flows. If not set, all flows will be printed.')
     subcmd.set_defaults(func=display_flows)
 
+    subcmd = subparsers.add_parser('qos', help='Debug Qos')
+    subcmd.set_defaults(func=QosManager.debug)
 
 # --------------------------
 # Pipelined base CLI
