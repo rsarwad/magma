@@ -94,40 +94,6 @@ LocalEnforcer::LocalEnforcer(
       retry_timeout_(2),
       mconfig_(mconfig) {}
 
-void LocalEnforcer::notify_new_report_for_sessions(
-    SessionMap& session_map, SessionUpdate& session_update) {
-  for (const auto& session_pair : session_map) {
-    for (const auto& session : session_pair.second) {
-      session->new_report(
-          session_update[session_pair.first][session->get_session_id()]);
-    }
-  }
-}
-
-void LocalEnforcer::notify_finish_report_for_sessions(
-    SessionMap& session_map, SessionUpdate& session_update) {
-  // Iterate through sessions and notify that report has finished. Terminate any
-  // sessions that can be terminated.
-  std::vector<std::pair<std::string, std::string>> imsi_to_terminate;
-  for (const auto& session_pair : session_map) {
-    for (const auto& session : session_pair.second) {
-      session->finish_report(
-          session_update[session_pair.first][session->get_session_id()]);
-      if (session->can_complete_termination()) {
-        imsi_to_terminate.push_back(
-            std::make_pair(session_pair.first, session->get_session_id()));
-      }
-    }
-  }
-  for (const auto& imsi_sid_pair : imsi_to_terminate) {
-    SessionStateUpdateCriteria& update_criteria =
-        session_update[imsi_sid_pair.first][imsi_sid_pair.second];
-    complete_termination(
-        session_map, imsi_sid_pair.first, imsi_sid_pair.second,
-        update_criteria);
-  }
-}
-
 void LocalEnforcer::start() {
   evb_->loopForever();
 }
@@ -161,11 +127,11 @@ bool LocalEnforcer::setup(
       session_infos.push_back(session_info);
       auto ue_mac_addr = session->get_config().mac_addr;
       ue_mac_addrs.push_back(ue_mac_addr);
-      auto msisdn = session->get_config().msisdn;
+      auto msisdn = session->get_config().common_context.msisdn();
       msisdns.push_back(msisdn);
       std::string apn_mac_addr;
       std::string apn_name;
-      auto apn = session->get_config().apn;
+      auto apn = session->get_config().common_context.apn();
       if (!parse_apn(apn, apn_mac_addr, apn_name)) {
         MLOG(MWARNING) << "Failed mac/name parsiong for apn " << apn;
         apn_mac_addr = "";
@@ -216,7 +182,7 @@ void LocalEnforcer::sync_sessions_on_restart(std::time_t current_time) {
       }
 
       session->sync_rules_to_time(current_time, uc);
-      auto ip_addr = session->get_config().ue_ipv4;
+      auto ip_addr = session->get_config().common_context.ue_ipv4();
 
       for (std::string rule_id : session->get_static_rules()) {
         auto lifetime = session->get_rule_lifetime(rule_id);
@@ -274,8 +240,10 @@ void LocalEnforcer::sync_sessions_on_restart(std::time_t current_time) {
 void LocalEnforcer::aggregate_records(
     SessionMap& session_map, const RuleRecordTable& records,
     SessionUpdate& session_update) {
-  // unmark all credits
-  notify_new_report_for_sessions(session_map, session_update);
+  // TODO We should have a more granular identifier for sessions here
+  // Insert the IMSIs for which we received a rule record into a set for easy
+  // access
+  std::unordered_set<std::string> sessions_with_active_flows;
   for (const RuleRecord& record : records.records()) {
     auto it = session_map.find(record.sid());
     if (it == session_map.end()) {
@@ -283,8 +251,8 @@ void LocalEnforcer::aggregate_records(
                    << " during record aggregation";
       continue;
     }
+    sessions_with_active_flows.insert(record.sid());
     if (record.bytes_tx() > 0 || record.bytes_rx() > 0) {
-      MLOG(MINFO) << "";
       MLOG(MINFO) << record.sid() << " used " << record.bytes_tx()
                   << " tx bytes and " << record.bytes_rx()
                   << " rx bytes for rule " << record.rule_id();
@@ -297,7 +265,35 @@ void LocalEnforcer::aggregate_records(
           record.rule_id(), record.bytes_tx(), record.bytes_rx(), uc);
     }
   }
-  notify_finish_report_for_sessions(session_map, session_update);
+  complete_termination_for_released_sessions(
+      session_map, sessions_with_active_flows, session_update);
+}
+
+void LocalEnforcer::complete_termination_for_released_sessions(
+    SessionMap& session_map, std::unordered_set<std::string> sessions_with_active_flows,
+    SessionUpdate& session_update) {
+  // Iterate through sessions and notify that report has finished. Terminate any
+  // sessions that can be terminated.
+  std::vector<std::pair<std::string, std::string>> imsi_to_terminate;
+  for (const auto& session_pair : session_map) {
+    const std::string imsi = session_pair.first;
+    for (const auto& session : session_pair.second) {
+      const std::string session_id = session->get_session_id();
+      // If we did not receive a rule record for the session, this means
+      // PipelineD has reported all usage for the session
+      if (session->get_state() == SESSION_RELEASED &&
+          sessions_with_active_flows.find(imsi) == sessions_with_active_flows.end()) {
+        imsi_to_terminate.push_back(std::make_pair(imsi, session_id));
+      }
+    }
+  }
+  for (const auto& imsi_sid_pair : imsi_to_terminate) {
+    auto imsi       = imsi_sid_pair.first;
+    auto session_id = imsi_sid_pair.second;
+    SessionStateUpdateCriteria& update_criteria =
+        session_update[imsi][session_id];
+    complete_termination(session_map, imsi, session_id, update_criteria);
+  }
 }
 
 void LocalEnforcer::execute_actions(
@@ -364,7 +360,7 @@ void LocalEnforcer::start_session_termination(
   auto session_id = session->get_session_id();
   if (session->is_terminating()) {
     // If the session is terminating already, do nothing.
-    MLOG(MDEBUG) << "Session " << session_id << " is already terminating, "
+    MLOG(MINFO) << "Session " << session_id << " is already terminating, "
                  << "ignoring termination request";
     return;
   }
@@ -372,7 +368,7 @@ void LocalEnforcer::start_session_termination(
 
   remove_all_rules_for_termination(imsi, session, update_criteria);
 
-  session->set_fsm_state(SESSION_TERMINATING_FLOW_ACTIVE, update_criteria);
+  session->set_fsm_state(SESSION_RELEASED, update_criteria);
   auto config = session->get_config();
   if (notify_access) {
     notify_termination_to_access_service(imsi, session_id, config);
@@ -439,7 +435,8 @@ void LocalEnforcer::remove_all_rules_for_termination(
 void LocalEnforcer::notify_termination_to_access_service(
     const std::string& imsi, const std::string& session_id,
     const SessionConfig& config) {
-  switch (config.rat_type) {
+  auto common_context = config.common_context;
+  switch (common_context.rat_type()) {
     case TGPP_WLAN: {
       // tell AAA service to terminate radius session if necessary
       auto radius_session_id = config.radius_session_id;
@@ -451,13 +448,15 @@ void LocalEnforcer::notify_termination_to_access_service(
     case TGPP_LTE: {
       // Deleting the PDN session by triggering network issued default bearer
       // deactivation
+      auto lte_context = config.rat_specific_context.lte_context();
       spgw_client_->delete_default_bearer(
-          imsi, config.ue_ipv4, config.bearer_id);
+          imsi, common_context.ue_ipv4(), lte_context.bearer_id());
       break;
     }
     default:
+      // Should not get here
       MLOG(MWARNING) << session_id << " has an invalid RAT Type "
-                     << config.rat_type;
+                     << config.common_context.rat_type();
       return;
   }
 }
@@ -712,7 +711,7 @@ void LocalEnforcer::schedule_static_rule_activation(
                            << static_rule.rule_id();
           } else {
             for (const auto& session : it->second) {
-              if (session->get_config().ue_ipv4 == ip_addr) {
+              if (session->get_config().common_context.ue_ipv4() == ip_addr) {
                 auto& uc = session_update[imsi][session->get_session_id()];
                 session->install_scheduled_static_rule(
                     static_rule.rule_id(), uc);
@@ -753,7 +752,7 @@ void LocalEnforcer::schedule_dynamic_rule_activation(
                            << dynamic_rule.policy_rule().id();
           } else {
             for (const auto& session : it->second) {
-              if (session->get_config().ue_ipv4 == ip_addr) {
+              if (session->get_config().common_context.ue_ipv4() == ip_addr) {
                 auto& uc = session_update[imsi][session->get_session_id()];
                 session->install_scheduled_dynamic_rule(
                     dynamic_rule.policy_rule().id(), uc);
@@ -871,7 +870,7 @@ bool LocalEnforcer::handle_session_init_rule_updates(
     SessionMap& session_map, const std::string& imsi,
     SessionState& session_state, const CreateSessionResponse& response,
     std::unordered_set<uint32_t>& charging_credits_received) {
-  auto ip_addr = session_state.get_config().ue_ipv4;
+  auto ip_addr = session_state.get_config().common_context.ue_ipv4();
 
   RulesToProcess rules_to_activate;
   RulesToProcess rules_to_deactivate;
@@ -919,8 +918,7 @@ bool LocalEnforcer::init_session_credit(
     const std::string& session_id, const SessionConfig& cfg,
     const CreateSessionResponse& response) {
   auto session_state = std::make_unique<SessionState>(
-      imsi, session_id, response.session_id(), cfg, *rule_store_,
-      response.tgpp_ctx());
+      imsi, session_id, cfg, *rule_store_, response.tgpp_ctx());
 
   std::unordered_set<uint32_t> charging_credits_received;
   for (const auto& credit : response.credits()) {
@@ -1209,7 +1207,7 @@ void LocalEnforcer::update_monitoring_credits_and_rules(
           to_vec(usage_monitor_resp.dynamic_rules_to_install()),
           rules_to_activate, rules_to_deactivate, update_criteria);
 
-      auto ip_addr            = session->get_config().ue_ipv4;
+      auto ip_addr            = session->get_config().common_context.ue_ipv4();
       bool deactivate_success = true;
       bool activate_success   = true;
 
@@ -1297,7 +1295,7 @@ void LocalEnforcer::terminate_session(
   for (const auto& session : it->second) {
     auto config     = session->get_config();
     auto session_id = session->get_session_id();
-    if (config.apn == apn) {
+    if (config.common_context.apn() == apn) {
       SessionStateUpdateCriteria& update_criteria =
           session_update[imsi][session_id];
       MLOG(MINFO) << "Starting externally triggered termination for "
@@ -1457,7 +1455,7 @@ void LocalEnforcer::init_policy_reauth_for_session(
       to_vec(request.dynamic_rules_to_install()), rules_to_activate,
       rules_to_deactivate, update_criteria);
 
-  auto ip_addr = session->get_config().ue_ipv4;
+  auto ip_addr = session->get_config().common_context.ue_ipv4();
   if (rules_to_process_is_not_empty(rules_to_deactivate)) {
     deactivate_success = pipelined_client_->deactivate_flows_for_rules(
         request.imsi(), rules_to_deactivate.static_rules,
@@ -1562,7 +1560,7 @@ void LocalEnforcer::process_rules_to_install(
     RulesToProcess& rules_to_activate, RulesToProcess& rules_to_deactivate,
     SessionStateUpdateCriteria& update_criteria) {
   std::time_t current_time = time(NULL);
-  std::string ip_addr      = session.get_config().ue_ipv4;
+  std::string ip_addr      = session.get_config().common_context.ue_ipv4();
   for (const auto& rule_install : static_rule_installs) {
     const auto& id = rule_install.rule_id();
     if (session.is_static_rule_installed(id)) {
@@ -1739,16 +1737,22 @@ void LocalEnforcer::create_bearer(
     const PolicyReAuthRequest& request,
     const std::vector<PolicyRule>& dynamic_rules) {
   auto config = session->get_config();
-  if (!activate_success || !config.qos_info.enabled ||
+  if (!config.rat_specific_context.has_lte_context()) {
+    MLOG(MWARNING) << "No LTE Session Context is specified for session";
+    return;
+  }
+  auto lte_context = config.rat_specific_context.lte_context();
+  if (!activate_success || !lte_context.has_qos_info() ||
       !request.has_qos_info()) {
     MLOG(MDEBUG) << "Not creating bearer";
     return;
   }
-  auto default_qci = QCI(config.qos_info.qci);
+  auto default_qci = QCI(lte_context.qos_info().qos_class_id());
   if (request.qos_info().qci() != default_qci) {
     MLOG(MDEBUG) << "QCI sent in RAR is different from default QCI";
     spgw_client_->create_dedicated_bearer(
-        request.imsi(), config.ue_ipv4, config.bearer_id, dynamic_rules);
+        request.imsi(), config.common_context.ue_ipv4(),
+        lte_context.bearer_id(), dynamic_rules);
   }
   return;
 }
