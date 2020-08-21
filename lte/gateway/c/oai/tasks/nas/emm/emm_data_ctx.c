@@ -945,18 +945,25 @@ void nas_start_T3450(
 //------------------------------------------------------------------------------
 void nas_start_T3460(
     const mme_ue_s1ap_id_t ue_id, struct nas_timer_s* const T3460,
-    time_out_t time_out_cb, void* timer_callback_args) {
+    time_out_t time_out_cb, void* timer_callback_args, uint8_t nas_proc) {
   if ((T3460) && (T3460->id == NAS_TIMER_INACTIVE_ID)) {
     T3460->id =
         nas_timer_start(T3460->sec, 0, time_out_cb, timer_callback_args);
     if (NAS_TIMER_INACTIVE_ID != T3460->id) {
+      if (nas_proc == NAS_PROC_AUTHENTICATION) {
+        emm_ctx_set_nas_procedures_timer_mask(
+            (emm_context_t*) timer_callback_args, NAS_AUTH_PROCEDUE_3460_TIMER);
+      } else {
+        emm_ctx_set_nas_procedures_timer_mask(
+            (emm_context_t*) timer_callback_args, NAS_SMC_PROCEDUE_3460_TIMER);
+      }
       OAILOG_DEBUG(
           LOG_NAS_EMM, "T3460 started UE " MME_UE_S1AP_ID_FMT "\n", ue_id);
-    } else {
-      OAILOG_ERROR(
-          LOG_NAS_EMM, "Could not start T3460 UE " MME_UE_S1AP_ID_FMT " ",
-          ue_id);
-    }
+      } else {
+        OAILOG_ERROR(
+            LOG_NAS_EMM, "Could not start T3460 UE " MME_UE_S1AP_ID_FMT " ",
+            ue_id);
+      }
   }
 }
 //------------------------------------------------------------------------------
@@ -1011,6 +1018,11 @@ void nas_stop_T3460(
     void* timer_callback_args) {
   if ((T3460) && (T3460->id != NAS_TIMER_INACTIVE_ID)) {
     T3460->id = nas_timer_stop(T3460->id, &timer_callback_args);
+    emm_context_t* emm_context_p = emm_context_get(&_emm_data, ue_id);
+    if (emm_context_p) {
+      emm_ctx_clear_nas_procedures_timer_mask(
+          emm_context_p, NAS_AUTH_PROCEDUE_3460_TIMER);
+    }
     OAILOG_DEBUG(
         LOG_NAS_EMM, "T3460 stopped UE " MME_UE_S1AP_ID_FMT "\n", ue_id);
   }
@@ -1543,4 +1555,14 @@ void emm_context_dump(
   bformata(bstr_dump, "%*s     - TODO  esm_data_ctx\n", indent_spaces, " ");
   // esm_context_dump(&emm_context->esm_ctx, indent_spaces, bstr_dump);
   // }
+}
+
+inline void emm_ctx_set_nas_procedures_timer_mask(
+    emm_context_t* const ctxt, const int nas_proc_bit_pos) {
+  ctxt->nas_procedures_timer_mask |= nas_proc_bit_pos;
+}
+
+inline void emm_ctx_clear_nas_procedures_timer_mask(
+    emm_context_t* const ctxt, const int nas_proc_bit_pos) {
+  ctxt->nas_procedures_timer_mask &= ~nas_proc_bit_pos;
 }

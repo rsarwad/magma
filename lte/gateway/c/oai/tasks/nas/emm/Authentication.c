@@ -1087,6 +1087,8 @@ static void _authentication_t3460_handler(void* args) {
       emm_sap_send(&emm_sap);
       emm_common_cleanup_by_ueid(ue_id);
 
+      emm_ctx_clear_nas_procedures_timer_mask(
+          emm_ctx, NAS_AUTH_PROCEDUE_3460_TIMER);
       // abort ANY ongoing EMM procedure (R10_5_4_2_7_b)
       nas_delete_all_emm_procedures(emm_ctx);
 
