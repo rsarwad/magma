@@ -752,6 +752,8 @@ static int _security_request(nas_emm_smc_proc_t* const smc_proc) {
       nas_start_T3460(
           smc_proc->ue_id, &smc_proc->T3460,
           smc_proc->emm_com_proc.emm_proc.base_proc.time_out, emm_ctx);
+      emm_ctx_set_nas_procedures_timer_mask(
+          emm_ctx, NAS_SMC_PROCEDUE_3460_TIMER);
     }
   }
   OAILOG_FUNC_RETURN(LOG_NAS_EMM, rc);

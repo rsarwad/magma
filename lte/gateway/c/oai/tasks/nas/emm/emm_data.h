@@ -361,6 +361,13 @@ typedef struct emm_context_s {
    *if this flag is set after receving service req, send detach
    */
   bool nw_init_bearer_deactv;
+#define NAS_PROC_AUTHENTICATION 0x01
+#define NAS_PROC_SECURITY_MODE 0x02
+#define NAS_AUTH_PROCEDUE_3460_TIMER ((uint32_t) 1 << 0)
+#define NAS_SMC_PROCEDUE_3460_TIMER ((uint32_t) 1 << 1)
+#define IS_NAS_AUTH_PROCEDUE_3460_TIMER_RUNNING                                \
+  (nas_procedures_timer_mask & NAS_AUTH_PROCEDUE_3460_TIMER)
+  uint32_t nas_procedures_timer_mask;
 } emm_context_t;
 
 /*
@@ -552,7 +559,12 @@ void emm_context_free_content_except_key_fields(
 void emm_context_dump(
     const struct emm_context_s* const elm_pP, const uint8_t indent_spaces,
     bstring bstr_dump) __attribute__((nonnull));
-
+void emm_ctx_set_nas_procedures_timer_mask(
+    emm_context_t* const ctxt, const int nas_proc_bit_pos)
+    __attribute__((nonnull)) __attribute__((flatten));
+void emm_ctx_clear_nas_procedures_timer_mask(
+    emm_context_t* const ctxt, const int nas_proc_bit_pos)
+    __attribute__((nonnull)) __attribute__((flatten));
 /****************************************************************************/
 /********************  G L O B A L    V A R I A B L E S  ********************/
 /****************************************************************************/
