@@ -53,6 +53,8 @@ void NasStateConverter::partial_tai_list_to_proto(
   partial_tai_list_proto->set_type_of_list(state_partial_tai_list->typeoflist);
   partial_tai_list_proto->set_number_of_elements(
       state_partial_tai_list->numberofelements);
+
+  // Note: TAI list shall be encoded based on typeoflist
   switch (state_partial_tai_list->typeoflist) {
     case TRACKING_AREA_IDENTITY_LIST_MANY_PLMNS: {
       for (int idx = 0; idx < TRACKING_AREA_IDENTITY_LIST_MAXIMUM_NUM_TAI;
@@ -109,6 +111,8 @@ void NasStateConverter::proto_to_partial_tai_list(
   state_partial_tai_list->typeoflist = partial_tai_list_proto.type_of_list();
   state_partial_tai_list->numberofelements =
       partial_tai_list_proto.number_of_elements();
+
+  // Note: TAI list is decoded based on typeoflist
   switch (state_partial_tai_list->typeoflist) {
     case TRACKING_AREA_IDENTITY_LIST_MANY_PLMNS: {
       for (int idx = 0; idx < TRACKING_AREA_IDENTITY_LIST_MAXIMUM_NUM_TAI;
