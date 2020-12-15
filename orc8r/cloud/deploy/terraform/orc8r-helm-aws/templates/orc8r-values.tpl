@@ -129,6 +129,19 @@ metrics:
 
   thanos:
     enabled: ${thanos_enabled}
+
+    compact:
+      nodeSelector:
+        ${thanos_compact_selector}
+
+    store:
+      nodeSelector:
+        ${thanos_store_selector}
+
+    query:
+      nodeSelector:
+        ${thanos_query_selector}
+
     objstore:
       type: S3
       config:
