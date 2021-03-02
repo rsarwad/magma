@@ -56,8 +56,7 @@ if ( NOT EMBEDDED_SGW )
  target_link_libraries(mme
   LIB_GTPV2C TASK_UDP)
 else ( EMBEDDED_SGW )
-target_link_libraries(mme TASK_SGW)
-target_link_libraries(mme TASK_SGW_S8)
+target_link_libraries(mme TASK_SGW TASK_SGW_S8)
 endif ( NOT EMBEDDED_SGW )
 
 if ( NOT S6A_OVER_GRPC )

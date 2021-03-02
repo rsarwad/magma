@@ -23,7 +23,6 @@ set (SGW_S8_SRC
     )
 add_library(TASK_SGW_S8 ${SGW_S8_SRC})
 
-
 target_link_libraries(TASK_SGW_S8
     COMMON
     LIB_BSTR LIB_HASHTABLE
