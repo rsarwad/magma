@@ -9,11 +9,11 @@ add_subdirectory(sgs) # TASK_SGS
 add_subdirectory(sms_orc8r) # TASK_SMS_ORC8R
 add_subdirectory(grpc_service) # TASK_GRPC_SERVICE
 add_subdirectory(ha) # TASK_HA
-add_subdirectory(sgw_s8) # TASK_SGW_S8
 
 if (EMBEDDED_SGW)
 add_subdirectory(gtpv1-u) # TASK_GTPV1U
 add_subdirectory(sgw) # TASK_SGW
+add_subdirectory(sgw_s8) # TASK_SGW_S8
 else (EMBEDDED_SGW)
 add_subdirectory(s11) # TASK_S11
 add_subdirectory(udp) #TASK_UDP
