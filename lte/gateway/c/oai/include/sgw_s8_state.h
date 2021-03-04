@@ -67,22 +67,10 @@ void sgw_free_s11_bearer_context_information(
     sgw_eps_bearer_context_information_t** context_p);
 
 /**
- * Frees pdn connection and its contained objects
- * @param pdn_connection_p
- */
-void sgw_free_pdn_connection(sgw_pdn_connection_t* pdn_connection_p);
-
-/**
- * Frees sgw_eps_bearer_ctxt entry
- * @param sgw_eps_bearer_ctxt
- */
-void sgw_free_eps_bearer_context(sgw_eps_bearer_ctxt_t** sgw_eps_bearer_ctxt);
-
-/**
  * Callback function for imsi_ue_context hashtable's freefunc
  * @param spgw_ue_context_t
  */
-void sgw_free_ue_context(spgw_ue_context_t** ue_context_p);
+void spgw_free_ue_context(spgw_ue_context_t** ue_context_p);
 
 #ifdef __cplusplus
 }

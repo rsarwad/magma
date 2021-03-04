@@ -54,17 +54,14 @@ void SgwStateManager::create_state() {
   bstring b   = bfromcstr(S11_BEARER_CONTEXT_INFO_HT_NAME);
   state_ue_ht = hashtable_ts_create(
       SGW_STATE_CONTEXT_HT_MAX_SIZE, nullptr,
-      /*Rashmi TODO (void (*)(void**)) sgw_free_s11_bearer_context_information
-       */
-      nullptr, b);
+      (void (*)(void**)) sgw_free_s11_bearer_context_information, b);
 
   state_cache_p->sgw_ip_address_S1u_S12_S4_up.s_addr =
       config_->ipv4.S1u_S12_S4_up.s_addr;
 
   state_cache_p->imsi_ue_context_htbl = hashtable_ts_create(
       SGW_STATE_CONTEXT_HT_MAX_SIZE, nullptr,
-      /* Rashmi TODO (void (*)(void**)) spgw_free_ue_context*/ nullptr,
-      nullptr);
+      (void (*)(void**)) spgw_free_ue_context, nullptr);
 
   state_cache_p->tunnel_id = 0;
 

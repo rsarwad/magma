@@ -55,3 +55,11 @@ void put_sgw_state() {
 void put_sgw_ue_state(sgw_state_t* sgw_state, imsi64_t imsi64) {}
 
 void delete_sgw_ue_state(imsi64_t imsi64) {}
+
+void sgw_free_s11_bearer_context_information(
+    sgw_eps_bearer_context_information_t** sgw_eps_context) {
+  if (*sgw_eps_context) {
+    sgw_free_pdn_connection(&(*sgw_eps_context)->pdn_connection);
+  }
+  free_wrapper((void**) sgw_eps_context);
+}
