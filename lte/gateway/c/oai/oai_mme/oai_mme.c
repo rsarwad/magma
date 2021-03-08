@@ -43,7 +43,6 @@
 #include "sgs_defs.h"
 #include "sms_orc8r_defs.h"
 #include "ha_defs.h"
-#include "sgw_s8_defs.h"
 #include "oai_mme.h"
 #include "pid_file.h"
 #include "service303_message_utils.h"
@@ -54,6 +53,7 @@
 #include "mme_app_embedded_spgw.h"
 #include "spgw_config.h"
 #include "sgw_defs.h"
+#include "sgw_s8_defs.h"
 #endif
 #include "udp_primitives_server.h"
 #include "s11_mme.h"
@@ -127,6 +127,7 @@ int main(int argc, char* argv[]) {
   CHECK_INIT_RETURN(sctp_init(&mme_config));
 #if EMBEDDED_SGW
   CHECK_INIT_RETURN(spgw_app_init(&spgw_config, mme_config.use_stateless));
+  CHECK_INIT_RETURN(sgw_s8_init());
 #else
   CHECK_INIT_RETURN(udp_init());
   CHECK_INIT_RETURN(s11_mme_init(&mme_config));
@@ -134,7 +135,6 @@ int main(int argc, char* argv[]) {
   CHECK_INIT_RETURN(s1ap_mme_init(&mme_config));
   CHECK_INIT_RETURN(s6a_init(&mme_config));
 
-  CHECK_INIT_RETURN(sgw_s8_init());
   // Create SGS Task only if non_eps_service_control is not set to OFF
   char* non_eps_service_control = bdata(mme_config.non_eps_service_control);
   if (!(strcmp(non_eps_service_control, "SMS")) ||

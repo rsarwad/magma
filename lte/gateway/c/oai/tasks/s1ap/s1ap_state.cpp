@@ -168,7 +168,8 @@ bool get_mme_ue_ids_no_imsi(
   hash_table_ts_t* s1ap_ue_state = get_s1ap_ue_state();
   hashtable_ts_get(s1ap_ue_state, (const hash_key_t) dataP, (void**) &ue_ref_p);
   if (!ue_ref_p) {
-    *mme_id_list[(*num_ues_checked)++] = keyP;
+    (*mme_id_list)[*num_ues_checked] = keyP;
+    ++(*num_ues_checked);
     OAILOG_DEBUG(
         LOG_S1AP,
         "Adding mme_ue_s1ap_id %lu to eNB clean up list with num_ues_checked "
@@ -187,7 +188,7 @@ void remove_ues_without_imsi_from_ue_id_coll() {
 
   hashtable_rc_t ht_rc;
   hash_key_t* mme_ue_id_no_imsi_list;
-  uint32_t num_ues_checked = 0;
+  uint32_t num_ues_checked;
 
   // get each eNB in s1ap_state
   for (uint32_t i = 0; i < ht_keys->num_keys; i++) {
@@ -205,6 +206,7 @@ void remove_ues_without_imsi_from_ue_id_coll() {
 
     // for each ue comp_s1ap_id in eNB->ue_id_coll, check if it has an S1ap
     // ue_context, if not delete it
+    num_ues_checked        = 0;
     mme_ue_id_no_imsi_list = (hash_key_t*) calloc(
         enb_association_p->ue_id_coll.num_elements, sizeof(hash_key_t));
     hashtable_uint64_ts_apply_callback_on_elements(
