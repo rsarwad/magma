@@ -166,8 +166,8 @@ format_common:
 	clang-format --style=file -i {} \;
 
 format_%: ## Format service in magma/lte/gateway/c/
-	find $(GATEWAY_C_DIR)/$* \( -iname "*.c" -o -iname "*.cpp" -o -iname "*.h" \) -exec \
-	clang-format --style=file -i {} \;
+	#find $(GATEWAY_C_DIR)/$* \( -iname "*.c" -o -iname "*.cpp" -o -iname "*.h" \) -exec \
+	#clang-format --style=file -i {} \;
 
 test_python: stop ## Run all Python-specific tests
 	make -C $(MAGMA_ROOT)/lte/gateway/python test_all

@@ -66,5 +66,5 @@ int sgw_handle_nw_initiated_deactv_bearer_rsp(
         s11_pcrf_ded_bearer_deactv_rsp,
     imsi64_t imsi64);
 bool is_enb_ip_address_same(const fteid_t* fte_p, ip_address_t* ip_p);
-uint32_t sgw_get_new_s1u_teid(spgw_state_t* state);
+uint32_t spgw_get_new_s1u_teid(spgw_state_t* state);
 #endif /* FILE_SGW_HANDLERS_SEEN */
