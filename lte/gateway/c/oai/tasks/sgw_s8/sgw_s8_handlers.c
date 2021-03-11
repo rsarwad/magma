@@ -19,6 +19,7 @@ limitations under the License.
 #include "spgw_types.h"
 #include "sgw_s8_state.h"
 #include "sgw_s11_handlers.h"
+#include "s8_client_api.h"
 
 uint32_t sgw_get_new_s1u_teid(sgw_state_t* state) {
   if (state->s1u_teid == 0) {
@@ -224,7 +225,6 @@ int sgw_s8_handle_s11_create_session_request(
   eps_bearer_ctxt_p->eps_bearer_qos          = bearer_context.bearer_level_qos;
   eps_bearer_ctxt_p->s_gw_teid_S1u_S12_S4_up = sgw_get_new_s1u_teid(sgw_state);
   eps_bearer_ctxt_p->s_gw_teid_S5_S8_up = sgw_get_new_s5s8u_teid(sgw_state);
-
   sgw_display_s11_bearer_context_information(new_sgw_eps_context);
   OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNok);
 }
