@@ -114,7 +114,7 @@ sgw_create_bearer_context_information_in_collection(
       teid);
   return new_sgw_bearer_context_information;
 }
-int sgw_s8_handle_s11_create_session_request(
+void sgw_s8_handle_s11_create_session_request(
     sgw_state_t* sgw_state,
     const itti_s11_create_session_request_t* const session_req_pP,
     imsi64_t imsi64) {
@@ -148,7 +148,7 @@ int sgw_s8_handle_s11_create_session_request(
     /*increment_counter(
         "sgw_create_session", 1, 2, "result", "failure", "cause",
         "sender_fteid_incorrect_parameters"); */
-    OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNerror);
+    OAILOG_FUNC_OUT(LOG_SGW_S8);
   }
 
   sgw_get_new_S11_tunnel_id(&sgw_state->tunnel_id);
@@ -169,7 +169,7 @@ int sgw_s8_handle_s11_create_session_request(
         LOG_SGW_S8, imsi64,
         "Failed to update sgw_s11_teid" TEID_FMT " in UE context \n",
         sgw_s11_tunnel.local_teid);
-    OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNerror);
+    OAILOG_FUNC_OUT(LOG_SGW_S8);
   }
 
   sgw_eps_bearer_context_information_t* new_sgw_eps_context =
@@ -184,7 +184,7 @@ int sgw_s8_handle_s11_create_session_request(
     /* increment_counter(
         "sgw_create_session", 1, 2, "result", "failure", "cause",
         "internal_software_error"); */
-    OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNerror);
+    OAILOG_FUNC_OUT(LOG_SGW_S8);
   }
   memcpy(
       new_sgw_eps_context->imsi.digit, session_req_pP->imsi.digit,
@@ -220,12 +220,20 @@ int sgw_s8_handle_s11_create_session_request(
     /*increment_counter(
         "sgw_create_session", 1, 2, "result", "failure", "cause",
         "internal_software_error"); */
-    OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNerror);
+    OAILOG_FUNC_OUT(LOG_SGW_S8);
   }
   eps_bearer_ctxt_p->eps_bearer_qos          = bearer_context.bearer_level_qos;
   eps_bearer_ctxt_p->s_gw_teid_S1u_S12_S4_up = sgw_get_new_s1u_teid(sgw_state);
   eps_bearer_ctxt_p->s_gw_teid_S5_S8_up = sgw_get_new_s5s8u_teid(sgw_state);
+  send_s8_create_session_request(
+      sgw_s11_tunnel.local_teid, session_req_pP, imsi64);
   sgw_display_s11_bearer_context_information(new_sgw_eps_context);
-  OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNok);
+  OAILOG_FUNC_OUT(LOG_SGW_S8);
 }
 
+void sgw_s8_handle_create_session_response(
+    sgw_state_t* sgw_state,
+    const s5s8_create_session_response_t* const session_rsp_p,
+    imsi64_t imsi64) {
+  return;
+}
