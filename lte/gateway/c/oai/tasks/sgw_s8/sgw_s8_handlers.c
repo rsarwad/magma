@@ -87,8 +87,7 @@ int sgw_update_teid_in_ue_context(
 }
 
 sgw_eps_bearer_context_information_t*
-sgw_create_bearer_context_information_in_collection(
-    sgw_state_t* sgw_state, teid_t teid, imsi64_t imsi64) {
+sgw_create_bearer_context_information_in_collection(teid_t teid) {
   OAILOG_FUNC_IN(LOG_SGW_S8);
   sgw_eps_bearer_context_information_t* new_sgw_bearer_context_information =
       calloc(1, sizeof(sgw_eps_bearer_context_information_t));
@@ -174,7 +173,7 @@ void sgw_s8_handle_s11_create_session_request(
 
   sgw_eps_bearer_context_information_t* new_sgw_eps_context =
       sgw_create_bearer_context_information_in_collection(
-          sgw_state, sgw_s11_tunnel.local_teid, imsi64);
+          sgw_s11_tunnel.local_teid);
   if (!new_sgw_eps_context) {
     OAILOG_ERROR_UE(
         LOG_SGW_S8, imsi64,
@@ -205,15 +204,15 @@ void sgw_s8_handle_s11_create_session_request(
   }
   new_sgw_eps_context->pdn_connection.s_gw_teid_S5_S8_cp =
       sgw_s11_tunnel.local_teid;
-  bearer_context_to_be_created_t bearer_context =
+  bearer_context_to_be_created_t csr_bearer_context =
       session_req_pP->bearer_contexts_to_be_created.bearer_contexts[0];
   new_sgw_eps_context->pdn_connection.default_bearer =
-      bearer_context.eps_bearer_id;
+      csr_bearer_context.eps_bearer_id;
 
   // creating an eps bearer entry
   // copy informations from create session request to bearer context information
   eps_bearer_ctxt_p = sgw_cm_create_eps_bearer_ctxt_in_collection(
-      &new_sgw_eps_context->pdn_connection, bearer_context.eps_bearer_id);
+      &new_sgw_eps_context->pdn_connection, csr_bearer_context.eps_bearer_id);
   if (eps_bearer_ctxt_p == NULL) {
     OAILOG_ERROR_UE(
         LOG_SGW_S8, imsi64, "Failed to create new EPS bearer entry\n");
@@ -222,9 +221,14 @@ void sgw_s8_handle_s11_create_session_request(
         "internal_software_error"); */
     OAILOG_FUNC_OUT(LOG_SGW_S8);
   }
-  eps_bearer_ctxt_p->eps_bearer_qos          = bearer_context.bearer_level_qos;
+  eps_bearer_ctxt_p->eps_bearer_qos = csr_bearer_context.bearer_level_qos;
   eps_bearer_ctxt_p->s_gw_teid_S1u_S12_S4_up = sgw_get_new_s1u_teid(sgw_state);
   eps_bearer_ctxt_p->s_gw_teid_S5_S8_up = sgw_get_new_s5s8u_teid(sgw_state);
+  csr_bearer_context.s5_s8_u_sgw_fteid.teid =
+      eps_bearer_ctxt_p->s_gw_teid_S5_S8_up;
+  csr_bearer_context.s5_s8_u_sgw_fteid.ipv4 = 1;
+  csr_bearer_context.s5_s8_u_sgw_fteid.ipv4_address =
+      sgw_state->sgw_ip_address_S5S8_up;
   send_s8_create_session_request(
       sgw_s11_tunnel.local_teid, session_req_pP, imsi64);
   sgw_display_s11_bearer_context_information(new_sgw_eps_context);
@@ -235,5 +239,6 @@ void sgw_s8_handle_create_session_response(
     sgw_state_t* sgw_state,
     const s5s8_create_session_response_t* const session_rsp_p,
     imsi64_t imsi64) {
+  OAILOG_INFO_UE(LOG_SGW_S8, imsi64, " Rx S5S8_CREATE_SESSION_RSP\n");
   return;
 }

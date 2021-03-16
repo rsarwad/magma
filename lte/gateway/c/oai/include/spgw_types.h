@@ -89,6 +89,7 @@ typedef struct sgw_state_s {
   teid_t s1u_teid;
   teid_t s5s8u_teid;
   struct in_addr sgw_ip_address_S1u_S12_S4_up;
+  struct in_addr sgw_ip_address_S5S8_up;
   hash_table_ts_t* imsi_ue_context_htbl;
 } sgw_state_t;
 
