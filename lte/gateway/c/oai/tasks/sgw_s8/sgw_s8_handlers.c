@@ -18,7 +18,7 @@ limitations under the License.
 #include "sgw_context_manager.h"
 #include "spgw_types.h"
 #include "sgw_s8_state.h"
-#include "sgw_s11_handlers.h"
+#include "sgw_s8_s11_handlers.h"
 #include "s8_client_api.h"
 
 uint32_t sgw_get_new_s1u_teid(sgw_state_t* state) {

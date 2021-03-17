@@ -20,7 +20,7 @@ limitations under the License.
 #include "common_defs.h"
 #include "itti_free_defined_msg.h"
 #include "sgw_s8_defs.h"
-#include "sgw_s11_handlers.h"
+#include "sgw_s8_s11_handlers.h"
 #include "sgw_s8_state.h"
 
 static int handle_message(zloop_t* loop, zsock_t* reader, void* arg);
