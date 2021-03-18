@@ -113,6 +113,7 @@ sgw_create_bearer_context_information_in_collection(teid_t teid) {
       teid);
   return new_sgw_bearer_context_information;
 }
+
 void sgw_s8_handle_s11_create_session_request(
     sgw_state_t* sgw_state,
     const itti_s11_create_session_request_t* const session_req_pP,
@@ -121,10 +122,10 @@ void sgw_s8_handle_s11_create_session_request(
   sgw_eps_bearer_ctxt_t* eps_bearer_ctxt_p = NULL;
   OAILOG_INFO_UE(
       LOG_SGW_S8, imsi64, "Received S11 CREATE SESSION REQUEST from MME_APP\n");
-  //  sgw_eps_bearer_context_information_t* sgw_eps_bearer_ctxt_info_p = NULL;
-  mme_sgw_tunnel_t sgw_s11_tunnel = {0};
+  sgw_eps_bearer_context_information_t* new_sgw_eps_context = NULL;
+  mme_sgw_tunnel_t sgw_s11_tunnel                           = {0};
 
-  // increment_counter("sgw_create_session", 1, NO_LABELS);
+  increment_counter("sgw_s8_create_session", 1, NO_LABELS);
   if (session_req_pP->rat_type != RAT_EUTRAN) {
     OAILOG_WARNING_UE(
         LOG_SGW_S8, imsi64,
@@ -144,9 +145,9 @@ void sgw_s8_handle_s11_create_session_request(
       (session_req_pP->sender_fteid_for_cp.interface_type != S11_MME_GTP_C)) {
     // MME sent request with teid = 0. This is not valid...
     OAILOG_ERROR_UE(LOG_SGW_S8, imsi64, "Received invalid teid \n");
-    /*increment_counter(
-        "sgw_create_session", 1, 2, "result", "failure", "cause",
-        "sender_fteid_incorrect_parameters"); */
+    increment_counter(
+        "sgw_s8_create_session", 1, 2, "result", "failure", "cause",
+        "sender_fteid_incorrect_parameters");
     OAILOG_FUNC_OUT(LOG_SGW_S8);
   }
 
@@ -171,18 +172,17 @@ void sgw_s8_handle_s11_create_session_request(
     OAILOG_FUNC_OUT(LOG_SGW_S8);
   }
 
-  sgw_eps_bearer_context_information_t* new_sgw_eps_context =
-      sgw_create_bearer_context_information_in_collection(
-          sgw_s11_tunnel.local_teid);
+  new_sgw_eps_context = sgw_create_bearer_context_information_in_collection(
+      sgw_s11_tunnel.local_teid);
   if (!new_sgw_eps_context) {
     OAILOG_ERROR_UE(
         LOG_SGW_S8, imsi64,
         "Could not create new sgw context for create session req message for "
         "mme_s11_teid " TEID_FMT "\n",
         session_req_pP->sender_fteid_for_cp.teid);
-    /* increment_counter(
-        "sgw_create_session", 1, 2, "result", "failure", "cause",
-        "internal_software_error"); */
+    increment_counter(
+        "sgw_s8_create_session", 1, 2, "result", "failure", "cause",
+        "internal_software_error");
     OAILOG_FUNC_OUT(LOG_SGW_S8);
   }
   memcpy(
@@ -209,16 +209,18 @@ void sgw_s8_handle_s11_create_session_request(
   new_sgw_eps_context->pdn_connection.default_bearer =
       csr_bearer_context.eps_bearer_id;
 
-  // creating an eps bearer entry
-  // copy informations from create session request to bearer context information
+  /* creating an eps bearer entry
+   * copy informations from create session request to bearer context information
+   */
+
   eps_bearer_ctxt_p = sgw_cm_create_eps_bearer_ctxt_in_collection(
       &new_sgw_eps_context->pdn_connection, csr_bearer_context.eps_bearer_id);
   if (eps_bearer_ctxt_p == NULL) {
     OAILOG_ERROR_UE(
         LOG_SGW_S8, imsi64, "Failed to create new EPS bearer entry\n");
-    /*increment_counter(
-        "sgw_create_session", 1, 2, "result", "failure", "cause",
-        "internal_software_error"); */
+    increment_counter(
+        "sgw_s8_create_session", 1, 2, "result", "failure", "cause",
+        "internal_software_error");
     OAILOG_FUNC_OUT(LOG_SGW_S8);
   }
   eps_bearer_ctxt_p->eps_bearer_qos = csr_bearer_context.bearer_level_qos;
@@ -229,6 +231,7 @@ void sgw_s8_handle_s11_create_session_request(
   csr_bearer_context.s5_s8_u_sgw_fteid.ipv4 = 1;
   csr_bearer_context.s5_s8_u_sgw_fteid.ipv4_address =
       sgw_state->sgw_ip_address_S5S8_up;
+
   send_s8_create_session_request(
       sgw_s11_tunnel.local_teid, session_req_pP, imsi64);
   sgw_display_s11_bearer_context_information(new_sgw_eps_context);

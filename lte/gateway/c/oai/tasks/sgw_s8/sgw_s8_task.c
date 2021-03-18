@@ -62,6 +62,12 @@ static int handle_message(zloop_t* loop, zsock_t* reader, void* arg) {
   sgw_state_t* sgw_state = get_sgw_state(false);
 
   switch (ITTI_MSG_ID(received_message_p)) {
+    case TERMINATE_MESSAGE: {
+      itti_free_msg_content(received_message_p);
+      zframe_destroy(&msg_frame);
+      sgw_s8_exit();
+    } break;
+
     case S11_CREATE_SESSION_REQUEST: {
       sgw_s8_handle_s11_create_session_request(
           sgw_state, &received_message_p->ittiMsg.s11_create_session_request,
