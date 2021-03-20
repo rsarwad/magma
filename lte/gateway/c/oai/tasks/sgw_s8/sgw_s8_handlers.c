@@ -13,6 +13,7 @@ limitations under the License.
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "3gpp_29.274.h"
 #include "log.h"
 #include "common_defs.h"
 #include "sgw_context_manager.h"
@@ -32,6 +33,18 @@ uint32_t sgw_get_new_s1u_teid(sgw_state_t* state) {
 uint32_t sgw_get_new_s5s8u_teid(sgw_state_t* state) {
   __sync_fetch_and_add(&state->s5s8u_teid, 1);
   return (state->s5s8u_teid);
+}
+
+sgw_eps_bearer_context_information_t* sgw_get_sgw_eps_bearer_context(
+    teid_t teid) {
+  OAILOG_FUNC_IN(LOG_SGW_S8);
+  sgw_eps_bearer_context_information_t* sgw_bearer_context_info = NULL;
+  hash_table_ts_t* state_imsi_ht = get_spgw_ue_state();
+
+  hashtable_ts_get(
+      state_imsi_ht, (const hash_key_t) teid,
+      (void**) &sgw_bearer_context_info);
+  OAILOG_FUNC_RETURN(LOG_SGW_S8, sgw_bearer_context_info);
 }
 
 spgw_ue_context_t* sgw_create_or_get_ue_context(
@@ -242,6 +255,35 @@ void sgw_s8_handle_create_session_response(
     sgw_state_t* sgw_state,
     const s5s8_create_session_response_t* const session_rsp_p,
     imsi64_t imsi64) {
-  OAILOG_INFO_UE(LOG_SGW_S8, imsi64, " Rx S5S8_CREATE_SESSION_RSP\n");
-  return;
+  OAILOG_FUNC_IN(LOG_SGW_S8);
+  if (!session_rsp_p) {
+    OAILOG_ERROR_UE(
+        LOG_SGW_S8, imsi64,
+        "Received null create session response from s8_proxy \n");
+    OAILOG_FUNC_OUT(LOG_SGW_S8);
+  }
+  OAILOG_INFO_UE(
+      LOG_SGW_S8, imsi64,
+      " Rx S5S8_CREATE_SESSION_RSP for context_teid " TEID_FMT "\n",
+      session_rsp_p->context_teid);
+  sgw_eps_bearer_context_information_t* sgw_context_p =
+      sgw_get_sgw_eps_bearer_context(session_rsp_p->context_teid);
+  if (!sgw_context_p) {
+    OAILOG_ERROR_UE(
+        LOG_SGW_S8, imsi64,
+        "Failed to fetch sgw_eps_bearer_context_info from "
+        "context_teid " TEID_FMT " \n",
+        session_rsp_p->context_teid);
+    OAILOG_FUNC_OUT(LOG_SGW_S8);
+  }
+  if (session_rsp_p->cause != REQUEST_ACCEPTED) {
+    OAILOG_ERROR_UE(
+        LOG_SGW_S8, imsi64,
+        "Received failed create session response with cause: %d for "
+        "context_id: " TEID_FMT "\n",
+        session_rsp_p->cause, session_rsp_p->context_teid);
+    /*Rashmi send CSRep */
+    OAILOG_FUNC_OUT(LOG_SGW_S8);
+  }
+  OAILOG_FUNC_OUT(LOG_SGW_S8);
 }

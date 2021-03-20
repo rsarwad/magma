@@ -19,16 +19,114 @@ limitations under the License.
 extern "C" {
 #include "intertask_interface.h"
 #include "log.h"
+#include "s5s8_messages_types.h"
 #include "common_defs.h"
 extern task_zmq_ctx_t grpc_service_task_zmq_ctx;
 }
+static void convert_proto_msg_to_itti_csr(
+    magma::feg::CreateSessionResponsePgw& response,
+    s5s8_create_session_response_t* s5_response);
+
+static void get_qos_from_proto_msg(
+    const magma::feg::QosInformation& proto_qos, bearer_qos_t* bearer_qos) {
+  OAILOG_FUNC_IN(LOG_SGW_S8);
+  bearer_qos->pci       = proto_qos.pci();
+  bearer_qos->pl        = proto_qos.priority_level();
+  bearer_qos->pvi       = proto_qos.preemption_vulnerability();
+  bearer_qos->qci       = proto_qos.qci();
+  bearer_qos->gbr.br_ul = proto_qos.gbr().br_ul();
+  bearer_qos->gbr.br_dl = proto_qos.gbr().br_dl();
+  bearer_qos->mbr.br_ul = proto_qos.mbr().br_ul();
+  bearer_qos->mbr.br_dl = proto_qos.mbr().br_dl();
+  OAILOG_FUNC_OUT(LOG_SGW_S8);
+}
+
+static void get_fteid_from_proto_msg(
+    const magma::feg::Fteid& proto_fteid, fteid_t* pgw_fteid) {
+  OAILOG_FUNC_IN(LOG_SGW_S8);
+  pgw_fteid->teid = proto_fteid.teid();
+  if (proto_fteid.ipv4_address().c_str()) {
+    struct in_addr addr = {0};
+    memcpy(&addr, proto_fteid.ipv4_address().c_str(), sizeof(in_addr));
+    pgw_fteid->ipv4_address = addr;
+  }
+  if (proto_fteid.ipv6_address().c_str()) {
+    struct in6_addr ip6_addr;
+    memcpy(&ip6_addr, proto_fteid.ipv6_address().c_str(), sizeof(in6_addr));
+    pgw_fteid->ipv6_address = ip6_addr;
+  }
+  OAILOG_FUNC_OUT(LOG_SGW_S8);
+}
+
+static void get_paa_from_proto_msg(
+    const magma::feg::PDNType& proto_pdn_type,
+    const magma::feg::PdnAddressAllocation& proto_paa, paa_t* paa) {
+  OAILOG_FUNC_IN(LOG_SGW_S8);
+  switch (proto_pdn_type) {
+    case magma::feg::PDNType::IPV4: {
+      paa->pdn_type = IPv4;
+      auto ip       = proto_paa.ipv4_address();
+      memcpy(&paa->ipv4_address, ip.c_str(), sizeof(ip.c_str()));
+      break;
+    }
+    case magma::feg::PDNType::IPV6: {
+      paa->pdn_type = IPv6;
+      auto ip       = proto_paa.ipv4_address();
+      memcpy(&paa->ipv4_address, ip.c_str(), sizeof(ip.c_str()));
+      break;
+    }
+    case magma::feg::PDNType::IPV4V6: {
+      paa->pdn_type = IPv4_AND_v6;
+      break;
+    }
+    case magma::feg::PDNType::NonIP: {
+      break;
+    }
+    default:
+      break;
+  }
+  OAILOG_FUNC_OUT(LOG_SGW_S8);
+}
+
 static void s8_create_session_response(
     imsi64_t imsi64, teid_t context_teid, const grpc::Status& status,
     magma::feg::CreateSessionResponsePgw& response) {
   OAILOG_FUNC_IN(LOG_SGW_S8);
-  /*TODO send create session response to sgw_s8 task */
+  s5s8_create_session_response_t* s5_response = NULL;
+  MessageDef* message_p                       = NULL;
+  message_p = itti_alloc_new_message(TASK_SGW_S8, S5S8_CREATE_SESSION_RSP);
+  if (!message_p) {
+    OAILOG_ERROR(
+        LOG_SGW_S8,
+        "Failed to allocate memory for S5S8_CREATE_SESSION_RSP for "
+        "context_teid" TEID_FMT "\n",
+        context_teid);
+    OAILOG_FUNC_OUT(LOG_SGW_S8);
+  }
+  s5_response = &message_p->ittiMsg.s5s8_create_session_rsp;
+  message_p->ittiMsgHeader.imsi = imsi64;
+  s5_response->context_teid     = context_teid;
+  if (!status.ok()) {
+    OAILOG_ERROR(
+        LOG_SGW_S8,
+        "Received Create Session Failure for context_teid " TEID_FMT "\n",
+        context_teid);
+    s5_response->cause = REMOTE_PEER_NOT_RESPONDING;
+    OAILOG_FUNC_OUT(LOG_SGW_S8);
+  }
+  convert_proto_msg_to_itti_csr(response, s5_response);
+  if ((send_msg_to_task(&grpc_service_task_zmq_ctx, TASK_SGW_S8, message_p)) !=
+      RETURNok) {
+    OAILOG_ERROR_UE(
+        LOG_SGW_S8, imsi64,
+        "Failed to send S5S8 CREATE SESSION RESPONSE message to mme for "
+        "context_teid " TEID_FMT "\n",
+        context_teid);
+    OAILOG_FUNC_OUT(LOG_SGW_S8);
+  }
   OAILOG_FUNC_OUT(LOG_SGW_S8);
 }
+
 static void convert_uli_to_proto_msg(
     magma::feg::UserLocationInformation* uli, Uli_t msg_uli) {
   OAILOG_FUNC_IN(LOG_SGW_S8);
@@ -183,10 +281,8 @@ void send_s8_create_session_request(
   OAILOG_FUNC_IN(LOG_SGW_S8);
   magma::feg::CreateSessionRequestPgw csr_req;
 
-  OAILOG_INFO_UE(
-      LOG_SGW_S8, imsi64,
-      "Sending create session request for context_tied " TEID_FMT "\n",
-      sgw_s11_teid);
+  std::cout << "Sending create session request for for IMSI: " << imsi64
+            << "and context_teid: " << sgw_s11_teid << std::endl;
   fill_s8_create_session_req(msg, &csr_req);
 
   magma::S8Client::s8_create_session_request(
@@ -195,4 +291,24 @@ void send_s8_create_session_request(
           grpc::Status status, magma::feg::CreateSessionResponsePgw response) {
         s8_create_session_response(imsi64, sgw_s11_teid, status, response);
       });
+}
+
+static void convert_proto_msg_to_itti_csr(
+    magma::feg::CreateSessionResponsePgw& response,
+    s5s8_create_session_response_t* s5_response) {
+  OAILOG_FUNC_IN(LOG_SGW_S8);
+  s5_response->apn_restriction_value = response.apn_restriction();
+  get_fteid_from_proto_msg(
+      response.c_pgw_fteid(), &s5_response->pgw_s8_cp_teid);
+  get_paa_from_proto_msg(
+      response.pdn_type(), response.paa(), &s5_response->paa);
+
+  s5s8_bearer_context_t s5s8_bc = s5_response->bearer_context[0];
+  s5s8_bc.eps_bearer_id         = response.bearer_context().id();
+  s5s8_bc.charging_id           = response.bearer_context().charging_id();
+  get_qos_from_proto_msg(response.bearer_context().qos(), &s5s8_bc.qos);
+  get_fteid_from_proto_msg(
+      response.bearer_context().user_plane_fteid(), &s5s8_bc.pgw_s8_up);
+  s5_response->cause = response.mutable_gtp_error()->cause();
+  OAILOG_FUNC_OUT(LOG_SGW_S8);
 }
