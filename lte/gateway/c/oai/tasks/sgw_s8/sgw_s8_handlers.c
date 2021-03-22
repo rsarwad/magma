@@ -23,7 +23,7 @@ limitations under the License.
 #include "sgw_s8_s11_handlers.h"
 #include "s8_client_api.h"
 
-extern task_zmq_ctx_t spgw_app_task_zmq_ctx;
+extern task_zmq_ctx_t sgw_s8_task_zmq_ctx;
 
 uint32_t sgw_get_new_s1u_teid(sgw_state_t* state) {
   if (state->s1u_teid == 0) {
@@ -308,35 +308,31 @@ static int update_bearer_context_info(
         "Failed to get default eps bearer context for context teid " TEID_FMT
         "and bearer_id :%d \n",
         session_rsp_p->context_teid, session_rsp_p->eps_bearer_id);
-    /*Rashmi send CSRep */
     OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNerror);
   }
   memcpy(&default_bearer_ctx_p->paa, &session_rsp_p->paa, sizeof(paa_t));
-  for (uint8_t indx = 0; indx < BEARERS_PER_UE; indx++) {
-    s5s8_bearer_context_t s5s8_bearer_context =
-        session_rsp_p->bearer_context[indx];
-    sgw_eps_bearer_ctxt_t* eps_bearer_ctx_p = sgw_cm_get_eps_bearer_entry(
-        &sgw_context_p->pdn_connection, s5s8_bearer_context.eps_bearer_id);
-    if (!eps_bearer_ctx_p) {
-      OAILOG_ERROR_UE(
-          LOG_SGW_S8, sgw_context_p->imsi64,
-          "Failed to get eps bearer context for context teid " TEID_FMT
-          "and bearer_id :%d \n",
-          session_rsp_p->context_teid, s5s8_bearer_context.eps_bearer_id);
-      /*Rashmi send CSRep */
-      OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNerror);
-    }
-    eps_bearer_ctx_p->p_gw_address_in_use_up.address.ipv4_address =
-        s5s8_bearer_context.pgw_s8_up.ipv4_address;
-    memcpy(
-        &eps_bearer_ctx_p->p_gw_address_in_use_up.address.ipv6_address,
-        &s5s8_bearer_context.pgw_s8_up.ipv6_address, sizeof(struct in6_addr));
-    eps_bearer_ctx_p->p_gw_teid_S5_S8_up = s5s8_bearer_context.pgw_s8_up.teid;
-
-    memcpy(
-        &eps_bearer_ctx_p->eps_bearer_qos, &s5s8_bearer_context.qos,
-        sizeof(bearer_qos_t));
+  if (session_rsp_p->eps_bearer_id !=
+      session_rsp_p->bearer_context[0].eps_bearer_id) {
+    OAILOG_ERROR_UE(
+        LOG_SGW_S8, sgw_context_p->imsi64,
+        "Mismatch of eps bearer id between bearer context's bearer id:%d and "
+        "default eps bearer id:%d for context teid " TEID_FMT "\n",
+        session_rsp_p->bearer_context[0].eps_bearer_id,
+        session_rsp_p->eps_bearer_id, session_rsp_p->context_teid);
+    OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNerror);
   }
+  s5s8_bearer_context_t s5s8_bearer_context = session_rsp_p->bearer_context[0];
+  default_bearer_ctx_p->p_gw_address_in_use_up.address.ipv4_address =
+      s5s8_bearer_context.pgw_s8_up.ipv4_address;
+  memcpy(
+      &default_bearer_ctx_p->p_gw_address_in_use_up.address.ipv6_address,
+      &s5s8_bearer_context.pgw_s8_up.ipv6_address, sizeof(struct in6_addr));
+  default_bearer_ctx_p->p_gw_teid_S5_S8_up = s5s8_bearer_context.pgw_s8_up.teid;
+
+  memcpy(
+      &default_bearer_ctx_p->eps_bearer_qos, &s5s8_bearer_context.qos,
+      sizeof(bearer_qos_t));
+
   OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNok);
 }
 
@@ -425,14 +421,13 @@ static int sgw_s8_send_create_session_response(
       "\n",
       create_session_response_p->teid);
 
-  send_msg_to_task(&spgw_app_task_zmq_ctx, TASK_MME_APP, message_p);
+  send_msg_to_task(&sgw_s8_task_zmq_ctx, TASK_MME_APP, message_p);
 
   OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNok);
 }
 
 void sgw_s8_handle_create_session_response(
-    sgw_state_t* sgw_state,
-    const s5s8_create_session_response_t* const session_rsp_p,
+    sgw_state_t* sgw_state, s5s8_create_session_response_t* session_rsp_p,
     imsi64_t imsi64) {
   OAILOG_FUNC_IN(LOG_SGW_S8);
   if (!session_rsp_p) {
@@ -462,7 +457,11 @@ void sgw_s8_handle_create_session_response(
     sgw_context_p->pdn_connection.p_gw_teid_S5_S8_cp =
         session_rsp_p->pgw_s8_cp_teid.teid;
     // update bearer context details received from PGW
-    update_bearer_context_info(sgw_context_p, session_rsp_p);
+    if ((update_bearer_context_info(sgw_context_p, session_rsp_p)) !=
+        RETURNok) {
+      /*TODO need to send delete session request to pgw */
+      session_rsp_p->cause = CONTEXT_NOT_FOUND;
+    }
   }
   // send Create session response to mme
   if ((sgw_s8_send_create_session_response(

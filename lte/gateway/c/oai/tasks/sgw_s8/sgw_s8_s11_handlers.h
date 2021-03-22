@@ -23,5 +23,5 @@ void sgw_s8_handle_s11_create_session_request(
     imsi64_t imsi64);
 
 void sgw_s8_handle_create_session_response(
-    sgw_state_t* sgw_state,
-    const s5s8_create_session_response_t* const session_rsp_p, imsi64_t imsi64);
+    sgw_state_t* sgw_state, s5s8_create_session_response_t* session_rsp_p,
+    imsi64_t imsi64);

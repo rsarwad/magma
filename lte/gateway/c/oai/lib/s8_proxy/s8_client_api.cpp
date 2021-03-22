@@ -88,9 +88,13 @@ static void get_paa_from_proto_msg(
       break;
     }
     case magma::feg::PDNType::NonIP: {
+      OAILOG_ERROR(LOG_SGW_S8, " pdn_type NonIP is not supported \n");
       break;
     }
     default:
+      OAILOG_ERROR(
+          LOG_SGW_S8,
+          "Received invalid pdn_type in create session response \n");
       break;
   }
   OAILOG_FUNC_OUT(LOG_SGW_S8);
@@ -119,7 +123,8 @@ static void recv_s8_create_session_response(
   } else {
     OAILOG_ERROR(
         LOG_SGW_S8,
-        "Received Create Session Failure for context_teid " TEID_FMT "\n",
+        "Received gRPC error for create session response for "
+        "context_teid " TEID_FMT "\n",
         context_teid);
     s5_response->cause = REMOTE_PEER_NOT_RESPONDING;
   }
@@ -127,8 +132,8 @@ static void recv_s8_create_session_response(
       RETURNok) {
     OAILOG_ERROR_UE(
         LOG_SGW_S8, imsi64,
-        "Failed to send S5S8 CREATE SESSION RESPONSE message to mme for "
-        "context_teid " TEID_FMT "\n",
+        "Failed to send S5S8 CREATE SESSION RESPONSE message to sgw_s8 task "
+        "for context_teid " TEID_FMT "\n",
         context_teid);
     OAILOG_FUNC_OUT(LOG_SGW_S8);
   }
