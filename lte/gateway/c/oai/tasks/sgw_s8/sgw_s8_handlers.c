@@ -38,6 +38,47 @@ uint32_t sgw_get_new_s5s8u_teid(sgw_state_t* state) {
   return (state->s5s8u_teid);
 }
 
+int sgw_remove_sgw_bearer_context_information(
+    sgw_state_t* sgw_state, teid_t teid, imsi64_t imsi64) {
+  int temp = 0;
+
+  hash_table_ts_t* state_imsi_ht = get_sgw_ue_state();
+  temp                           = hashtable_ts_free(state_imsi_ht, teid);
+  if (temp != HASH_TABLE_OK) {
+    OAILOG_ERROR_UE(
+        LOG_SPGW_APP, imsi64, "Failed to free teid from state_imsi_ht \n");
+    return temp;
+  }
+  spgw_ue_context_t* ue_context_p = NULL;
+  hashtable_ts_get(
+      sgw_state->imsi_ue_context_htbl, (const hash_key_t) imsi64,
+      (void**) &ue_context_p);
+  if (ue_context_p) {
+    sgw_s11_teid_t* p1 = LIST_FIRST(&(ue_context_p->sgw_s11_teid_list));
+    while (p1) {
+      if (p1->sgw_s11_teid == teid) {
+        LIST_REMOVE(p1, entries);
+        free_wrapper((void**) &p1);
+        break;
+      }
+      p1 = LIST_NEXT(p1, entries);
+    }
+    if (LIST_EMPTY(&ue_context_p->sgw_s11_teid_list)) {
+      temp = hashtable_ts_free(
+          sgw_state->imsi_ue_context_htbl, (const hash_key_t) imsi64);
+      if (temp != HASH_TABLE_OK) {
+        OAILOG_ERROR_UE(
+            LOG_SPGW_APP, imsi64,
+            "Failed to free imsi64 from imsi_ue_context_htbl \n");
+        return temp;
+      }
+      delete_sgw_ue_state(imsi64);
+    }
+  }
+  return temp;
+}
+
+//--- EPS Bearer Entry
 sgw_eps_bearer_context_information_t* sgw_get_sgw_eps_bearer_context(
     teid_t teid) {
   OAILOG_FUNC_IN(LOG_SGW_S8);
@@ -416,22 +457,31 @@ void sgw_s8_handle_create_session_response(
     OAILOG_FUNC_OUT(LOG_SGW_S8);
   }
 
+  if (session_rsp_p->cause == REQUEST_ACCEPTED) {
+    // update pdn details received from PGW
+    sgw_context_p->pdn_connection.p_gw_teid_S5_S8_cp =
+        session_rsp_p->pgw_s8_cp_teid.teid;
+    // update bearer context details received from PGW
+    update_bearer_context_info(sgw_context_p, session_rsp_p);
+  }
+  // send Create session response to mme
+  if ((sgw_s8_send_create_session_response(
+          sgw_state, sgw_context_p, session_rsp_p)) != RETURNok) {
+    OAILOG_ERROR_UE(
+        LOG_SGW_S8, imsi64,
+        "Failed to send create session response to mme for "
+        "sgw_s11_teid " TEID_FMT "\n",
+        session_rsp_p->context_teid);
+  }
   if (session_rsp_p->cause != REQUEST_ACCEPTED) {
     OAILOG_ERROR_UE(
         LOG_SGW_S8, imsi64,
         "Received failed create session response with cause: %d for "
         "context_id: " TEID_FMT "\n",
         session_rsp_p->cause, session_rsp_p->context_teid);
-    /*Rashmi send CSRep */
-    OAILOG_FUNC_OUT(LOG_SGW_S8);
+    sgw_remove_sgw_bearer_context_information(
+        sgw_state, session_rsp_p->context_teid, imsi64);
   }
-  // update pdn details received from PGW
-  sgw_context_p->pdn_connection.p_gw_teid_S5_S8_cp =
-      session_rsp_p->pgw_s8_cp_teid.teid;
-  // update bearer context details received from PGW
-  update_bearer_context_info(sgw_context_p, session_rsp_p);
 
-  // send Create session response to mme
-  sgw_s8_send_create_session_response(sgw_state, sgw_context_p, session_rsp_p);
   OAILOG_FUNC_OUT(LOG_SGW_S8);
 }

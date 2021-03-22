@@ -114,15 +114,15 @@ static void recv_s8_create_session_response(
   s5_response                   = &message_p->ittiMsg.s5s8_create_session_rsp;
   message_p->ittiMsgHeader.imsi = imsi64;
   s5_response->context_teid     = context_teid;
-  if (!status.ok()) {
+  if (status.ok()) {
+    convert_proto_msg_to_itti_csr(response, s5_response);
+  } else {
     OAILOG_ERROR(
         LOG_SGW_S8,
         "Received Create Session Failure for context_teid " TEID_FMT "\n",
         context_teid);
     s5_response->cause = REMOTE_PEER_NOT_RESPONDING;
-    OAILOG_FUNC_OUT(LOG_SGW_S8);
   }
-  convert_proto_msg_to_itti_csr(response, s5_response);
   if ((send_msg_to_task(&grpc_service_task_zmq_ctx, TASK_SGW_S8, message_p)) !=
       RETURNok) {
     OAILOG_ERROR_UE(
