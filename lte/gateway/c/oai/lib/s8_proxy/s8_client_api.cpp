@@ -21,8 +21,10 @@ extern "C" {
 #include "log.h"
 #include "s5s8_messages_types.h"
 #include "common_defs.h"
+#include "common_types.h"
 extern task_zmq_ctx_t grpc_service_task_zmq_ctx;
 }
+
 static void convert_proto_msg_to_itti_csr(
     magma::feg::CreateSessionResponsePgw& response,
     s5s8_create_session_response_t* s5_response);
@@ -71,12 +73,18 @@ static void get_paa_from_proto_msg(
     }
     case magma::feg::PDNType::IPV6: {
       paa->pdn_type = IPv6;
-      auto ip       = proto_paa.ipv4_address();
-      memcpy(&paa->ipv4_address, ip.c_str(), sizeof(ip.c_str()));
+      auto ip       = proto_paa.ipv6_address();
+      memcpy(&paa->ipv6_address, ip.c_str(), sizeof(ip.c_str()));
+      paa->ipv6_prefix_length = IPV6_PREFIX_LEN;
       break;
     }
     case magma::feg::PDNType::IPV4V6: {
       paa->pdn_type = IPv4_AND_v6;
+      auto ip       = proto_paa.ipv4_address();
+      memcpy(&paa->ipv4_address, ip.c_str(), sizeof(ip.c_str()));
+      auto ipv6 = proto_paa.ipv6_address();
+      memcpy(&paa->ipv6_address, ipv6.c_str(), sizeof(ipv6.c_str()));
+      paa->ipv6_prefix_length = IPV6_PREFIX_LEN;
       break;
     }
     case magma::feg::PDNType::NonIP: {

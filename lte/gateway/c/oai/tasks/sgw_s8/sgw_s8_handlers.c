@@ -16,11 +16,14 @@ limitations under the License.
 #include "3gpp_29.274.h"
 #include "log.h"
 #include "common_defs.h"
+#include "intertask_interface.h"
 #include "sgw_context_manager.h"
 #include "spgw_types.h"
 #include "sgw_s8_state.h"
 #include "sgw_s8_s11_handlers.h"
 #include "s8_client_api.h"
+
+extern task_zmq_ctx_t spgw_app_task_zmq_ctx;
 
 uint32_t sgw_get_new_s1u_teid(sgw_state_t* state) {
   if (state->s1u_teid == 0) {
@@ -251,6 +254,140 @@ void sgw_s8_handle_s11_create_session_request(
   OAILOG_FUNC_OUT(LOG_SGW_S8);
 }
 
+static int update_bearer_context_info(
+    sgw_eps_bearer_context_information_t* sgw_context_p,
+    const s5s8_create_session_response_t* const session_rsp_p) {
+  OAILOG_FUNC_IN(LOG_SGW_S8);
+  sgw_eps_bearer_ctxt_t* default_bearer_ctx_p = sgw_cm_get_eps_bearer_entry(
+      &sgw_context_p->pdn_connection, session_rsp_p->eps_bearer_id);
+  if (!default_bearer_ctx_p) {
+    OAILOG_ERROR_UE(
+        LOG_SGW_S8, sgw_context_p->imsi64,
+        "Failed to get default eps bearer context for context teid " TEID_FMT
+        "and bearer_id :%d \n",
+        session_rsp_p->context_teid, session_rsp_p->eps_bearer_id);
+    /*Rashmi send CSRep */
+    OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNerror);
+  }
+  memcpy(&default_bearer_ctx_p->paa, &session_rsp_p->paa, sizeof(paa_t));
+  for (uint8_t indx = 0; indx < BEARERS_PER_UE; indx++) {
+    s5s8_bearer_context_t s5s8_bearer_context =
+        session_rsp_p->bearer_context[indx];
+    sgw_eps_bearer_ctxt_t* eps_bearer_ctx_p = sgw_cm_get_eps_bearer_entry(
+        &sgw_context_p->pdn_connection, s5s8_bearer_context.eps_bearer_id);
+    if (!eps_bearer_ctx_p) {
+      OAILOG_ERROR_UE(
+          LOG_SGW_S8, sgw_context_p->imsi64,
+          "Failed to get eps bearer context for context teid " TEID_FMT
+          "and bearer_id :%d \n",
+          session_rsp_p->context_teid, s5s8_bearer_context.eps_bearer_id);
+      /*Rashmi send CSRep */
+      OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNerror);
+    }
+    eps_bearer_ctx_p->p_gw_address_in_use_up.address.ipv4_address =
+        s5s8_bearer_context.pgw_s8_up.ipv4_address;
+    memcpy(
+        &eps_bearer_ctx_p->p_gw_address_in_use_up.address.ipv6_address,
+        &s5s8_bearer_context.pgw_s8_up.ipv6_address, sizeof(struct in6_addr));
+    eps_bearer_ctx_p->p_gw_teid_S5_S8_up = s5s8_bearer_context.pgw_s8_up.teid;
+
+    memcpy(
+        &eps_bearer_ctx_p->eps_bearer_qos, &s5s8_bearer_context.qos,
+        sizeof(bearer_qos_t));
+  }
+  OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNok);
+}
+
+static int sgw_s8_send_create_session_response(
+    sgw_state_t* sgw_state, sgw_eps_bearer_context_information_t* sgw_context_p,
+    const s5s8_create_session_response_t* const session_rsp_p) {
+  OAILOG_FUNC_IN(LOG_SGW_S8);
+  MessageDef* message_p                                         = NULL;
+  itti_s11_create_session_response_t* create_session_response_p = NULL;
+
+  message_p = itti_alloc_new_message(TASK_SGW_S8, S11_CREATE_SESSION_RESPONSE);
+  if (message_p == NULL) {
+    OAILOG_CRITICAL_UE(
+        LOG_SGW_S8, sgw_context_p->imsi64,
+        "Failed to allocate memory for S11_create_session_response \n");
+    OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNerror);
+  }
+  if (!sgw_context_p) {
+    OAILOG_ERROR_UE(
+        LOG_SGW_S8, sgw_context_p->imsi64, "sgw_context_p is NULL \n");
+    OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNerror);
+  }
+
+  create_session_response_p = &message_p->ittiMsg.s11_create_session_response;
+  if (!create_session_response_p) {
+    OAILOG_ERROR_UE(
+        LOG_SGW_S8, sgw_context_p->imsi64,
+        "create_session_response_p is NULL \n");
+    OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNerror);
+  }
+  create_session_response_p->teid              = sgw_context_p->mme_teid_S11;
+  create_session_response_p->cause.cause_value = session_rsp_p->cause;
+  create_session_response_p->s11_sgw_fteid.teid =
+      sgw_context_p->s_gw_teid_S11_S4;
+  create_session_response_p->s11_sgw_fteid.interface_type = S11_SGW_GTP_C;
+  create_session_response_p->s11_sgw_fteid.ipv4           = 1;
+  create_session_response_p->s11_sgw_fteid.ipv4_address.s_addr =
+      spgw_config.sgw_config.ipv4.S11.s_addr;
+
+  if (session_rsp_p->cause == REQUEST_ACCEPTED) {
+    sgw_eps_bearer_ctxt_t* default_bearer_ctxt_p = sgw_cm_get_eps_bearer_entry(
+        &sgw_context_p->pdn_connection, session_rsp_p->eps_bearer_id);
+    if (!default_bearer_ctxt_p) {
+      OAILOG_ERROR_UE(
+          LOG_SGW_S8, sgw_context_p->imsi64,
+          "Failed to get default eps bearer context for sgw_s11_teid " TEID_FMT
+          "and bearer_id :%d \n",
+          session_rsp_p->context_teid, session_rsp_p->eps_bearer_id);
+      OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNerror);
+    }
+    memcpy(
+        &create_session_response_p->paa, &default_bearer_ctxt_p->paa,
+        sizeof(paa_t));
+    create_session_response_p->bearer_contexts_created.num_bearer_context = 1;
+    bearer_context_created_t bearer_context =
+        create_session_response_p->bearer_contexts_created.bearer_contexts[0];
+
+    bearer_context.s1u_sgw_fteid.teid =
+        default_bearer_ctxt_p->s_gw_teid_S1u_S12_S4_up;
+    bearer_context.s1u_sgw_fteid.interface_type = S1_U_SGW_GTP_U;
+    bearer_context.s1u_sgw_fteid.ipv4           = 1;
+    bearer_context.s1u_sgw_fteid.ipv4_address.s_addr =
+        sgw_state->sgw_ip_address_S1u_S12_S4_up.s_addr;
+    bearer_context.eps_bearer_id = session_rsp_p->eps_bearer_id;
+    /*
+     * Set the Cause information from bearer context created.
+     * "Request accepted" is returned when the GTPv2 entity has accepted a
+     * control plane request.
+     */
+    create_session_response_p->bearer_contexts_created.bearer_contexts[0]
+        .cause.cause_value = session_rsp_p->cause;
+  } else {
+    create_session_response_p->bearer_contexts_marked_for_removal
+        .num_bearer_context = 1;
+    bearer_context_marked_for_removal_t bearer_context =
+        create_session_response_p->bearer_contexts_marked_for_removal
+            .bearer_contexts[0];
+    bearer_context.cause.cause_value = session_rsp_p->cause;
+    bearer_context.eps_bearer_id     = session_rsp_p->eps_bearer_id;
+    create_session_response_p->trxn  = sgw_context_p->trxn;
+  }
+  message_p->ittiMsgHeader.imsi = sgw_context_p->imsi64;
+  OAILOG_DEBUG_UE(
+      LOG_SGW_S8, sgw_context_p->imsi64,
+      "Sending S11 Create Session Response to mme for mme_s11_teid: " TEID_FMT
+      "\n",
+      create_session_response_p->teid);
+
+  send_msg_to_task(&spgw_app_task_zmq_ctx, TASK_MME_APP, message_p);
+
+  OAILOG_FUNC_RETURN(LOG_SGW_S8, RETURNok);
+}
+
 void sgw_s8_handle_create_session_response(
     sgw_state_t* sgw_state,
     const s5s8_create_session_response_t* const session_rsp_p,
@@ -266,6 +403,7 @@ void sgw_s8_handle_create_session_response(
       LOG_SGW_S8, imsi64,
       " Rx S5S8_CREATE_SESSION_RSP for context_teid " TEID_FMT "\n",
       session_rsp_p->context_teid);
+
   sgw_eps_bearer_context_information_t* sgw_context_p =
       sgw_get_sgw_eps_bearer_context(session_rsp_p->context_teid);
   if (!sgw_context_p) {
@@ -276,6 +414,7 @@ void sgw_s8_handle_create_session_response(
         session_rsp_p->context_teid);
     OAILOG_FUNC_OUT(LOG_SGW_S8);
   }
+
   if (session_rsp_p->cause != REQUEST_ACCEPTED) {
     OAILOG_ERROR_UE(
         LOG_SGW_S8, imsi64,
@@ -285,5 +424,14 @@ void sgw_s8_handle_create_session_response(
     /*Rashmi send CSRep */
     OAILOG_FUNC_OUT(LOG_SGW_S8);
   }
+  // update pdn details received from PGW
+  sgw_context_p->pdn_connection.p_gw_teid_S5_S8_cp =
+      session_rsp_p->pgw_s8_cp_teid.teid;
+  // update bearer context details received from PGW
+  update_bearer_context_info(sgw_context_p, session_rsp_p);
+
+  // send Create session response to mme
+  sgw_s8_send_create_session_response(sgw_state, sgw_context_p, session_rsp_p);
   OAILOG_FUNC_OUT(LOG_SGW_S8);
 }
+
