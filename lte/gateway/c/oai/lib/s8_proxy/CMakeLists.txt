@@ -27,6 +27,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_library(LIB_S8_PROXY
     S8Client.cpp
     s8_client_api.cpp
+    GrpcMagmaUtils.cpp
     ${PROTO_SRCS}
     ${PROTO_HDRS}
     )

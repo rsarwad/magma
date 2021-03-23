@@ -14,6 +14,7 @@ limitations under the License.
 #include <grpcpp/impl/codegen/async_unary_call.h>
 #include <thread>  // std::thread
 #include <utility>
+#include "GrpcMagmaUtils.h"
 
 #include "S8Client.h"
 #include "ServiceRegistrySingleton.h"
@@ -47,6 +48,10 @@ void S8Client::s8_create_session_request(
   S8Client& client = get_instance();
   // Create a raw response pointer that stores a callback to be called when the
   // gRPC call is answered
+  // TODO Rashmi remove print later
+  auto& request_cpy = csr_req;
+  // Print the Create Session Req message
+  PrintGrpcMessage(static_cast<const google::protobuf::Message&>(request_cpy));
   auto response = new AsyncLocalResponse<CreateSessionResponsePgw>(
       std::move(callback), RESPONSE_TIMEOUT);
   // Create a response reader for the `CreateSession` RPC call. This reader

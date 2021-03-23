@@ -16,6 +16,7 @@ limitations under the License.
 #include "orc8r/protos/common.pb.h"
 #include "s8_client_api.h"
 #include "S8Client.h"
+#include "GrpcMagmaUtils.h"
 extern "C" {
 #include "intertask_interface.h"
 #include "log.h"
@@ -25,6 +26,7 @@ extern "C" {
 extern task_zmq_ctx_t grpc_service_task_zmq_ctx;
 }
 
+static char _convert_digit_to_char(char digit);
 static void convert_proto_msg_to_itti_csr(
     magma::feg::CreateSessionResponsePgw& response,
     s5s8_create_session_response_t* s5_response);
@@ -128,6 +130,7 @@ static void recv_s8_create_session_response(
         context_teid);
     s5_response->cause = REMOTE_PEER_NOT_RESPONDING;
   }
+  OAILOG_DEBUG(LOG_UTIL, "Sending create session response to SGW task");
   if ((send_msg_to_task(&grpc_service_task_zmq_ctx, TASK_SGW_S8, message_p)) !=
       RETURNok) {
     OAILOG_ERROR_UE(
@@ -263,13 +266,29 @@ static void fill_s8_create_session_req(
   csr->Clear();
   csr->set_imsi((char*) msg->imsi.digit, msg->imsi.length);
   csr->set_msisdn((char*) msg->msisdn.digit, msg->msisdn.length);
+  char mcc[3];
+  mcc[0] = _convert_digit_to_char(msg->serving_network.mcc[0]);
+  mcc[1] = _convert_digit_to_char(msg->serving_network.mcc[1]);
+  mcc[2] = _convert_digit_to_char(msg->serving_network.mcc[2]);
+  char mnc[3];
+  uint8_t mnc_len = 0;
+  mnc[0]          = _convert_digit_to_char(msg->serving_network.mnc[0]);
+  mnc[1]          = _convert_digit_to_char(msg->serving_network.mnc[1]);
+  if ((msg->serving_network.mnc[2] & 0xf) != 0xf) {
+    mnc[2]  = _convert_digit_to_char(msg->serving_network.mnc[2]);
+    mnc_len = 3;
+  } else {
+    mnc[2]  = '\0';
+    mnc_len = 2;
+  }
+
   magma::feg::ServingNetwork* serving_network = csr->mutable_serving_network();
-  serving_network->set_mcc((char*) msg->serving_network.mcc, 3);
-  serving_network->set_mnc((char*) msg->serving_network.mnc, 3);
+  serving_network->set_mcc(mcc, 3);
+  serving_network->set_mnc(mnc, mnc_len);
   convert_uli_to_proto_msg(csr->mutable_uli(), msg->uli);
   csr->set_rat_type(magma::feg::RATType::EUTRAN);
   convert_paa_to_proto_msg(msg, csr);
-  csr->set_apn(msg->apn, sizeof(msg->apn));
+  csr->set_apn(msg->apn);
   csr->mutable_ambr()->set_br_ul(msg->ambr.br_ul);
   csr->mutable_ambr()->set_br_dl(msg->ambr.br_dl);
 
@@ -323,4 +342,23 @@ static void convert_proto_msg_to_itti_csr(
       response.bearer_context().user_plane_fteid(), &s5s8_bc.pgw_s8_up);
   s5_response->cause = response.mutable_gtp_error()->cause();
   OAILOG_FUNC_OUT(LOG_SGW_S8);
+}
+
+/*
+ * Converts ascii values in [0,9] to [48,57]=['0','9']
+ * else if they are in [48,57] keep them the same
+ * else log an error and return '0'=48 value
+ */
+static char _convert_digit_to_char(char digit) {
+  if ((digit >= 0) && (digit <= 9)) {
+    return (digit + '0');
+  } else if ((digit >= '0') && (digit <= '9')) {
+    return digit;
+  } else {
+    OAILOG_ERROR(
+        LOG_SPGW_APP,
+        "The input value for digit is not in a valid range: "
+        "Session request would likely be rejected on Gx or Gy interface\n");
+    return '0';
+  }
 }
