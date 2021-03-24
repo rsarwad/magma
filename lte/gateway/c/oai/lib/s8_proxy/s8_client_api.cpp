@@ -16,7 +16,7 @@ limitations under the License.
 #include "orc8r/protos/common.pb.h"
 #include "s8_client_api.h"
 #include "S8Client.h"
-#include "GrpcMagmaUtils.h"
+#include "pcef_handlers.h"
 extern "C" {
 #include "intertask_interface.h"
 #include "log.h"
@@ -163,23 +163,35 @@ static void convert_paa_to_proto_msg(
   switch (msg->pdn_type) {
     case IPv4:
       csr->set_pdn_type(magma::feg::PDNType::IPV4);
-      csr->mutable_paa()->set_ipv4_address(
-          (char*) &msg->paa.ipv4_address, sizeof(msg->paa.ipv4_address));
+      if (msg->paa.ipv4_address.s_addr) {
+        char ip4_str[INET_ADDRSTRLEN];
+        inet_ntop(
+            AF_INET, &(msg->paa.ipv4_address.s_addr), ip4_str, INET_ADDRSTRLEN);
+        csr->mutable_paa()->set_ipv4_address(ip4_str);
+      }
       break;
-    case IPv6:
+    case IPv6: {
       csr->set_pdn_type(magma::feg::PDNType::IPV6);
-      csr->mutable_paa()->set_ipv6_address(
-          (char*) &msg->paa.ipv6_address, sizeof(msg->paa.ipv6_address));
+      char ip6_str[INET6_ADDRSTRLEN];
+      inet_ntop(AF_INET6, &(msg->paa.ipv6_address), ip6_str, INET6_ADDRSTRLEN);
+      csr->mutable_paa()->set_ipv6_address(ip6_str);
       csr->mutable_paa()->set_ipv6_prefix(msg->paa.ipv6_prefix_length);
       break;
-    case IPv4_AND_v6:
+    }
+    case IPv4_AND_v6: {
       csr->set_pdn_type(magma::feg::PDNType::IPV4V6);
-      csr->mutable_paa()->set_ipv4_address(
-          (char*) &msg->paa.ipv4_address, sizeof(msg->paa.ipv4_address));
-      csr->mutable_paa()->set_ipv6_address(
-          (char*) &msg->paa.ipv6_address, sizeof(msg->paa.ipv6_address));
+      if (msg->paa.ipv4_address.s_addr) {
+        char ip4_str[INET_ADDRSTRLEN];
+        inet_ntop(
+            AF_INET, &(msg->paa.ipv4_address.s_addr), ip4_str, INET_ADDRSTRLEN);
+        csr->mutable_paa()->set_ipv4_address(ip4_str);
+      }
+      char ip6_str[INET6_ADDRSTRLEN];
+      inet_ntop(AF_INET6, &(msg->paa.ipv6_address), ip6_str, INET6_ADDRSTRLEN);
+      csr->mutable_paa()->set_ipv6_address(ip6_str);
       csr->mutable_paa()->set_ipv6_prefix(msg->paa.ipv6_prefix_length);
       break;
+    }
     default:
       std::cout << "[ERROR] Invalid pdn type " << std::endl;
       break;
@@ -264,8 +276,10 @@ static void fill_s8_create_session_req(
     magma::feg::CreateSessionRequestPgw* csr) {
   OAILOG_FUNC_IN(LOG_SGW_S8);
   csr->Clear();
+  char msisdn[MSISDN_LENGTH + 1];
+  int msisdn_len = get_msisdn_from_session_req(msg, msisdn);
   csr->set_imsi((char*) msg->imsi.digit, msg->imsi.length);
-  csr->set_msisdn((char*) msg->msisdn.digit, msg->msisdn.length);
+  csr->set_msisdn((char*) msisdn, msisdn_len);
   char mcc[3];
   mcc[0] = _convert_digit_to_char(msg->serving_network.mcc[0]);
   mcc[1] = _convert_digit_to_char(msg->serving_network.mcc[1]);
