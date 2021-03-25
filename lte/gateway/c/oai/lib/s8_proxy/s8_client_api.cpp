@@ -26,10 +26,9 @@ extern "C" {
 extern task_zmq_ctx_t grpc_service_task_zmq_ctx;
 }
 
-static char _convert_digit_to_char(char digit);
 static void convert_proto_msg_to_itti_csr(
     magma::feg::CreateSessionResponsePgw& response,
-    s5s8_create_session_response_t* s5_response);
+    s5s8_create_session_response_t** s5_response);
 
 static void get_qos_from_proto_msg(
     const magma::feg::QosInformation& proto_qos, bearer_qos_t* bearer_qos) {
@@ -108,7 +107,8 @@ static void recv_s8_create_session_response(
   OAILOG_FUNC_IN(LOG_SGW_S8);
   s5s8_create_session_response_t* s5_response = NULL;
   MessageDef* message_p                       = NULL;
-  message_p = itti_alloc_new_message(TASK_SGW_S8, S5S8_CREATE_SESSION_RSP);
+  message_p =
+      itti_alloc_new_message(TASK_GRPC_SERVICE, S5S8_CREATE_SESSION_RSP);
   if (!message_p) {
     OAILOG_ERROR(
         LOG_SGW_S8,
@@ -121,7 +121,7 @@ static void recv_s8_create_session_response(
   message_p->ittiMsgHeader.imsi = imsi64;
   s5_response->context_teid     = context_teid;
   if (status.ok()) {
-    convert_proto_msg_to_itti_csr(response, s5_response);
+    convert_proto_msg_to_itti_csr(response, &s5_response);
   } else {
     OAILOG_ERROR(
         LOG_SGW_S8,
@@ -271,15 +271,26 @@ static void convert_bearer_context_to_proto(
   OAILOG_FUNC_OUT(LOG_SGW_S8);
 }
 
+static void get_msisdn_from_csr_req(
+    const itti_s11_create_session_request_t* msg, char* msisdn) {
+  OAILOG_FUNC_IN(LOG_SGW_S8);
+  uint8_t idx = 0;
+  for (; ((idx < msg->msisdn.length) && (idx < MSISDN_LENGTH)); idx++) {
+    msisdn[idx] = _convert_digit_to_char(msg->msisdn.digit[idx]);
+  }
+  msisdn[idx] = '\0';
+  OAILOG_FUNC_OUT(LOG_SGW_S8);
+}
+
 static void fill_s8_create_session_req(
     const itti_s11_create_session_request_t* msg,
     magma::feg::CreateSessionRequestPgw* csr) {
   OAILOG_FUNC_IN(LOG_SGW_S8);
   csr->Clear();
   char msisdn[MSISDN_LENGTH + 1];
-  int msisdn_len = get_msisdn_from_session_req(msg, msisdn);
+  get_msisdn_from_csr_req(msg, msisdn);
   csr->set_imsi((char*) msg->imsi.digit, msg->imsi.length);
-  csr->set_msisdn((char*) msisdn, msisdn_len);
+  csr->set_msisdn((char*) msisdn, msg->msisdn.length);
   char mcc[3];
   mcc[0] = _convert_digit_to_char(msg->serving_network.mcc[0]);
   mcc[1] = _convert_digit_to_char(msg->serving_network.mcc[1]);
@@ -340,39 +351,21 @@ void send_s8_create_session_request(
 
 static void convert_proto_msg_to_itti_csr(
     magma::feg::CreateSessionResponsePgw& response,
-    s5s8_create_session_response_t* s5_response) {
+    s5s8_create_session_response_t** s5_response) {
   OAILOG_FUNC_IN(LOG_SGW_S8);
-  s5_response->apn_restriction_value = response.apn_restriction();
+  (*s5_response)->apn_restriction_value = response.apn_restriction();
   get_fteid_from_proto_msg(
-      response.c_pgw_fteid(), &s5_response->pgw_s8_cp_teid);
+      response.c_pgw_fteid(), &(*s5_response)->pgw_s8_cp_teid);
   get_paa_from_proto_msg(
-      response.pdn_type(), response.paa(), &s5_response->paa);
+      response.pdn_type(), response.paa(), &(*s5_response)->paa);
 
-  s5s8_bearer_context_t s5s8_bc = s5_response->bearer_context[0];
+  s5s8_bearer_context_t s5s8_bc = (*s5_response)->bearer_context[0];
   s5s8_bc.eps_bearer_id         = response.bearer_context().id();
   s5s8_bc.charging_id           = response.bearer_context().charging_id();
   get_qos_from_proto_msg(response.bearer_context().qos(), &s5s8_bc.qos);
   get_fteid_from_proto_msg(
       response.bearer_context().user_plane_fteid(), &s5s8_bc.pgw_s8_up);
-  s5_response->cause = response.mutable_gtp_error()->cause();
+  (*s5_response)->cause = response.mutable_gtp_error()->cause();
   OAILOG_FUNC_OUT(LOG_SGW_S8);
 }
 
-/*
- * Converts ascii values in [0,9] to [48,57]=['0','9']
- * else if they are in [48,57] keep them the same
- * else log an error and return '0'=48 value
- */
-static char _convert_digit_to_char(char digit) {
-  if ((digit >= 0) && (digit <= 9)) {
-    return (digit + '0');
-  } else if ((digit >= '0') && (digit <= '9')) {
-    return digit;
-  } else {
-    OAILOG_ERROR(
-        LOG_SPGW_APP,
-        "The input value for digit is not in a valid range: "
-        "Session request would likely be rejected on Gx or Gy interface\n");
-    return '0';
-  }
-}
