@@ -284,7 +284,7 @@ static void get_msisdn_from_csr_req(
 
 static void fill_s8_create_session_req(
     const itti_s11_create_session_request_t* msg,
-    magma::feg::CreateSessionRequestPgw* csr) {
+    magma::feg::CreateSessionRequestPgw* csr, teid_t sgw_s5s8_teid) {
   OAILOG_FUNC_IN(LOG_SGW_S8);
   csr->Clear();
   char msisdn[MSISDN_LENGTH + 1];
@@ -322,6 +322,7 @@ static void fill_s8_create_session_req(
     convert_bearer_context_to_proto(
         &msg->bearer_contexts_to_be_created.bearer_contexts[0], bc);
   }
+  csr->set_c_agw_teid(sgw_s5s8_teid);
   csr->set_charging_characteristics(
       msg->charging_characteristics.value,
       msg->charging_characteristics.length);
@@ -339,7 +340,10 @@ void send_s8_create_session_request(
 
   std::cout << "Sending create session request for for IMSI: " << imsi64
             << "and context_teid: " << sgw_s11_teid << std::endl;
-  fill_s8_create_session_req(msg, &csr_req);
+  // teid shall remain same for both sgw's s11 interface and s8 interface as
+  // teid is allocated per PDN
+
+  fill_s8_create_session_req(msg, &csr_req, sgw_s11_teid);
 
   magma::S8Client::s8_create_session_request(
       csr_req,
