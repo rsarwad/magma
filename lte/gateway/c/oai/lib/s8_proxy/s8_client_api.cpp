@@ -204,7 +204,7 @@ static void convert_indication_flag_to_proto_msg(
     magma::feg::CreateSessionRequestPgw* csr) {
   OAILOG_FUNC_IN(LOG_SGW_S8);
 #define INDICATION_FLAG_SIZE 3
-  char indication_flag[INDICATION_FLAG_SIZE];
+  char indication_flag[INDICATION_FLAG_SIZE] = {0};
   indication_flag[0] = (msg->indication_flags.daf << DAF_FLAG_BIT_POS) |
                        (msg->indication_flags.dtf << DTF_FLAG_BIT_POS) |
                        (msg->indication_flags.hi << HI_FLAG_BIT_POS) |
@@ -276,7 +276,7 @@ static void get_msisdn_from_csr_req(
   OAILOG_FUNC_IN(LOG_SGW_S8);
   uint8_t idx = 0;
   for (; ((idx < msg->msisdn.length) && (idx < MSISDN_LENGTH)); idx++) {
-    msisdn[idx] = _convert_digit_to_char(msg->msisdn.digit[idx]);
+    msisdn[idx] = convert_digit_to_char(msg->msisdn.digit[idx]);
   }
   msisdn[idx] = '\0';
   OAILOG_FUNC_OUT(LOG_SGW_S8);
@@ -292,15 +292,15 @@ static void fill_s8_create_session_req(
   csr->set_imsi((char*) msg->imsi.digit, msg->imsi.length);
   csr->set_msisdn((char*) msisdn, msg->msisdn.length);
   char mcc[3];
-  mcc[0] = _convert_digit_to_char(msg->serving_network.mcc[0]);
-  mcc[1] = _convert_digit_to_char(msg->serving_network.mcc[1]);
-  mcc[2] = _convert_digit_to_char(msg->serving_network.mcc[2]);
+  mcc[0] = convert_digit_to_char(msg->serving_network.mcc[0]);
+  mcc[1] = convert_digit_to_char(msg->serving_network.mcc[1]);
+  mcc[2] = convert_digit_to_char(msg->serving_network.mcc[2]);
   char mnc[3];
   uint8_t mnc_len = 0;
-  mnc[0]          = _convert_digit_to_char(msg->serving_network.mnc[0]);
-  mnc[1]          = _convert_digit_to_char(msg->serving_network.mnc[1]);
+  mnc[0]          = convert_digit_to_char(msg->serving_network.mnc[0]);
+  mnc[1]          = convert_digit_to_char(msg->serving_network.mnc[1]);
   if ((msg->serving_network.mnc[2] & 0xf) != 0xf) {
-    mnc[2]  = _convert_digit_to_char(msg->serving_network.mnc[2]);
+    mnc[2]  = convert_digit_to_char(msg->serving_network.mnc[2]);
     mnc_len = 3;
   } else {
     mnc[2]  = '\0';
@@ -342,6 +342,10 @@ void send_s8_create_session_request(
             << "and context_teid: " << sgw_s11_teid << std::endl;
   // teid shall remain same for both sgw's s11 interface and s8 interface as
   // teid is allocated per PDN
+  OAILOG_INFO_UE(
+      LOG_SGW_S8, imsi64,
+      "Sending create session request for context_tied " TEID_FMT "\n",
+      sgw_s11_teid);
 
   fill_s8_create_session_req(msg, &csr_req, sgw_s11_teid);
 
@@ -372,4 +376,3 @@ static void convert_proto_msg_to_itti_csr(
   (*s5_response)->cause = response.mutable_gtp_error()->cause();
   OAILOG_FUNC_OUT(LOG_SGW_S8);
 }
-

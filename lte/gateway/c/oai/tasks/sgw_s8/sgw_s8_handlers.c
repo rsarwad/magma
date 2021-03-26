@@ -91,6 +91,8 @@ sgw_eps_bearer_context_information_t* sgw_get_sgw_eps_bearer_context(
   OAILOG_FUNC_RETURN(LOG_SGW_S8, sgw_bearer_context_info);
 }
 
+// Re-using the spgw_ue context structure, that contains the list sgw_s11_teids
+// and is common across both sgw_s8 and spgw tasks.
 spgw_ue_context_t* sgw_create_or_get_ue_context(
     sgw_state_t* sgw_state, imsi64_t imsi64) {
   OAILOG_FUNC_IN(LOG_SGW_S8);
