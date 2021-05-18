@@ -14,7 +14,7 @@
     "mockserver": "node -r '@fbcnms/babel-register' scripts/mockServer.js"
   },
   "dependencies": {
-    "@babel/cli": "^7.2.3",
+    "@babel/cli": "^7.14.3",
     "@babel/core": "^7.14.0",
     "@babel/node": "^7.0.0",
     "@babel/plugin-proposal-class-properties": "^7.13.0",
